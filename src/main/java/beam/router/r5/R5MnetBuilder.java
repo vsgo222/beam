@@ -60,6 +60,7 @@ public class R5MnetBuilder {
         Map<Long, Way> ways = new OSM(osmFile).ways;
         EdgeStore.Edge cursor = r5Network.streetLayer.edgeStore.getCursor();  // Iterator of edges in R5 network
         OsmToMATSim OTM = new OsmToMATSim(mNetwork, true);
+        int numberOfFixes = 0;
         while (cursor.advance()) {
 //            log.debug("Edge Index:{}. Cursor {}.", cursor.getEdgeIndex(), cursor);
             // TODO - eventually, we should pass each R5 link to OsmToMATSim and do the two-way handling there.
@@ -93,16 +94,26 @@ public class R5MnetBuilder {
             // Grab existing nodes from mNetwork if they already exist, else make new ones and add to mNetwork
             Node fromNode = getOrMakeNode(fromCoord);
             Node toNode = getOrMakeNode(toCoord);
+            Link link = null;
             if (way == null) {
                 // Made up numbers, this is a PT to road network connector or something
-                Link link = buildLink(edgeIndex, flagStrings, length, fromNode, toNode);
+                link = buildLink(edgeIndex, flagStrings, length, fromNode, toNode);
                 mNetwork.addLink(link);
                 log.debug("Created special link: {}", link);
             } else {
-                Link link = OTM.createLink(way, osmID, edgeIndex, fromNode, toNode, length, (HashSet<String>)flagStrings);
+                link = OTM.createLink(way, osmID, edgeIndex, fromNode, toNode, length, (HashSet<String>)flagStrings);
                 mNetwork.addLink(link);
                 log.debug("Created regular link: {}", link);
             }
+            if (fromNode.getId() == toNode.getId()) {
+                link.setLength(0.001);
+                link.setCapacity(10000);
+                link.setFreespeed(29.0576); // 65 miles per hour
+                numberOfFixes += 1;
+            }
+        }
+        if (numberOfFixes > 0) {
+            log.warn("Fixed {} links which were having the same `fromNode` and `toNode`", numberOfFixes);
         }
     }
 
