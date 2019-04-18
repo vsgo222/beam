@@ -106,6 +106,8 @@ public class R5MnetBuilder {
                 log.debug("Created regular link: {}", link);
             }
             if (fromNode.getId() == toNode.getId()) {
+                cursor.setLengthMm(1);
+                cursor.setSpeed((short)2905); // 65 miles per hour
                 link.setLength(0.001);
                 link.setCapacity(10000);
                 link.setFreespeed(29.0576); // 65 miles per hour
