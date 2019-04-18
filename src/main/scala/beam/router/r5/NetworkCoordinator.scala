@@ -60,17 +60,10 @@ trait NetworkCoordinator extends LazyLogging {
 
       createPhyssimNetwork()
 
-      val edgeBefore = transportNetwork.streetLayer.edgeStore.getCursor(196306);
-      println(edgeBefore)
-
       transportNetwork.write(Paths.get(beamConfig.beam.routing.r5.directory, GRAPH_FILE).toFile)
       transportNetwork = TransportNetwork.read(
         Paths.get(beamConfig.beam.routing.r5.directory, GRAPH_FILE).toFile
       ) // Needed because R5 closes DB on write
-
-
-      val edge = transportNetwork.streetLayer.edgeStore.getCursor(196306);
-      println(edge)
 
     }
   }
@@ -88,7 +81,6 @@ trait NetworkCoordinator extends LazyLogging {
 
   def fixTransportNetwork(transportNetwork: TransportNetwork): Unit = {
     val cursor = transportNetwork.streetLayer.edgeStore.getCursor
-
 
     val from = cursor.getFromVertex
     val to = cursor.getToVertex

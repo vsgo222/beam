@@ -95,7 +95,7 @@ public class R5MnetBuilder {
 
             if (way != null) {
                 final String highwayType = way.getTag("highway") == null ? "null" : way.getTag("highway");
-                if (highwayType.startsWith("[")){
+                if (highwayType != null && highwayType.startsWith("[")){
                     String[] highwayTypes = highwayType.replace("[", "").replace("]", "").replace("'", "").split(",");
                     if (highwayTypes.length > 0 ){
                         Optional<String> fistNonLink = Arrays.stream(highwayTypes).filter(x -> !x.contains("_link")).findFirst();
@@ -107,7 +107,7 @@ public class R5MnetBuilder {
                     log.warn(highwayType);
                 }
                 final String laneStr = way.getTag("lanes");
-                if (laneStr.startsWith("[")) {
+                if (laneStr != null && laneStr.startsWith("[")) {
                     IntStream lanes = Arrays.stream(laneStr.replace("[", "").replace("]", "")
                             .replace("'", "").split(",")).map(String::trim).mapToInt(Integer::parseInt);
                     double avgLanes = lanes.average().orElse(1.0);

@@ -36,7 +36,6 @@ import org.supercsv.prefs.CsvPreference
 
 import scala.collection.concurrent.TrieMap
 import scala.language.implicitConversions
-import scala.util.control.NonFatal
 
 //TODO to be validated against google api
 class BeamSkimmer @Inject()(val beamConfig: BeamConfig, val beamServices: BeamServices) extends LazyLogging {
@@ -70,7 +69,7 @@ class BeamSkimmer @Inject()(val beamConfig: BeamConfig, val beamServices: BeamSe
     } else {
       TrieMap.empty
     }
-    */
+     */
     TrieMap.empty
   }
 
@@ -195,6 +194,9 @@ class BeamSkimmer @Inject()(val beamConfig: BeamConfig, val beamServices: BeamSe
     }
   }
 
+  import AllNeededFormats._
+  import io.circe.syntax._
+
   def observeTrip(
     trip: EmbodiedBeamTrip,
     generalizedTimeInHours: Double,
@@ -203,6 +205,14 @@ class BeamSkimmer @Inject()(val beamConfig: BeamConfig, val beamServices: BeamSe
     beamServices: BeamServices
   ): Option[SkimInternal] = {
     val mode = trip.tripClassifier
+
+    if (trip.totalTravelTimeInSecs >= 8000 && mode == BeamMode.CAR) {
+      val jsStr = trip.asJson.toString()
+      logger.info(s"""Trip took: ${trip.totalTravelTimeInSecs} seconds
+           |$jsStr
+        """.stripMargin)
+    }
+
     val correctedTrip = mode match {
       case WALK =>
         trip.beamLegs()
