@@ -1,6 +1,7 @@
 package beam.router.r5;
 
 import beam.sim.config.BeamConfig;
+import beam.utils.osm.WayFixer$;
 import com.conveyal.osmlib.OSM;
 import com.conveyal.osmlib.OSMEntity;
 import com.conveyal.osmlib.Way;
@@ -61,6 +62,9 @@ public class R5MnetBuilder {
         // Load the OSM file for retrieving the number of lanes, which is not stored in the R5 network
 //        OSM osm = new OSM(osmFile);
         Map<Long, Way> ways = new OSM(osmFile).ways;
+
+        WayFixer$.MODULE$.fix(ways);
+
         EdgeStore.Edge cursor = r5Network.streetLayer.edgeStore.getCursor();  // Iterator of edges in R5 network
         OsmToMATSim OTM = new OsmToMATSim(mNetwork, true);
 
@@ -92,36 +96,36 @@ public class R5MnetBuilder {
             Long osmID = cursor.getOSMID();  // id of edge in the OSM db
 
             Way way = ways.get(osmID);
-
-            if (way != null) {
-                final String highwayType = way.getTag("highway") == null ? "null" : way.getTag("highway");
-                if (highwayType.startsWith("[")){
-                    String[] highwayTypes = highwayType.replace("[", "").replace("]", "").replace("'", "").split(",");
-                    if (highwayTypes.length > 0 ){
-                        Optional<String> fistNonLink = Arrays.stream(highwayTypes).filter(x -> !x.contains("_link")).findFirst();
-                        String newHighwayType = fistNonLink.orElseGet(() -> highwayTypes[0]);
-                        log.warn("{} => {}", highwayType, newHighwayType);
-                        way.tags.remove(new OSMEntity.Tag("highway", highwayType));
-                        way.addTag("highway", newHighwayType);
-                    }
-                    log.warn(highwayType);
-                }
-                final String laneStr = way.getTag("lanes");
-                if (laneStr.startsWith("[")) {
-                    IntStream lanes = Arrays.stream(laneStr.replace("[", "").replace("]", "")
-                            .replace("'", "").split(",")).map(String::trim).mapToInt(Integer::parseInt);
-                    double avgLanes = lanes.average().orElse(1.0);
-                    int avgLanesInt = (int) avgLanes;
-                    way.tags.remove(new OSMEntity.Tag("lanes", laneStr));
-                    way.addTag("lanes", Integer.toString(avgLanesInt));
-                }
-                if (highwayTypeToCounts.containsKey(highwayType)) {
-                    highwayTypeToCounts.put(highwayType, highwayTypeToCounts.get(highwayType) + 1);
-                } else {
-                    highwayTypeToCounts.put(highwayType, 1);
-
-                }
-            }
+//
+//            if (way != null) {
+//                final String highwayType = way.getTag("highway") == null ? "null" : way.getTag("highway");
+//                if (highwayType.startsWith("[")){
+//                    String[] highwayTypes = highwayType.replace("[", "").replace("]", "").replace("'", "").split(",");
+//                    if (highwayTypes.length > 0 ){
+//                        Optional<String> fistNonLink = Arrays.stream(highwayTypes).filter(x -> !x.contains("_link")).findFirst();
+//                        String newHighwayType = fistNonLink.orElseGet(() -> highwayTypes[0]);
+//                        log.warn("{} => {}", highwayType, newHighwayType);
+//                        way.tags.remove(new OSMEntity.Tag("highway", highwayType));
+//                        way.addTag("highway", newHighwayType);
+//                    }
+//                    log.warn(highwayType);
+//                }
+//                final String laneStr = way.getTag("lanes");
+//                if (laneStr.startsWith("[")) {
+//                    IntStream lanes = Arrays.stream(laneStr.replace("[", "").replace("]", "")
+//                            .replace("'", "").split(",")).map(String::trim).mapToInt(Integer::parseInt);
+//                    double avgLanes = lanes.average().orElse(1.0);
+//                    int avgLanesInt = (int) avgLanes;
+//                    way.tags.remove(new OSMEntity.Tag("lanes", laneStr));
+//                    way.addTag("lanes", Integer.toString(avgLanesInt));
+//                }
+//                if (highwayTypeToCounts.containsKey(highwayType)) {
+//                    highwayTypeToCounts.put(highwayType, highwayTypeToCounts.get(highwayType) + 1);
+//                } else {
+//                    highwayTypeToCounts.put(highwayType, 1);
+//
+//                }
+//            }
 
             Set<Integer> deezNodes = new HashSet<>(2);
             deezNodes.add(cursor.getFromVertex());
