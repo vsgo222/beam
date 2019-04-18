@@ -54,12 +54,33 @@ public class R5MnetBuilder {
         mNetwork = NetworkUtils.createNetwork();
     }
 
+    public static double fromMilesPerHourToMeteresPerSecond(double milersPerHour) {
+        return milersPerHour * 1.60934 *1000 / 3600;
+    }
+
     public void buildMNet() {
         // Load the OSM file for retrieving the number of lanes, which is not stored in the R5 network
 //        OSM osm = new OSM(osmFile);
         Map<Long, Way> ways = new OSM(osmFile).ways;
         EdgeStore.Edge cursor = r5Network.streetLayer.edgeStore.getCursor();  // Iterator of edges in R5 network
         OsmToMATSim OTM = new OsmToMATSim(mNetwork, true);
+
+        OTM.setBEAMHighwayDefaults(3, "primary", 1, fromMilesPerHourToMeteresPerSecond(65), 1.0, 1500);
+        OTM.setBEAMHighwayDefaults(3, "primary_link", 1, 0.66 * fromMilesPerHourToMeteresPerSecond(65), 1.0, 1500);
+        OTM.setBEAMHighwayDefaults(2, "trunk", 1, fromMilesPerHourToMeteresPerSecond(60), 1.0, 2000);
+        OTM.setBEAMHighwayDefaults(2, "trunk_link", 1, 0.66 * fromMilesPerHourToMeteresPerSecond(60), 1.0, 1500);
+
+        OTM.setBEAMHighwayDefaults(4, "secondary", 1, fromMilesPerHourToMeteresPerSecond(60), 1.0, 1000);
+        OTM.setBEAMHighwayDefaults(4, "secondary_link", 1, 0.66 * fromMilesPerHourToMeteresPerSecond(60), 1.0, 1000);
+
+        OTM.setBEAMHighwayDefaults(5, "tertiary", 1, fromMilesPerHourToMeteresPerSecond(55), 1.0, 600);
+        OTM.setBEAMHighwayDefaults(5, "tertiary_link", 1, 0.66 * fromMilesPerHourToMeteresPerSecond(55), 1.0, 600);
+
+        OTM.setBEAMHighwayDefaults(6, "residential", 1, fromMilesPerHourToMeteresPerSecond(25), 1.0, 600);
+        OTM.setBEAMHighwayDefaults(6, "minor", 1, fromMilesPerHourToMeteresPerSecond(25), 1.0, 600);
+        OTM.setBEAMHighwayDefaults(6, "residential", 1, fromMilesPerHourToMeteresPerSecond(25), 1.0, 600);
+        OTM.setBEAMHighwayDefaults(6, "living_street", 1, fromMilesPerHourToMeteresPerSecond(25), 1.0, 300);
+
         int numberOfFixes = 0;
         while (cursor.advance()) {
 //            log.debug("Edge Index:{}. Cursor {}.", cursor.getEdgeIndex(), cursor);
@@ -95,6 +116,15 @@ public class R5MnetBuilder {
             Node fromNode = getOrMakeNode(fromCoord);
             Node toNode = getOrMakeNode(toCoord);
             Link link = null;
+
+            if (fromNode.getId().toString().equals("80063") && toNode.getId().toString().equals("49176")) {
+                log.warn(fromNode.toString());
+            }
+
+            if (fromNode.getId().toString().equals("16257") && toNode.getId().toString().equals("28550")) {
+                log.warn(fromNode.toString());
+            }
+
             if (way == null) {
                 // Made up numbers, this is a PT to road network connector or something
                 link = buildLink(edgeIndex, flagStrings, length, fromNode, toNode);
@@ -105,7 +135,14 @@ public class R5MnetBuilder {
                 mNetwork.addLink(link);
                 log.debug("Created regular link: {}", link);
             }
-            if (fromNode.getId() == toNode.getId()) {
+
+            if (link.getId().toString().equals("61094") || link.getId().toString().equals("61095")) {
+                log.warn(link.toString());
+            }
+
+
+                if (fromNode.getId() == toNode.getId()) {
+                log.warn("edgeIndex: {}, linkId: {}", edgeIndex, link.getId());
                 cursor.setLengthMm(1);
                 cursor.setSpeed((short)2905); // 65 miles per hour
                 link.setLength(0.001);

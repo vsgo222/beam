@@ -57,11 +57,21 @@ trait NetworkCoordinator extends LazyLogging {
         true,
         false
       ) // Uses the new signature Andrew created
+
+      createPhyssimNetwork()
+
+      val edgeBefore = transportNetwork.streetLayer.edgeStore.getCursor(196306);
+      println(edgeBefore)
+
       transportNetwork.write(Paths.get(beamConfig.beam.routing.r5.directory, GRAPH_FILE).toFile)
       transportNetwork = TransportNetwork.read(
         Paths.get(beamConfig.beam.routing.r5.directory, GRAPH_FILE).toFile
       ) // Needed because R5 closes DB on write
-      createPhyssimNetwork()
+
+
+      val edge = transportNetwork.streetLayer.edgeStore.getCursor(196306);
+      println(edge)
+
     }
   }
 
@@ -74,6 +84,15 @@ trait NetworkCoordinator extends LazyLogging {
     new NetworkWriter(network)
       .write(beamConfig.matsim.modules.network.inputNetworkFile)
     logger.info(s"MATSim network written")
+  }
+
+  def fixTransportNetwork(transportNetwork: TransportNetwork): Unit = {
+    val cursor = transportNetwork.streetLayer.edgeStore.getCursor
+
+
+    val from = cursor.getFromVertex
+    val to = cursor.getToVertex
+
   }
 
   def convertFrequenciesToTrips(): Unit = {
