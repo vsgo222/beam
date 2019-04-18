@@ -2,6 +2,7 @@ package beam.router.r5;
 
 import beam.sim.config.BeamConfig;
 import com.conveyal.osmlib.OSM;
+import com.conveyal.osmlib.OSMEntity;
 import com.conveyal.osmlib.Way;
 import com.conveyal.r5.streets.EdgeStore;
 import com.conveyal.r5.transit.TransportNetwork;
@@ -16,10 +17,8 @@ import org.matsim.core.utils.geometry.transformations.GeotoolsTransformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.IntStream;
 
 /**
  * Build the pruned R5 network and MATSim network. These two networks have 1-1 link parity.
@@ -82,6 +81,8 @@ public class R5MnetBuilder {
         OTM.setBEAMHighwayDefaults(6, "living_street", 1, fromMilesPerHourToMeteresPerSecond(25), 1.0, 300);
 
         int numberOfFixes = 0;
+        HashMap<String, Integer> highwayTypeToCounts = new HashMap<>();
+
         while (cursor.advance()) {
 //            log.debug("Edge Index:{}. Cursor {}.", cursor.getEdgeIndex(), cursor);
             // TODO - eventually, we should pass each R5 link to OsmToMATSim and do the two-way handling there.
@@ -91,6 +92,36 @@ public class R5MnetBuilder {
             Long osmID = cursor.getOSMID();  // id of edge in the OSM db
 
             Way way = ways.get(osmID);
+
+            if (way != null) {
+                final String highwayType = way.getTag("highway") == null ? "null" : way.getTag("highway");
+                if (highwayType.startsWith("[")){
+                    String[] highwayTypes = highwayType.replace("[", "").replace("]", "").replace("'", "").split(",");
+                    if (highwayTypes.length > 0 ){
+                        Optional<String> fistNonLink = Arrays.stream(highwayTypes).filter(x -> !x.contains("_link")).findFirst();
+                        String newHighwayType = fistNonLink.orElseGet(() -> highwayTypes[0]);
+                        log.warn("{} => {}", highwayType, newHighwayType);
+                        way.tags.remove(new OSMEntity.Tag("highway", highwayType));
+                        way.addTag("highway", newHighwayType);
+                    }
+                    log.warn(highwayType);
+                }
+                final String laneStr = way.getTag("lanes");
+                if (laneStr.startsWith("[")) {
+                    IntStream lanes = Arrays.stream(laneStr.replace("[", "").replace("]", "")
+                            .replace("'", "").split(",")).map(String::trim).mapToInt(Integer::parseInt);
+                    double avgLanes = lanes.average().orElse(1.0);
+                    int avgLanesInt = (int) avgLanes;
+                    way.tags.remove(new OSMEntity.Tag("lanes", laneStr));
+                    way.addTag("lanes", Integer.toString(avgLanesInt));
+                }
+                if (highwayTypeToCounts.containsKey(highwayType)) {
+                    highwayTypeToCounts.put(highwayType, highwayTypeToCounts.get(highwayType) + 1);
+                } else {
+                    highwayTypeToCounts.put(highwayType, 1);
+
+                }
+            }
 
             Set<Integer> deezNodes = new HashSet<>(2);
             deezNodes.add(cursor.getFromVertex());
@@ -154,6 +185,9 @@ public class R5MnetBuilder {
         if (numberOfFixes > 0) {
             log.warn("Fixed {} links which were having the same `fromNode` and `toNode`", numberOfFixes);
         }
+        highwayTypeToCounts.forEach((k,v) -> {
+            log.warn("{} -> {}", k, v);
+        });
     }
 
     private Link buildLink(Integer edgeIndex, Set<String> flagStrings, double length, Node fromNode, Node toNode) {
