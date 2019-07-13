@@ -5,6 +5,7 @@ import java.util
 import java.util.zip.GZIPInputStream
 
 import beam.utils.matsim_conversion.ShapeUtils.{CsvTaz, QuadTreeBounds}
+import beam.utils.traveltime.NetworkUtil
 import com.vividsolutions.jts.geom.Geometry
 import org.matsim.api.core.v01.{Coord, Id}
 import org.matsim.core.utils.collections.QuadTree
@@ -206,18 +207,6 @@ object TAZTreeMap {
     val taz = new TAZ("0", new Coord(0.0, 0.0), 0.0)
     tazQuadTree.put(taz.coord.getX, taz.coord.getY, taz)
     new TAZTreeMap(tazQuadTree)
-  }
-
-  def randomLocationInTAZ(
-    taz: TAZ,
-    rand: scala.util.Random = new scala.util.Random(System.currentTimeMillis())
-  ): Coord = {
-    val radius = Math.sqrt(taz.areaInSquareMeters / Math.PI) / 2
-    val a = 2 * Math.PI * rand.nextDouble()
-    val r = radius * Math.sqrt(rand.nextDouble())
-    val x = r * Math.cos(a)
-    val y = r * Math.sin(a)
-    new Coord(taz.coord.getX + x, taz.coord.getY + y)
   }
 
 }

@@ -82,7 +82,7 @@ private[vehiclesharing] class FixedNonReservingFleetManager(
         .map(_ => CompletionNotice(triggerId, Vector()))
         .pipeTo(sender())
 
-    case MobilityStatusInquiry(_, whenWhere, _) =>
+    case MobilityStatusInquiry(personId, whenWhere, _) =>
       // Search box: maxWalkingDistance meters around query location
       val boundingBox = new Envelope(new Coordinate(whenWhere.loc.getX, whenWhere.loc.getY))
       boundingBox.expandBy(maxWalkingDistance)
@@ -92,16 +92,18 @@ private[vehiclesharing] class FixedNonReservingFleetManager(
       sender ! MobilityStatusResponse(nearbyVehicles.take(5).map { vehicle =>
         Token(vehicle.id, self, vehicle.toStreetVehicle)
       })
-      collectData(whenWhere.time, whenWhere.loc, RepositionManager.inquiry)
+      collectData(whenWhere.time, whenWhere.loc, Some(personId), RepositionManager.inquiry)
 
     case TryToBoardVehicle(token, who) =>
       makeUnavailable(token.id, token.streetVehicle) match {
         case Some(vehicle) if token.streetVehicle.locationUTM == vehicle.spaceTime =>
           log.debug("Checked out " + vehicle.id)
           who ! Boarded(vehicle)
-          collectData(vehicle.spaceTime.time, vehicle.spaceTime.loc, RepositionManager.boarded)
+          collectData(vehicle.spaceTime.time, vehicle.spaceTime.loc, None, RepositionManager.boarded)
         case _ =>
           who ! NotAvailable
+          val location = token.streetVehicle.locationUTM
+          collectData(location.time, location.loc, None, RepositionManager.notAvailable)
       }
 
     case NotifyVehicleIdle(vId, whenWhere, _, _, _, _) =>
@@ -109,12 +111,12 @@ private[vehiclesharing] class FixedNonReservingFleetManager(
 
     case ReleaseVehicle(vehicle) =>
       makeAvailable(vehicle.id)
-      collectData(vehicle.spaceTime.time, vehicle.spaceTime.loc, RepositionManager.release)
+      collectData(vehicle.spaceTime.time, vehicle.spaceTime.loc, None, RepositionManager.release)
 
     case ReleaseVehicleAndReply(vehicle, _) =>
       makeAvailable(vehicle.id)
       sender() ! Success
-      collectData(vehicle.spaceTime.time, vehicle.spaceTime.loc, RepositionManager.release)
+      collectData(vehicle.spaceTime.time, vehicle.spaceTime.loc, None, RepositionManager.release)
   }
 
   def parkingInquiry(whenWhere: SpaceTime) = ParkingInquiry(

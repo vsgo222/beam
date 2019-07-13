@@ -255,14 +255,24 @@ trait ChoosesMode {
         Some(theRequest.requestId)
       }
 
+      def extractVehicleIds(leg: Leg): Array[Id[Vehicle]] = {
+        if(leg.getAttributes.getAttribute("vehicles") != null)
+          leg.getAttributes.getAttribute("vehicles").toString.split(",").map(Id.create(_, classOf[Vehicle]))
+        else
+          Array.empty[Id[Vehicle]]
+      }
+
       def filterStreetVehiclesForQuery(
         streetVehicles: Vector[StreetVehicle],
+        leg: Option[Leg],
         byMode: BeamMode
       ): Vector[StreetVehicle] = {
         choosesModeData.personData.currentTourPersonalVehicle match {
           case Some(personalVeh) =>
             // We already have a vehicle we're using on this tour, so filter down to that
             streetVehicles.filter(_.id == personalVeh)
+          case None if leg.isDefined && streetVehicles.exists(extractVehicleIds(leg.get).contains) =>
+            streetVehicles.filter(extractVehicleIds(leg.get).contains)
           case None =>
             // Otherwise, filter by mode
             streetVehicles.filter(_.mode == byMode)
@@ -317,10 +327,22 @@ trait ChoosesMode {
             case l: Leg => Some(l)
             case _      => None
           }
-          maybeLeg.map(l => (l, l.getRoute)) match {
+
+          val sharedFleets = beamServices.beamConfig.beam.agentsim.agents.vehicles.sharedFleets.map(_.name)
+          val newlyAvailableSharedVehicles = newlyAvailableBeamVehicles.filter(veh => sharedFleets.exists(s => veh.id.toString.contains(s)))
+
+            maybeLeg.map(l => (l, l.getRoute)) match {
+            case Some((l, _: NetworkRoute)) if newlyAvailableSharedVehicles.nonEmpty && sharedFleets.exists(s => extractVehicleIds(l).mkString(",").contains(s)) =>
+              parkingRequestId = makeRequestWith(
+                withTransit = false,
+                filterStreetVehiclesForQuery(newlyAvailableSharedVehicles.map(_.streetVehicle), Some(l), mode) :+ bodyStreetVehicle,
+                withParking = mode == CAR
+              )
+              responsePlaceholders =
+                makeResponsePlaceholders(boundingBox, withRouting = true, withParking = mode == CAR)
             case Some((l, r: NetworkRoute)) =>
               val maybeVehicle =
-                filterStreetVehiclesForQuery(newlyAvailableBeamVehicles.map(_.streetVehicle), mode).headOption
+                filterStreetVehiclesForQuery(newlyAvailableBeamVehicles.map(_.streetVehicle), Some(l), mode).headOption
               maybeVehicle match {
                 case Some(vehicle) =>
                   val destination = SpaceTime(nextAct.getCoord, departTime + l.getTravelTime.toInt)
@@ -347,7 +369,7 @@ trait ChoosesMode {
             case _ =>
               parkingRequestId = makeRequestWith(
                 withTransit = false,
-                filterStreetVehiclesForQuery(newlyAvailableBeamVehicles.map(_.streetVehicle), mode) :+ bodyStreetVehicle,
+                filterStreetVehiclesForQuery(newlyAvailableBeamVehicles.map(_.streetVehicle), None, mode) :+ bodyStreetVehicle,
                 withParking = mode == CAR
               )
               responsePlaceholders =
@@ -365,7 +387,7 @@ trait ChoosesMode {
               // actual location of transit station
               makeRequestWith(
                 withTransit = true,
-                filterStreetVehiclesForQuery(newlyAvailableBeamVehicles.map(_.streetVehicle), CAR) :+ bodyStreetVehicle,
+                filterStreetVehiclesForQuery(newlyAvailableBeamVehicles.map(_.streetVehicle), None, CAR) :+ bodyStreetVehicle,
                 withParking = false
               )
               responsePlaceholders = makeResponsePlaceholders(boundingBox, withRouting = true, withParking = false)

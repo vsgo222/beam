@@ -39,7 +39,6 @@ case class FixedNonReservingFleetByTAZ(
     beamScheduler: ActorRef,
     parkingManager: ActorRef
   ): Props = {
-    val rand = new scala.util.Random(System.currentTimeMillis())
     val initialLocation = mutable.ListBuffer[Coord]()
     config.vehiclesSharePerTAZFromCSV match {
       case Some(fileName) =>
@@ -51,19 +50,20 @@ case class FixedNonReservingFleetByTAZ(
               _ =>
                 initialLocation
                   .append(beamServices.beamScenario.tazTreeMap.getTAZ(Id.create(idTaz, classOf[TAZ])) match {
-                    case Some(taz) => TAZTreeMap.randomLocationInTAZ(taz, rand)
+                    case Some(taz) => taz.coord
                     case _         => coord
                   })
             )
         }
       case _ =>
-        logger.info(s"Random distribution of shared vehicle fleet i.e. no file or shares by Taz")
+        logger.info(s"Random distribution of shared vehicles")
         // fall back to a uniform distribution
         initialLocation.clear()
+        val rand = new scala.util.Random(System.currentTimeMillis())
         val tazArray = beamServices.beamScenario.tazTreeMap.getTAZs.toArray
         (1 to config.fleetSize).foreach { _ =>
           val taz = tazArray(rand.nextInt(tazArray.length))
-          initialLocation.prepend(TAZTreeMap.randomLocationInTAZ(taz, rand))
+          initialLocation.prepend(taz.coord)
         }
     }
 
@@ -81,7 +81,7 @@ case class FixedNonReservingFleetByTAZ(
         beamServices,
         beamSkimmer,
         config.maxWalkingDistance,
-        repConfig.map(RepositionAlgorithms.lookup(_))
+        repConfig.map(RepositionAlgorithms.lookup)
       )
     )
   }

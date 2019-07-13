@@ -9,6 +9,7 @@ import beam.agentsim.scheduler.Trigger
 import beam.agentsim.scheduler.Trigger.TriggerWithId
 import beam.router.BeamSkimmer
 import beam.sim.BeamServices
+import org.matsim.api.core.v01.population.Person
 import org.matsim.api.core.v01.{Coord, Id}
 
 trait RepositionManager extends Actor with ActorLogging {
@@ -33,7 +34,7 @@ trait RepositionManager extends Actor with ActorLogging {
           .filter(rep => makeUnavailable(rep._1.id, rep._1.toStreetVehicle).isDefined)
           .map {
             case (vehicle, _, _, dstWhereWhen, dstTAZ) =>
-              collectData(vehicle.spaceTime.time, vehicle.spaceTime.loc, RepositionManager.pickup)
+              collectData(vehicle.spaceTime.time, vehicle.spaceTime.loc, None, RepositionManager.pickup)
               ScheduleTrigger(REPVehicleTeleportTrigger(dstWhereWhen.time, dstWhereWhen, vehicle, dstTAZ), self)
           }
           .toVector
@@ -45,7 +46,7 @@ trait RepositionManager extends Actor with ActorLogging {
     case TriggerWithId(REPVehicleTeleportTrigger(_, whereWhen, vehicle, _), triggerId) =>
       makeTeleport(vehicle.id, whereWhen)
       makeAvailable(vehicle.id)
-      collectData(vehicle.spaceTime.time, vehicle.spaceTime.loc, RepositionManager.dropoff)
+      collectData(vehicle.spaceTime.time, vehicle.spaceTime.loc, None, RepositionManager.dropoff)
       sender ! CompletionNotice(triggerId)
   }
 
@@ -56,7 +57,7 @@ trait RepositionManager extends Actor with ActorLogging {
     case Some(algorithmType) =>
       getScheduler ! ScheduleTrigger(REPDataCollectionTrigger(algorithmType.getStatTimeBin), self)
       var alg: RepositionAlgorithm = null
-      if (getServices.matsimServices.getIterationNumber > 0 || getServices.beamConfig.beam.warmStart.enabled) {
+      if (getServices.matsimServices.getIterationNumber > 10 || getServices.beamConfig.beam.warmStart.enabled) {
         alg = algorithmType.getInstance(getId, getServices, getSkimmer)
         getScheduler ! ScheduleTrigger(REPVehicleRepositionTrigger(algorithmType.getRepositionTimeBin), self)
       }
@@ -76,7 +77,7 @@ trait RepositionManager extends Actor with ActorLogging {
   def getSkimmer: BeamSkimmer
   def getRepositionAlgorithmType: Option[RepositionAlgorithmType]
 
-  def collectData(time: Int, coord: Coord, label: String) = {
+  def collectData(time: Int, coord: Coord, personId: Option[Id[Person]] = None, label: String) = {
     if (statTime != 0)
       getSkimmer.countEventsByTAZ(time / statTime, coord, getId, label)
   }
@@ -112,6 +113,7 @@ object RepositionManager {
   val dropoff = "REPDropoff"
   val inquiry = "VEHInquiry"
   val boarded = "VEHBoarded"
+  val notAvailable = "VEHNotAvailable"
   val release = "VEHRelease"
   val availability = "VEHAvailability"
 }

@@ -17,6 +17,7 @@ import org.matsim.api.core.v01.events.{Event, PersonArrivalEvent}
 import org.matsim.api.core.v01.population.{Activity, Leg, Person}
 import org.matsim.core.controler.events.IterationEndsEvent
 import org.matsim.core.controler.listener.IterationEndsListener
+import org.matsim.core.population.routes.NetworkRoute
 import org.matsim.core.scoring.{ScoringFunction, ScoringFunctionFactory}
 import org.slf4j.LoggerFactory
 
@@ -82,6 +83,11 @@ class BeamScoringFunctionFactory @Inject()(
         // The scores attribute is only relevant to LCCM, but we need to include a default value to avoid NPE during writing of plans
         person.getSelectedPlan.getAttributes
           .putAttribute("scores", MapStringDouble(Map("NA" -> Double.NaN)))
+
+        person.getSelectedPlan.getPlanElements.asScala.filter(_.isInstanceOf[Leg]).foldLeft(0) { (i, elem) =>
+          elem.asInstanceOf[Leg].getAttributes.putAttribute("vehicles", trips(i).vehiclesInTrip.mkString(","))
+          i+1
+        }
 
         val allDayScore = modeChoiceCalculator.computeAllDayUtility(trips, person, attributes)
 

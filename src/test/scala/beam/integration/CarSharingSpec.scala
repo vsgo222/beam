@@ -155,23 +155,28 @@ class CarSharingSpec extends FlatSpec with Matchers with BeamHelper {
          |    managerType = "fixed-non-reserving-fleet-by-taz"
          |    fixed-non-reserving-fleet-by-taz {
          |      vehicleTypeId = "sharedCar"
-         |      maxWalkingDistance = 1000
-         |      fleetSize = 40
-         |      vehiclesSharePerTAZFromCSV = "output/test/vehiclesSharePerTAZ.csv"
+         |      maxWalkingDistance = 500
+         |      fleetSize = 500
+         |      vehiclesSharePerTAZFromCSV = "production/sfbay/sharedFleet.csv"
          |    }
          |    reposition {
          |      name = "min-availability-undersupply-algorithm"
-         |      repositionTimeBin = 3600
+         |      repositionTimeBin = 1800
          |      statTimeBin = 300
          |      min-availability-undersupply-algorithm {
-         |        matchLimit = 99999
+         |        matchLimit = 5
          |      }
-         |   }
-         | }
+         |    }
+         |  }
          |]
          |beam.agentsim.agents.modalBehaviors.maximumNumberOfReplanningAttempts = 99999
+         |beam.replanning{
+         |  maxAgentPlanMemorySize = 6
+         |  Module_1 = "SelectExpBeta"
+         |  ModuleProbability_1 = 1.0
+         |}
                    """.stripMargin)
-      .withFallback(testConfig("test/input/beamville/beam.conf"))
+      .withFallback(testConfig("test/input/sf-light/sf-light-1k.conf"))
       .resolve()
     runRepositionTest(config)
   }
