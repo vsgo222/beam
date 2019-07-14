@@ -17,15 +17,15 @@ object ReplanningUtil {
       .get(PlanCalcScoreConfigGroup.EXPERIENCED_PLAN_KEY)
       .asInstanceOf[Plan]
 
-    for (i <- 0 until (person.getSelectedPlan.getPlanElements.size() - 1)) {
-      experiencedPlan.getPlanElements.get(i) match {
-        case leg: Leg =>
-          leg.getAttributes.putAttribute("vehicles", person.getSelectedPlan.getPlanElements.get(i).getAttributes.getAttribute("vehicles"))
-        case _ =>
-      }
-    }
-
     if (experiencedPlan != null && experiencedPlan.getPlanElements.size() > 0) {
+      // keep track of the vehicles that been used during previous simulation
+      for (i <- 0 until (person.getSelectedPlan.getPlanElements.size() - 1)) {
+        experiencedPlan.getPlanElements.get(i) match {
+          case leg: Leg =>
+            leg.getAttributes.putAttribute("vehicles", person.getSelectedPlan.getPlanElements.get(i).getAttributes.getAttribute("vehicles"))
+          case _ =>
+        }
+      }
       // BeamMobsim needs activities with coords
       val plannedActivities =
         person.getSelectedPlan.getPlanElements.asScala.filter(e => e.isInstanceOf[Activity])
