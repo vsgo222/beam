@@ -20,7 +20,6 @@ case class AvailabilityBasedRepositioning(
 
   case class RepositioningRequest(taz: TAZ, availability: Int)
   val minAvailabilityMap = mutable.HashMap.empty[(Int, Id[TAZ]), Int]
-  //val unboardedVehicleInquiry = mutable.HashMap.empty[(Int, Id[TAZ]), Int]
   val notAvailableVehicle = mutable.HashMap.empty[(Int, Id[TAZ]), Int]
   val ordering = Ordering.by[RepositioningRequest, Int](_.availability)
 
@@ -94,13 +93,13 @@ case class AvailabilityBasedRepositioning(
           val fleetSize = Math.min(org.availability, Math.abs(dst.availability))
           F.put(org.taz.tazId, F.getOrElse(org.taz.tazId, 0) - fleetSize)
           topOversuppliedTAZ.remove(org)
-          if (org.availability - fleetSize > 0) {
-            topOversuppliedTAZ.add(org.copy(availability = org.availability - fleetSize))
+          if (F(org.taz.tazId) > 0) {
+            topOversuppliedTAZ.add(org.copy(availability = F(org.taz.tazId)))
           }
           F.put(dst.taz.tazId, F.getOrElse(dst.taz.tazId, 0) + fleetSize)
           topUndersuppliedTAZ.remove(dst)
-          if (dst.availability + fleetSize < 0) {
-            topUndersuppliedTAZ.add(dst.copy(availability = dst.availability + fleetSize))
+          if (F(dst.taz.tazId) < 0) {
+            topUndersuppliedTAZ.add(dst.copy(availability = F(dst.taz.tazId)))
           }
           ODs.append((org, dst, tt, fleetSize))
       }
@@ -130,16 +129,6 @@ case class AvailabilityBasedRepositioning(
             )
           )
           .foreach(vehiclesForRepositionTemp.append(_))
-//        (nowRepBin to 108000 / repositionTimeBin).foreach { i =>
-//          val key = (i, org.taz.tazId)
-//          val availability = minAvailabilityMap(key) - vehiclesForRepositionTemp.size
-//          if(availability >= 0) {
-//            minAvailabilityMap.update(key, availability)
-//          } else {
-//            minAvailabilityMap.update(key, 0)
-//            notAvailableVehicle.update(key, notAvailableVehicle.getOrElse(key, 0) -1 * availability)
-//          }
-//        }
         fleetTemp = fleetTemp.filter(x => !vehiclesForRepositionTemp.exists(_._1 == x))
         vehiclesForReposition.appendAll(vehiclesForRepositionTemp)
     }
