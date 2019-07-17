@@ -6,11 +6,14 @@ import org.matsim.api.core.v01.population._
 import org.matsim.core.config.groups.PlanCalcScoreConfigGroup
 import org.matsim.core.population.PopulationUtils
 import org.matsim.core.replanning.selectors.RandomPlanSelector
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
 object ReplanningUtil {
+
+  private val logger: Logger = LoggerFactory.getLogger("ReplanningUtil")
 
   def makeExperiencedMobSimCompatible[T <: Plan, I](person: HasPlansAndId[T, I]): Unit = {
     val experiencedPlan = person.getSelectedPlan.getCustomAttributes
@@ -20,9 +23,9 @@ object ReplanningUtil {
     if (experiencedPlan != null && experiencedPlan.getPlanElements.size() > 0) {
       // keep track of the vehicles that been used during previous simulation
       if(person.getSelectedPlan.getPlanElements.size() != experiencedPlan.getPlanElements.size()) {
-        println("person.getSelectedPlan.getPlanElements")
+        logger.warn("person.getSelectedPlan.getPlanElements")
         person.getSelectedPlan.getPlanElements.asScala.foreach(println)
-        println("experiencedPlan.getPlanElements")
+        logger.warn("experiencedPlan.getPlanElements")
         experiencedPlan.getPlanElements.asScala.foreach(println)
       }
       for (i <- 0 until (person.getSelectedPlan.getPlanElements.size() - 1)) {
