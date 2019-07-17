@@ -19,6 +19,12 @@ object ReplanningUtil {
 
     if (experiencedPlan != null && experiencedPlan.getPlanElements.size() > 0) {
       // keep track of the vehicles that been used during previous simulation
+      if(person.getSelectedPlan.getPlanElements.size() != experiencedPlan.getPlanElements.size()) {
+        println("person.getSelectedPlan.getPlanElements")
+        person.getSelectedPlan.getPlanElements.asScala.foreach(println)
+        println("experiencedPlan.getPlanElements")
+        experiencedPlan.getPlanElements.asScala.foreach(println)
+      }
       for (i <- 0 until (person.getSelectedPlan.getPlanElements.size() - 1)) {
         experiencedPlan.getPlanElements.get(i) match {
           case leg: Leg =>

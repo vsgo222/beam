@@ -278,12 +278,12 @@ class BeamSkimmer @Inject()(
       ProfilingUtils.timed(s"writeObservedSkims on iteration ${event.getIteration}", x => logger.info(x)) {
         writeObservedSkims(event)
       }
-      ProfilingUtils.timed(
-        s"writeAllModeSkimsForPeakNonPeakPeriods on iteration ${event.getIteration}",
-        x => logger.info(x)
-      ) {
-        writeAllModeSkimsForPeakNonPeakPeriods(event)
-      }
+//      ProfilingUtils.timed(
+//        s"writeAllModeSkimsForPeakNonPeakPeriods on iteration ${event.getIteration}",
+//        x => logger.info(x)
+//      ) {
+//        writeAllModeSkimsForPeakNonPeakPeriods(event)
+//      }
       ProfilingUtils.timed(s"writeObservedSkimsPlus on iteration ${event.getIteration}", x => logger.info(x)) {
         writeObservedSkimsPlus(event)
       }
