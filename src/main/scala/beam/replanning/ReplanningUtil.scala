@@ -24,11 +24,11 @@ object ReplanningUtil {
       // keep track of the vehicles that been used during previous simulation
       if(person.getSelectedPlan.getPlanElements.size() != experiencedPlan.getPlanElements.size()) {
         logger.warn("person.getSelectedPlan.getPlanElements")
-        person.getSelectedPlan.getPlanElements.asScala.foreach(elem => logger.warn(elem.toString))
+        person.getSelectedPlan.getPlanElements.asScala.foreach(elem => logger.warn(s"${elem.getClass}: ${elem.toString}"))
         logger.warn("experiencedPlan.getPlanElements")
-        experiencedPlan.getPlanElements.asScala.foreach(elem => logger.warn(elem.toString))
+        experiencedPlan.getPlanElements.asScala.foreach(elem => logger.warn(s"${elem.getClass}: ${elem.toString}"))
       }
-      for (i <- 0 until (person.getSelectedPlan.getPlanElements.size() - 1)) {
+      for (i <- 0 until (experiencedPlan.getPlanElements.size() - 1)) {
         experiencedPlan.getPlanElements.get(i) match {
           case leg: Leg =>
             leg.getAttributes.putAttribute("vehicles", person.getSelectedPlan.getPlanElements.get(i).getAttributes.getAttribute("vehicles"))
