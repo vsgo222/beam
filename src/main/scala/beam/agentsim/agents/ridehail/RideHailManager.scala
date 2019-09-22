@@ -775,7 +775,7 @@ class RideHailManager(
       outOfServiceVehicleManager.initiateMovementToParkingDepot(vehicleId, passengerSchedule, tick)
 
     case RepositionVehicleRequest(passengerSchedule, tick, vehicleId, rideHailAgent) =>
-      if (vehicleManager.idleRideHailVehicles.contains(vehicleId) && (!doNotUseInAllocation
+      if (vehicleManager.idleRideHailVehicles.containsKey(vehicleId) && (!doNotUseInAllocation
             .contains(vehicleId) || isOnWayToRefuelingDepot(rideHailAgent.vehicleId))) {
         if (isOnWayToRefuelingDepot(rideHailAgent.vehicleId)) {
           vehicleManager.putOutOfService(rideHailAgent.vehicleId)
@@ -1694,8 +1694,8 @@ class RideHailManager(
     val futureRepoRoutingMap = mutable.Map[Id[Vehicle], Future[RoutingRequest]]()
 
     for ((vehicleId, destinationLocation) <- repositionVehicles) {
-      if (vehicleManager.idleRideHailVehicles.contains(vehicleId)) {
-        val rideHailAgentLocation = vehicleManager.idleRideHailVehicles(vehicleId)
+      if (vehicleManager.idleRideHailVehicles.containsKey(vehicleId)) {
+        val rideHailAgentLocation = vehicleManager.idleRideHailVehicles.get(vehicleId)
 
         val rideHailVehicleAtOrigin = StreetVehicle(
           rideHailAgentLocation.vehicleId,

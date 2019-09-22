@@ -72,7 +72,7 @@ class RideHailVehicleManager(val rideHailManager: RideHailManager, boundingBox: 
       boundingBox.getMaxY
     )
   }
-  val idleRideHailVehicles = mutable.HashMap[Id[Vehicle], RideHailAgentLocation]()
+  val idleRideHailVehicles = new java.util.HashMap[Id[Vehicle], RideHailAgentLocation]()
   val outOfServiceRideHailVehicles = mutable.HashMap[Id[Vehicle], RideHailAgentLocation]()
   val inServiceRideHailVehicles = mutable.HashMap[Id[Vehicle], RideHailAgentLocation]()
 
@@ -93,13 +93,13 @@ class RideHailVehicleManager(val rideHailManager: RideHailManager, boundingBox: 
           .calcProjectedEuclideanDistance(pickupLocation, rideHailAgentLocation.currentLocationUTM.loc)
         (rideHailAgentLocation, distance)
       })
-    distances2RideHailAgents.filter(x => idleRideHailVehicles.contains(x._1.vehicleId))
+    distances2RideHailAgents.filter(x => idleRideHailVehicles.containsKey(x._1.vehicleId))
   }
 
   def getRideHailAgentLocation(vehicleId: Id[Vehicle]): RideHailAgentLocation = {
     getServiceStatusOf(vehicleId) match {
       case Available =>
-        idleRideHailVehicles(vehicleId)
+        idleRideHailVehicles.get(vehicleId)
       case InService =>
         inServiceRideHailVehicles(vehicleId)
       case OutOfService =>
@@ -121,7 +121,7 @@ class RideHailVehicleManager(val rideHailManager: RideHailManager, boundingBox: 
       .asScala
       .view
       .filter { x =>
-        idleRideHailVehicles.contains(x.vehicleId) && !excludeRideHailVehicles.contains(x.vehicleId) &&
+        idleRideHailVehicles.containsKey(x.vehicleId) && !excludeRideHailVehicles.contains(x.vehicleId) &&
         (x.geofence.isEmpty || (GeoUtils.distFormula(
           pickupLocation,
           new Coord(x.geofence.get.geofenceX, x.geofence.get.geofenceY)
@@ -172,12 +172,12 @@ class RideHailVehicleManager(val rideHailManager: RideHailManager, boundingBox: 
     idleVehicles.map { case (location, _) => location }
   }
 
-  def getIdleVehiclesAndFilterOutExluded: mutable.HashMap[Id[Vehicle], RideHailAgentLocation] = {
-    idleRideHailVehicles.filterNot(elem => rideHailManager.doNotUseInAllocation.contains(elem._1))
+  def getIdleVehiclesAndFilterOutExluded: mutable.Map[Id[Vehicle], RideHailAgentLocation] = {
+    idleRideHailVehicles.asScala.filterNot(elem => rideHailManager.doNotUseInAllocation.contains(elem._1))
   }
 
   def getIdleAndInServiceVehicles: Map[Id[Vehicle], RideHailAgentLocation] = {
-    (idleRideHailVehicles.toMap ++ inServiceRideHailVehicles.toMap)
+    (idleRideHailVehicles.asScala.toMap ++ inServiceRideHailVehicles.toMap)
       .filterNot(elem => rideHailManager.doNotUseInAllocation.contains(elem._1))
   }
 
@@ -186,12 +186,12 @@ class RideHailVehicleManager(val rideHailManager: RideHailManager, boundingBox: 
     if (rideHailManager.doNotUseInAllocation.contains(vehicleId))
       None
     else {
-      idleRideHailVehicles.get(vehicleId).orElse(inServiceRideHailVehicles.get(vehicleId))
+      Option(idleRideHailVehicles.get(vehicleId)).orElse(inServiceRideHailVehicles.get(vehicleId))
     }
   }
 
   def getServiceStatusOf(vehicleId: Id[Vehicle]): RideHailVehicleManager.RideHailServiceStatus = {
-    if (idleRideHailVehicles.contains(vehicleId)) {
+    if (idleRideHailVehicles.containsKey(vehicleId)) {
       Available
     } else if (inServiceRideHailVehicles.contains(vehicleId)) {
       InService
@@ -210,7 +210,7 @@ class RideHailVehicleManager(val rideHailManager: RideHailManager, boundingBox: 
   ) = {
     serviceStatus match {
       case Available =>
-        idleRideHailVehicles.get(vehicleId) match {
+        Option(idleRideHailVehicles.get(vehicleId)) match {
           case Some(prevLocation) =>
             val newLocation = prevLocation.copy(currentLocationUTM = whenWhere)
             idleRideHailAgentSpatialIndex.remove(
