@@ -33,3 +33,11 @@ class DefaultRepositioningManager(val beamServices: BeamServices, val rideHailMa
     extends RepositioningManager(beamServices, rideHailManager) {
   override def repositionVehicles(tick: Int): Vector[(Id[Vehicle], Location)] = Vector.empty
 }
+
+class SamePlaceRepositioningManager(val beamServices: BeamServices, val rideHailManager: RideHailManager)
+  extends RepositioningManager(beamServices, rideHailManager) {
+  override def repositionVehicles(tick: Int): Vector[(Id[Vehicle], Location)] = {
+    rideHailManager.vehicleManager.getIdleVehiclesAndFilterOutExluded.map { case (vehId, rha) =>
+      (vehId, rha.currentLocationUTM.loc) }.toVector
+  }
+}
