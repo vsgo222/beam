@@ -16,6 +16,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.reflect.ClassTag
 import akka.pattern._
 import akka.util.Timeout
+import beam.utils.Statistics
 import com.typesafe.scalalogging.LazyLogging
 
 abstract class RepositioningManager(
@@ -49,8 +50,6 @@ class SamePlaceRepositioningManager(val beamServices: BeamServices, val rideHail
     with LazyLogging {
   implicit val timeout: Timeout = Timeout(50000, TimeUnit.SECONDS)
 
-  var totalDistDifference: Double = 0.0
-
   override def repositionVehicles(tick: Int): Vector[(Id[Vehicle], Location)] = {
     val map = rideHailManager.vehicleManager.getIdleVehiclesAndFilterOutExluded
     val futures = map.map {
@@ -76,6 +75,9 @@ class SamePlaceRepositioningManager(val beamServices: BeamServices, val rideHail
       case (vehId, resp) =>
         val spaces =
           resp.itineraries.flatMap(_.legs.map(_.beamLeg.travelPath.endPoint)).map(beamServices.geo.wgs2Utm(_))
+        if (spaces.size >= 2) {
+          println("ASD")
+        }
         val whereToRepos =
           if (spaces.isEmpty) map(vehId).currentLocationUTM.loc
           else {
@@ -84,14 +86,13 @@ class SamePlaceRepositioningManager(val beamServices: BeamServices, val rideHail
         vehId -> whereToRepos
     }.toVector
 
-    val dist = finalResult.map {
+    val dists = finalResult.map {
       case (vehId, s) =>
-        beamServices.geo.distUTMInMeters(map(vehId).currentLocationUTM.loc, s)
-    }.sum
-    totalDistDifference += dist
-
+        val d = beamServices.geo.distUTMInMeters(map(vehId).currentLocationUTM.loc, s)
+        d
+    }
     logger.info(
-      s"Sum of differences in the distance for the repositioning to the same location in the same tick $tick is $dist. totalDistDifference: $totalDistDifference"
+      s"Stats about the difference in distance to the same location in tick $tick is ${Statistics(dists)}"
     )
     finalResult
   }
