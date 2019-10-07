@@ -52,48 +52,48 @@ class SamePlaceRepositioningManager(val beamServices: BeamServices, val rideHail
 
   override def repositionVehicles(tick: Int): Vector[(Id[Vehicle], Location)] = {
     val map = rideHailManager.vehicleManager.getIdleVehiclesAndFilterOutExluded
-    val futures = map.map {
-      case (vehId, rha) =>
-        val rideHailVehicleAtOrigin = StreetVehicle(
-          rha.vehicleId,
-          rha.vehicleType.id,
-          SpaceTime((rha.currentLocationUTM.loc, tick)),
-          CAR,
-          asDriver = false
-        )
-        val routingRequest = RoutingRequest(
-          originUTM = rha.currentLocationUTM.loc,
-          destinationUTM = rha.currentLocationUTM.loc,
-          departureTime = tick,
-          withTransit = false,
-          streetVehicles = Vector(rideHailVehicleAtOrigin)
-        )
-        rideHailManager.router.ask(routingRequest).mapTo[RoutingResponse].map(r => (vehId, r))
-    }
-    val res = Await.result(Future.sequence(futures), timeout.duration).toMap
-    val finalResult = res.map {
-      case (vehId, resp) =>
-        val spaces =
-          resp.itineraries.flatMap(_.legs.map(_.beamLeg.travelPath.endPoint)).map(beamServices.geo.wgs2Utm(_))
-        if (spaces.size >= 2) {
-          println("ASD")
-        }
-        val whereToRepos =
-          if (spaces.isEmpty) map(vehId).currentLocationUTM.loc
-          else {
-            spaces.head.loc
-          }
-        vehId -> whereToRepos
-    }.toVector
-
-    val dists = finalResult.map {
-      case (vehId, s) =>
-        val d = beamServices.geo.distUTMInMeters(map(vehId).currentLocationUTM.loc, s)
-        d
-    }
-    logger.info(
-      s"Stats about the difference in distance to the same location in tick $tick is ${Statistics(dists)}"
-    )
-    finalResult
+//    val futures = map.map {
+//      case (vehId, rha) =>
+//        val rideHailVehicleAtOrigin = StreetVehicle(
+//          rha.vehicleId,
+//          rha.vehicleType.id,
+//          SpaceTime((rha.currentLocationUTM.loc, tick)),
+//          CAR,
+//          asDriver = false
+//        )
+//        val routingRequest = RoutingRequest(
+//          originUTM = rha.currentLocationUTM.loc,
+//          destinationUTM = rha.currentLocationUTM.loc,
+//          departureTime = tick,
+//          withTransit = false,
+//          streetVehicles = Vector(rideHailVehicleAtOrigin)
+//        )
+//        rideHailManager.router.ask(routingRequest).mapTo[RoutingResponse].map(r => (vehId, r))
+//    }
+//    val res = Await.result(Future.sequence(futures), timeout.duration).toMap
+//    val finalResult = res.map {
+//      case (vehId, resp) =>
+//        val spaces =
+//          resp.itineraries.flatMap(_.legs.map(_.beamLeg.travelPath.endPoint)).map(beamServices.geo.wgs2Utm(_))
+//        if (spaces.size >= 2) {
+//          println("ASD")
+//        }
+//        val whereToRepos =
+//          if (spaces.isEmpty) map(vehId).currentLocationUTM.loc
+//          else {
+//            spaces.head.loc
+//          }
+//        vehId -> whereToRepos
+//    }.toVector
+//
+//    val dists = finalResult.map {
+//      case (vehId, s) =>
+//        val d = beamServices.geo.distUTMInMeters(map(vehId).currentLocationUTM.loc, s)
+//        d
+//    }
+//    logger.info(
+//      s"Stats about the difference in distance to the same location in tick $tick is ${Statistics(dists)}"
+//    )
+    map.map { case (vehId, rha) => (vehId, rha.currentLocationUTM.loc) }.toVector
   }
 }
