@@ -81,6 +81,7 @@ class RideHailModifyPassengerScheduleManager(
     stopDriving: Boolean
   ): Unit = {
     if (stopDriving) {
+      rideHailManager.incStopDriving()
       modifyStatus.rideHailAgent.tell(StopDriving(modifyStatus.tick), rideHailManagerRef)
     }
     modifyStatus.rideHailAgent.tell(modifyStatus.modifyPassengerSchedule, rideHailManagerRef)

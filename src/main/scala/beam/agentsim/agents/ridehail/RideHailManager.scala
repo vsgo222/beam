@@ -4,6 +4,7 @@ import java.awt.Color
 import java.io.File
 import java.util
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.SupervisorStrategy.Stop
 import akka.actor.{Actor, ActorLogging, ActorRef, OneForOneStrategy, Props, Stash, Terminated}
@@ -20,11 +21,7 @@ import beam.agentsim.agents.ridehail.RideHailAgent._
 import beam.agentsim.agents.ridehail.RideHailManager._
 import beam.agentsim.agents.ridehail.RideHailVehicleManager.{Available, InService, OutOfService, RideHailAgentLocation}
 import beam.agentsim.agents.ridehail.allocation._
-import beam.agentsim.agents.vehicles.AccessErrorCodes.{
-  CouldNotFindRouteToCustomer,
-  DriverNotFoundError,
-  RideHailVehicleTakenError
-}
+import beam.agentsim.agents.vehicles.AccessErrorCodes.{CouldNotFindRouteToCustomer, DriverNotFoundError, RideHailVehicleTakenError}
 import beam.agentsim.agents.vehicles.EnergyEconomyAttributes.Powertrain
 import beam.agentsim.agents.vehicles.VehicleProtocol.StreetVehicle
 import beam.agentsim.agents.vehicles.{PassengerSchedule, _}
@@ -215,6 +212,13 @@ class RideHailManager(
 ) extends Actor
     with ActorLogging
     with Stash {
+
+  val stopDrivingCnt: AtomicInteger = new AtomicInteger(0)
+
+  def incStopDriving(): Unit = {
+    stopDrivingCnt.getAndIncrement()
+  }
+
   type DepotId = Int
   type VehicleId = Id[Vehicle]
 
@@ -507,6 +511,7 @@ class RideHailManager(
     log.info(s"requestedRideHail: $requestedRideHail")
     log.info(s"servedRideHail: $servedRideHail")
     log.info(s"ratio: ${servedRideHail.toDouble / requestedRideHail}")
+    log.info(s"sendModifyPassengerScheduleMessage with stopDriving=true: ${stopDrivingCnt.get()}")
     super.postStop()
   }
 
