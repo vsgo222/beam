@@ -1,6 +1,7 @@
 package beam.analysis
 
 import beam.agentsim.events.{ModeChoiceEvent, PathTraversalEvent}
+import beam.router.Modes.BeamMode
 import beam.sim.BeamServices
 import beam.utils.csv.CsvWriter
 import com.typesafe.scalalogging.LazyLogging
@@ -68,8 +69,29 @@ class RideHailUtilizationCollector(beamSvc: BeamServices)
 
   override def handleEvent(event: Event): Unit = {
     event match {
-      case pte: PathTraversalEvent if pte.vehicleId.toString.contains("rideHailVehicle-") =>
-        handle(pte)
+      case pte: PathTraversalEvent =>
+        if (pte.vehicleId.toString.contains("rideHailVehicle-")){
+          handle(pte)
+        }
+        else {
+          val personId = pte.driverId
+          // CAR
+          if (personId.contains("060100-2015001501904-0-308824")) {
+            if (pte.mode == BeamMode.CAR) {
+              println(s"CAR: $personId. Travel time: ${pte.arrivalTime-pte.departureTime} seconds. $pte")
+            }
+            else
+              println(s"Expecting CAR for $personId, but got $pte")
+          }
+          // RHM
+          else if (personId.contains("022901-2016001383160-1-6666747")) {
+            if (pte.mode == BeamMode.RIDE_HAIL) {
+              println(s"RIDE_HAIL: $personId. Travel time: ${pte.arrivalTime-pte.departureTime} seconds. $pte")
+            }
+            else
+              println(s"Expecting RIDE_HAIL for $personId, but got $pte")
+          }
+        }
       case mc: ModeChoiceEvent =>
         if (mc.mode == "ride_hail")
           rideHailChoices += 1

@@ -38,7 +38,7 @@ import com.google.inject
 import com.typesafe.config.{ConfigFactory, Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
 import kamon.Kamon
-import org.matsim.api.core.v01.population.Person
+import org.matsim.api.core.v01.population.{Activity, Leg, Person}
 import org.matsim.api.core.v01.{Id, Scenario}
 import org.matsim.core.api.experimental.events.EventsManager
 import org.matsim.core.config.groups.TravelTimeCalculatorConfigGroup
@@ -477,6 +477,50 @@ trait BeamHelper extends LazyLogging {
          |""".stripMargin
     }
     logger.warn(logStart)
+
+    // #####################################
+    // Modify scenario here
+    // "060100-2015001501904-0-308824" will be the person who will prefer CAR
+    val person1 = scenario.getPopulation.getPersons.get(Id.createPersonId("060100-2015001501904-0-308824"))
+    println(person1)
+    person1.getPlans.removeIf(x => x != person1.getSelectedPlan)
+    val elIdxToCoordAndOthers = person1.getSelectedPlan.getPlanElements.asScala.zipWithIndex.map { case (plan, idx) =>
+      plan match {
+        case act: Activity =>
+          idx -> Some(act.getCoord, act.getType, act.getEndTime)
+        case leg: Leg =>
+          println(leg)
+          leg.setDepartureTime(Double.NegativeInfinity)
+          leg.setTravelTime(Double.NegativeInfinity)
+          leg.setMode("")
+          leg.setRoute(null)
+          idx -> None
+      }
+    }.toMap
+    println(person1)
+
+    // "022901-2016001383160-1-6666747" will be the person who will prefer RIDE HAIL
+    val person2 = scenario.getPopulation.getPersons.get(Id.createPersonId("022901-2016001383160-1-6666747"))
+    person2.getPlans.removeIf(x => x != person2.getSelectedPlan)
+    println(person2)
+    person2.getSelectedPlan.getPlanElements.asScala.zipWithIndex.foreach { case (plan, idx) =>
+      plan match {
+        case act: Activity =>
+          val (coord, actType, endTime) = elIdxToCoordAndOthers(idx).get
+          act.setCoord(coord)
+          act.setType(actType)
+          act.setEndTime(endTime)
+        case leg: Leg =>
+          println(leg)
+          leg.setDepartureTime(Double.NegativeInfinity)
+          leg.setTravelTime(Double.NegativeInfinity)
+          leg.setMode("")
+          leg.setRoute(null)
+      }
+    }
+    println(person2)
+
+    // #####################################
 
     val injector: inject.Injector = buildInjector(config, beamExecutionConfig.beamConfig, scenario, beamScenario)
     val services = injector.getInstance(classOf[BeamServices])
