@@ -3,12 +3,7 @@ package beam.agentsim.agents.ridehail.allocation
 import beam.agentsim.agents.{Dropoff, MobilityRequest, Pickup, Relocation}
 import beam.agentsim.agents.ridehail.RideHailManager.PoolingInfo
 import beam.agentsim.agents.ridehail.RideHailVehicleManager.RideHailAgentLocation
-import beam.agentsim.agents.ridehail.repositioningmanager.{
-  DefaultRepositioningManager,
-  DemandFollowingRepositioningManager,
-  RepositioningLowWaitingTimes,
-  RepositioningManager
-}
+import beam.agentsim.agents.ridehail.repositioningmanager.{DefaultRepositioningManager, DemandFollowingRepositioningManager, RepositioningLowWaitingTimes, RepositioningManager, TheSameLocationRepositioningManager}
 import beam.agentsim.agents.ridehail.{RideHailManager, RideHailRequest}
 import beam.agentsim.agents.vehicles.PersonIdWithActorRef
 import beam.agentsim.infrastructure.ParkingStall
@@ -244,6 +239,8 @@ abstract class RideHailResourceAllocationManager(private val rideHailManager: Ri
           RepositioningManager[DemandFollowingRepositioningManager](rideHailManager.beamServices, rideHailManager)
         case "REPOSITIONING_LOW_WAITING_TIMES" =>
           RepositioningManager[RepositioningLowWaitingTimes](rideHailManager.beamServices, rideHailManager)
+        case "THE_SAME_LOCATION_REPOSITIONING_MANAGER" =>
+          RepositioningManager[TheSameLocationRepositioningManager](rideHailManager.beamServices, rideHailManager)
         case x =>
           throw new IllegalStateException(s"There is no implementation for `$x`")
       }
