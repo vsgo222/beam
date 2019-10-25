@@ -281,7 +281,7 @@ class PoolingAlonsoMora(val rideHailManager: RideHailManager)
         }
       }
       var e = System.currentTimeMillis()
-      logger.debug(s"Served nonAllocated ${nonAllocated.size} in ${e - s} ms")
+      logger.info(s"At tick[$tick] served nonAllocated ${nonAllocated.size} in ${e - s} ms")
 
       s = System.currentTimeMillis()
       // Now satisfy the solo customers
@@ -308,7 +308,7 @@ class PoolingAlonsoMora(val rideHailManager: RideHailManager)
         }
       }
       e = System.currentTimeMillis()
-      logger.debug(s"Served soloCustomer ${soloCustomer.size} in ${e - s} ms")
+      logger.info(s"At tick[$tick] served soloCustomer ${soloCustomer.size} in ${e - s} ms")
     }
     rideHailManager.log.debug(
       "AllocResponses: {}",
