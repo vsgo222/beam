@@ -1,6 +1,7 @@
 package beam.agentsim.agents.modalbehaviors
 
 import scala.collection.mutable
+
 import akka.actor.{ActorRef, Stash}
 import akka.actor.FSM.Failure
 import beam.agentsim.Resource.{NotifyVehicleIdle, ReleaseParkingStall}
@@ -360,8 +361,8 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash {
                 case Some(_) =>
                   handleStartCharging(tick, currentBeamVehicle)
                   if (ChargingPointType.getChargingPointInstalledPowerInKw(
-                        currentBeamVehicle.stall.get.chargingPointType.get
-                      ) > 20.0) {
+                    currentBeamVehicle.stall.get.chargingPointType.get
+                  ) > 20.0) {
                     val (sessionDuration, energyDelivered) =
                       currentBeamVehicle.refuelingSessionDurationAndEnergyInJoules()
                     log.debug(

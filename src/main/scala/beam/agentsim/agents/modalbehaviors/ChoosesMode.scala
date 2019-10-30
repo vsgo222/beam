@@ -89,7 +89,7 @@ trait ChoosesMode {
       nextStateData match {
         // If I am already on a tour in a vehicle, only that vehicle is available to me
         case ChoosesModeData(
-            BasePersonData(_, _, _, _, _, Some(vehicle), _, _, _, _, _, _),
+            BasePersonData(_, _, _, _, _, Some(vehicle), _, _, _, _, _),
             _,
             _,
             _,
@@ -120,7 +120,6 @@ trait ChoosesMode {
               _,
               _,
               None | Some(CAR | BIKE | DRIVE_TRANSIT),
-              _,
               _,
               _,
               _,
