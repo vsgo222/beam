@@ -4,9 +4,15 @@ import os
 import ssl
 import urllib.request
 from pandas.io.json import json_normalize
+from datetime import datetime
 import json
+import numpy as np
 
 # Helpers
+
+def toDateTime(secs):
+    datetimeRef = datetime.strptime('2019-01-01 00:00:00', '%Y-%m-%d %H:%M:%S')
+    return datetime.fromtimestamp(datetime.timestamp(datetimeRef) + secs)
 
 
 def download_events(__url, __output_file_path, __iteration):
@@ -66,6 +72,19 @@ def get_metrics_from_events(__url, __output_file_path, __iteration):
     return pd.DataFrame.from_dict(json_normalize(metrics_json))
 
 
+def get_TD_SumMetrics(__url, __output_file_path, __iteration):
+    filename = download_events(__url, __output_file_path, __iteration)
+    compression = None
+    if filename.endswith(".gz"):
+        compression = 'gzip'
+    data = pd.read_csv(filename, sep=",", index_col=None, header=0, compression=compression)
+    data2 = data[(data['type'] == 'PathTraversal') & data['vehicle'].str.contains('rideHailVehicle-')].dropna(how='all', axis=1)
+    data2['time'] = pd.cut(data2['departureTime'], np.arange(0, 172800, 3600)).apply(lambda x: x.left) # 48 hours
+    data2 = data2.loc[:, ['vehicle', 'time', 'numPassengers']].groupby(['vehicle', 'time']).mean().groupby(['time']).sum()
+    data2 = data2.reset_index(drop=True).rename(columns={"numPassengers": "numRequestsServed"})
+    return data2
+
+
 def get_metrics_from_beamLog(__url, __output_file_path):
     with open(download_beamLog(__url, __output_file_path)) as beamLog:
         for line in beamLog:
@@ -121,6 +140,32 @@ def get_metrics(__setup, __output_dir):
         print("{} ok!".format(remote_folder))
     return final_output_df
 
+def getTimeDepedentMetrics(__setup, __output_dir):
+    __index = ['Rank', 'Year', 'Scenario', 'Iteration']
+    final_td_sum_metrics_df = pd.DataFrame()
+    for (rank, year, iteration, scenario, technology, scenarioId, remote_folder) in __setup['scenarios']:
+        output_file_path = "{}/{}-{}".format(__output_dir, scenarioId, year)
+        output_file_path_itr = "{}-{}".format(output_file_path, iteration)
+        local_metrics_file = "{}.TD-metrics.csv".format(output_file_path_itr)
+        if not os.path.exists(local_metrics_file):
+            url = remote_folder
+            # generate
+            td_sum_metrics_df = get_TD_SumMetrics(url, output_file_path_itr, iteration)
+            td_sum_metrics_df['Scenario'] = scenarioId
+            td_sum_metrics_df['Iteration'] = iteration
+            td_sum_metrics_df['Year'] = year
+            td_sum_metrics_df['Rank'] = rank
+            # td_sum_metrics_df.set_index(__index)
+            # writing
+            td_sum_metrics_df.to_csv(local_metrics_file)
+            # concat
+            final_td_sum_metrics_df = pd.concat([final_td_sum_metrics_df, td_sum_metrics_df])
+        else:
+            final_td_sum_metrics_df = pd.concat([final_td_sum_metrics_df,
+                                                 pd.read_csv(local_metrics_file, sep=",", index_col=False, header=0)])
+        print("{} TimeDepedentMetrics ok!".format(remote_folder))
+    return final_td_sum_metrics_df
+
 
 def make_plots(__setup_config_dict):
     output_dir = __setup_config_dict['home_dir'] + "/" + __setup_config_dict['run_name']
@@ -139,4 +184,14 @@ def make_plots(__setup_config_dict):
             filter_config['scenarios'] = list(filter(lambda x: x[1] == year and x[2] == iteration, filter_config['scenarios']))
             final_output_df = get_metrics(filter_config, output_dir)
             final_output_df.sort_values(by=['Rank']).to_csv(local_metrics_file)
+
+        local_td_metrics_file = "{}/{}.{}.TD-metrics-final.csv".format(output_dir, year, iteration)
+        if not os.path.exists(local_td_metrics_file):
+            filter_config = __setup_config_dict.copy()
+            filter_config['scenarios'] = list(filter(lambda x: x[1] == year and x[2] == iteration, filter_config['scenarios']))
+            finale_TD = getTimeDepedentMetrics(filter_config, output_dir)
+            finale_TD.to_csv(local_td_metrics_file, index=False)
         #os.system("python3 makeplots_simplified.py {} {}/makeplots/{}".format(local_metrics_file, output_dir, year))
+
+
+

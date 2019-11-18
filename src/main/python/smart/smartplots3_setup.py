@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
+import matplotlib.dates as mdates
 import os
 
 plt.style.use('seaborn-colorblind')
@@ -48,6 +49,7 @@ def getDfForPlt(_plt_setup3, _output_folder):
     for i in range(1, len(bottom_labels)):
         bottom_labels_xpos.append(bottom_labels_xpos[i-1] + 1.2 + i % 2)
     df = pd.DataFrame()
+    df_td = pd.DataFrame()
     for i in range(len(ids)):
         iteration = iterations[i]
         year = years[i]
@@ -55,7 +57,11 @@ def getDfForPlt(_plt_setup3, _output_folder):
         metrics_file = "{}/{}.{}.metrics-final.csv".format(_output_folder, year, iteration)
         df_temp = pd.read_csv(metrics_file).fillna(0)
         df = pd.concat([df, df_temp[df_temp['Rank'] == id]], sort=False)
-    return (df.sort_values(by=['Rank']), top_labels_xpos, bottom_labels_xpos)
+        td_metrics_file = "{}/{}.{}.TD-metrics-final.csv".format(_output_folder, year, iteration)
+        df_td_temp = pd.read_csv(td_metrics_file).fillna(0)
+        df_td = pd.concat([df_td, df_td_temp[df_td_temp['Rank'] == id]], sort=False)
+
+    return (df.sort_values(by=['Rank']), df_td.sort_values(by=['Rank']), top_labels_xpos, bottom_labels_xpos)
 
 # plots
 
@@ -65,7 +71,7 @@ def pltModeSplitByTripsInternal(_plt_setup3, _output_folder, rh_realized, filena
     top_labels = _plt_setup3['top_labels']
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.{}.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'], filename)
     output_csv = '{}/{}/{}.{}.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'], filename)
 
@@ -137,7 +143,7 @@ def createColumnIfNotExist(df, name, value):
 def tableSummary(_plt_setup3, _output_folder):
     #print(_plt_setup3)
     factor = _plt_setup3['expansion_factor']
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_csv = '{}/{}/{}.summary.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
 
     createColumnIfNotExist(df, 'VMT_car_CAV', 0)
@@ -224,7 +230,7 @@ def pltAverageSpeed_internal(_plt_setup3, _output_folder, outputFileName, plotOp
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
     factor = _plt_setup3['expansion_factor']
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.{}.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'],outputFileName)
     output_csv = '{}/{}/{}.{}.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'],outputFileName)
 
@@ -271,7 +277,7 @@ def pltLdvRhOccupancy(_plt_setup3, _output_folder):
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
     factor = _plt_setup3['expansion_factor']
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.ldv_rh_occupancy.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
     output_csv = '{}/{}/{}.ldv_rh_occupancy.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
 
@@ -407,7 +413,7 @@ def pltLdvPersonHourTraveled(_plt_setup3, _output_folder):
     nb_scenarios = len(_plt_setup3['scenarios_id'])
     factor = _plt_setup3['expansion_factor']
     scale = 1 / 1000000 / 60
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.ldv_person_hours_traveled.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
     output_csv = '{}/{}/{}.ldv_person_hours_traveled.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
 
@@ -473,7 +479,7 @@ def pltModeSplitInPMT_internal(_plt_setup3, _output_folder,factor,fileNameLabel,
     nb_scenarios = len(_plt_setup3['scenarios_id'])
     #factor = _plt_setup3['expansion_factor']
     #scale = 1 / 1000000
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.{}.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'],fileNameLabel)
     output_csv = '{}/{}/{}.{}.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'],fileNameLabel)
 
@@ -525,7 +531,7 @@ def pltModeSplitInPHT_internal(_plt_setup3, _output_folder,factor,fileNameLabel,
     nb_scenarios = len(_plt_setup3['scenarios_id'])
     #factor = _plt_setup3['expansion_factor']
     #scale = 1 / 1000000
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.{}.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'],fileNameLabel)
     output_csv = '{}/{}/{}.{}.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'],fileNameLabel)
 
@@ -592,7 +598,7 @@ def pltModeSplitInVMT_internal(_plt_setup3, _output_folder,factor,fileNameLabel,
     nb_scenarios = len(_plt_setup3['scenarios_id'])
     #factor = _plt_setup3['expansion_factor']
     #scale = 1 / 1000000
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.{}.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'],fileNameLabel)
     output_csv = '{}/{}/{}.{}.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'],fileNameLabel)
 
@@ -660,7 +666,7 @@ def pltLdvTechnologySplitInVMT(_plt_setup3, _output_folder):
     nb_scenarios = len(_plt_setup3['scenarios_id'])
     factor = _plt_setup3['expansion_factor']
     scale = 1 / 1000000
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.ldv_technologysplit_vmt.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
     output_csv = '{}/{}/{}.ldv_technologysplit_vmt.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
 
@@ -699,7 +705,7 @@ def pltRHWaitTime(_plt_setup3, _output_folder):
     top_labels = _plt_setup3['top_labels']
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.rh_wait_time.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
     output_csv = '{}/{}/{}.rh_wait_time.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
 
@@ -731,7 +737,7 @@ def pltOverallAverageSpeed(_plt_setup3, _output_folder):
     top_labels = _plt_setup3['top_labels']
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
 
     createColumnIfDoesNotExist(df)
 
@@ -772,7 +778,7 @@ def pltRHEmptyPooled(_plt_setup3, _output_folder):
     nb_scenarios = len(_plt_setup3['scenarios_id'])
     factor = _plt_setup3['expansion_factor']
     scale = 1 / 1000000
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.rh_empty_shared.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
     output_csv = '{}/{}/{}.rh_empty_shared.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
 
@@ -826,7 +832,7 @@ def pltEnergyPerCapita(_plt_setup3, _output_folder):
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
     scale = 2.77778e-13*_plt_setup3['percapita_factor']
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.energy_source_percapita.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
     output_csv = '{}/{}/{}.energy_source_percapita.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
 
@@ -863,7 +869,7 @@ def pltRHAverageChainedTrips(_plt_setup3, _output_folder):
     top_labels = _plt_setup3['top_labels']
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.rh_chained_trips_requests.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
     output_csv = '{}/{}/{}.rh_chained_trips_requests.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
 
@@ -895,7 +901,7 @@ def pltRHNumberChainedTrips(_plt_setup3, _output_folder):
     top_labels = _plt_setup3['top_labels']
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.rh_chained_trips_count.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
     output_csv = '{}/{}/{}.rh_chained_trips_count.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
 
@@ -927,7 +933,7 @@ def pltMEP(_plt_setup3, _output_folder, _mep_data):
     top_labels = _plt_setup3['top_labels']
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.mep.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
     output_csv = '{}/{}/{}.mep.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
 
@@ -950,6 +956,33 @@ def pltMEP(_plt_setup3, _output_folder, _mep_data):
     for ind in range(nb_scenarios):
         plt.text(top_labels_xpos[ind], max_value + 0.02*max_value, top_labels[ind], ha='center')
     plt.ylabel('MEP')
+    plt.savefig(output_png, transparent=True, bbox_inches='tight', dpi=200, facecolor='white')
+    plt.clf()
+    plt.close()
+
+
+def pltRHNumberOfTrips(_plt_setup3, _scenariosLabel, _output_folder):
+    import helper_utils
+    plot_size = _plt_setup3['plot_size']
+    nb_scenarios = len(_plt_setup3['scenarios_id'])
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    output_png = '{}/{}/{}.rh_numRequestsServed.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+
+    data = df_td.merge(_scenariosLabel, on='Scenario', how='left')
+    #data['hour'] = data['time'].map(lambda x: helper_utils.convert(x))
+    data['hour'] = data['time']/3600.
+    #print(data.iloc[:3])
+    data.pivot(index='hour', columns='Label', values='numRequestsServed').plot()
+
+    ax = plt.gca()
+    #ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
+    #ax.xaxis.set_minor_formatter(mdates.DateFormatter("%H:%M:%S"))
+    plt.xticks(np.arange(0, 25, 4))
+    plt.xlim(0, 24)
+    #plt.legend(bbox_to_anchor=(1.05, 0.5))
+    plt.legend(loc='upper right')
+
+    plt.ylabel('Number of ongoing RH requests being served')
     plt.savefig(output_png, transparent=True, bbox_inches='tight', dpi=200, facecolor='white')
     plt.clf()
     plt.close()

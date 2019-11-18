@@ -104,8 +104,8 @@ def get_pooling_metrics(_data):
         else sum_deadheading_distance_traveled / sum_ride_hail_distance_traveled
     return {
         "ride_hail_requests": tot_rh_trips,
-        "ride_hail_solo_requests": count_of_solo_trips + count_of_unmatched_solo_requests,
-        "ride_hail_pool_requests": tot_pool_trips + count_of_unmatched_pool_requests,
+        "ride_hail_solo_requests": tot_solo_trips,
+        "ride_hail_pool_requests": tot_pool_trips,
         "multi_passenger_pool_trips": count_of_multi_passenger_pool_trips,
         "one_passenger_pool_trips": count_of_one_passenger_pool_trips,
         "solo_trips": count_of_solo_trips,
@@ -168,20 +168,20 @@ def get_all_metrics(filename, __local_file_path):
     pathTraversal['passengerMiles'] = (pathTraversal['length'] * pathTraversal['trueOccupancy'])/1609.34
     pathTraversal['vehicleHours'] = (pathTraversal['arrivalTime'] - pathTraversal['departureTime'])/3600
     pathTraversal['passengerHours'] = pathTraversal['vehicleHours'] * pathTraversal['trueOccupancy']
-      
+
     pathTraversal = pathTraversal.loc[~((pathTraversal['mode']=='walk') & (pathTraversal['vehicleHours']>2)),:]
-    
+
     lightDutyVehiclePathTraversals=pathTraversal.loc[(pathTraversal['vehicleType'].str.contains("BUS")==False) &
-                  (pathTraversal['vehicleType'].str.contains("BIKE")==False) &
-                  (pathTraversal['vehicleType'].str.contains("BODY")==False) &
-                  (pathTraversal['vehicleType'].str.contains("CABLE")==False) &
-                  (pathTraversal['vehicleType'].str.contains("FERRY")==False) &
-                  (pathTraversal['vehicleType'].str.contains("SUBWAY")==False) &
-                  (pathTraversal['vehicleType'].str.contains("TRAM")==False) &
-                  (pathTraversal['vehicleType'].str.contains("TRAIN")==False),:]
-    
+                                                     (pathTraversal['vehicleType'].str.contains("BIKE")==False) &
+                                                     (pathTraversal['vehicleType'].str.contains("BODY")==False) &
+                                                     (pathTraversal['vehicleType'].str.contains("CABLE")==False) &
+                                                     (pathTraversal['vehicleType'].str.contains("FERRY")==False) &
+                                                     (pathTraversal['vehicleType'].str.contains("SUBWAY")==False) &
+                                                     (pathTraversal['vehicleType'].str.contains("TRAM")==False) &
+                                                     (pathTraversal['vehicleType'].str.contains("TRAIN")==False),:]
+
     metrics_json['total_VHT_LightDutyVehicles'] = lightDutyVehiclePathTraversals['vehicleHours'].sum()
-    
+
 
     modeChoiceTotals = modeChoice.groupby('mode').agg({'person': 'count', 'length': 'sum'})
     for mode in modeChoiceTotals.index:
@@ -217,28 +217,28 @@ def get_all_metrics(filename, __local_file_path):
     metrics_json['VMT_L5'] = float(pathTraversal.loc[pathTraversal['vehicleType'].str.contains('L5'), 'vehicleMiles'].sum())
 
     expansion_factor=(7.75/0.315) * 27.0 / 21.3
-    
-    
-    
+
+
+
     transitPathTraversals=pathTraversal.loc[(pathTraversal['vehicleType'].str.contains("BUS")==True) |
-                  (pathTraversal['vehicleType'].str.contains("BIKE")==True) |
-                  (pathTraversal['vehicleType'].str.contains("BODY")==True) |
-                  (pathTraversal['vehicleType'].str.contains("CABLE")==True) |
-                  (pathTraversal['vehicleType'].str.contains("FERRY")==True) |
-                  (pathTraversal['vehicleType'].str.contains("SUBWAY")==True) |
-                  (pathTraversal['vehicleType'].str.contains("TRAM")==True) |
-                  (pathTraversal['vehicleType'].str.contains("TRAIN")==True),:]
-    
-    
+                                            (pathTraversal['vehicleType'].str.contains("BIKE")==True) |
+                                            (pathTraversal['vehicleType'].str.contains("BODY")==True) |
+                                            (pathTraversal['vehicleType'].str.contains("CABLE")==True) |
+                                            (pathTraversal['vehicleType'].str.contains("FERRY")==True) |
+                                            (pathTraversal['vehicleType'].str.contains("SUBWAY")==True) |
+                                            (pathTraversal['vehicleType'].str.contains("TRAM")==True) |
+                                            (pathTraversal['vehicleType'].str.contains("TRAIN")==True),:]
+
+
     transit_primaryFuelTypes = transitPathTraversals.groupby('primaryFuelType').agg({'primaryFuel': 'sum'})
     transit_secondaryFuelTypes = transitPathTraversals.groupby('secondaryFuelType').agg({'secondaryFuel': 'sum'})
-    
+
     ldv_primaryFuelTypes = lightDutyVehiclePathTraversals.groupby('primaryFuelType').agg({'primaryFuel': 'sum'})
     ldv_secondaryFuelTypes = lightDutyVehiclePathTraversals.groupby('secondaryFuelType').agg({'secondaryFuel': 'sum'})
-    
+
     primaryFuelTypes = pathTraversal.groupby('primaryFuelType').agg({'primaryFuel': 'sum'})
     secondaryFuelTypes = pathTraversal.groupby('secondaryFuelType').agg({'secondaryFuel': 'sum'})
-    
+
     for fueltype in primaryFuelTypes.index:
         metrics_json['totalEnergy_' + fueltype] = 0
     for fuelType in secondaryFuelTypes.index:
@@ -246,7 +246,7 @@ def get_all_metrics(filename, __local_file_path):
             metrics_json['totalEnergy_' + fuelType] = 0
 
     for fueltype in transit_primaryFuelTypes.index:
-        metrics_json['totalEnergy_' + fueltype] += float(transit_primaryFuelTypes.loc[fueltype, 'primaryFuel']) /expansion_factor 
+        metrics_json['totalEnergy_' + fueltype] += float(transit_primaryFuelTypes.loc[fueltype, 'primaryFuel']) /expansion_factor
     for fuelType in transit_secondaryFuelTypes.index:
         if 'None' not in fuelType:
             metrics_json['totalEnergy_' + fuelType] += float(transit_secondaryFuelTypes.loc[fueltype, 'secondaryFuel'])/expansion_factor
@@ -256,8 +256,8 @@ def get_all_metrics(filename, __local_file_path):
     for fuelType in ldv_secondaryFuelTypes.index:
         if 'None' not in fuelType:
             metrics_json['totalEnergy_' + fuelType] += float(ldv_secondaryFuelTypes.loc[fueltype, 'secondaryFuel'])
-            
-            
+
+
     print("get_all_metrics done")
     return metrics_json
 
