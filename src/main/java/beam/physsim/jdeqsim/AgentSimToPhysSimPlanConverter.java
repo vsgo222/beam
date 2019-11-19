@@ -5,10 +5,8 @@ import beam.agentsim.agents.vehicles.BeamVehicleType;
 import beam.agentsim.events.PathTraversalEvent;
 import beam.analysis.IterationStatsProvider;
 import beam.analysis.physsim.*;
-import beam.analysis.via.EventWriterXML_viaCompatible;
 import beam.calibration.impl.example.CountsObjectiveFunction;
 import beam.physsim.jdeqsim.cacc.CACCSettings;
-import beam.physsim.jdeqsim.cacc.roadCapacityAdjustmentFunctions.Hao2018CaccRoadCapacityAdjustmentFunction;
 import beam.physsim.jdeqsim.cacc.roadCapacityAdjustmentFunctions.RoadCapacityAdjustmentFunction;
 import beam.physsim.jdeqsim.cacc.sim.JDEQSimulation;
 import beam.router.BeamRouter;
@@ -17,6 +15,9 @@ import beam.sim.BeamConfigChangesObservable;
 import beam.sim.BeamServices;
 import beam.sim.config.BeamConfig;
 import beam.sim.metrics.MetricsSupport;
+import beam.sim.population.AttributesOfIndividual;
+import beam.sim.population.PopulationAdjustment;
+import beam.sim.population.PopulationAdjustment$;
 import beam.utils.DebugLib;
 import beam.utils.TravelTimeCalculatorHelper;
 import com.conveyal.r5.transit.TransportNetwork;
@@ -29,7 +30,6 @@ import org.matsim.api.core.v01.population.*;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.controler.OutputDirectoryHierarchy;
 import org.matsim.core.controler.events.IterationEndsEvent;
-import org.matsim.core.events.EventsManagerImpl;
 import org.matsim.core.events.handler.BasicEventHandler;
 import org.matsim.core.gbl.MatsimRandom;
 import org.matsim.core.mobsim.jdeqsim.JDEQSimConfigGroup;
@@ -40,8 +40,8 @@ import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.population.routes.RouteUtils;
 import org.matsim.core.router.util.TravelTime;
 import org.matsim.core.scenario.MutableScenario;
-import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.core.trafficmonitoring.TravelTimeCalculator;
+import org.matsim.households.Household;
+import org.matsim.utils.objectattributes.attributable.Attributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
@@ -52,6 +52,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 /**
@@ -90,6 +92,8 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
 
     private TravelTime prevTravelTime = new FreeFlowTravelTime();
 
+    private final Map<Id<Person>, Household> personToHouseHold;
+
     public AgentSimToPhysSimPlanConverter(EventsManager eventsManager,
                                           TransportNetwork transportNetwork,
                                           OutputDirectoryHierarchy controlerIO,
@@ -120,6 +124,10 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
         physsimNetworkLinkLengthDistribution = new PhyssimNetworkLinkLengthDistribution(agentSimScenario.getNetwork(),controlerIO,beamConfig);
         physsimNetworkEuclideanVsLengthAttribute = new PhyssimNetworkComparisonEuclideanVsLengthAttribute(agentSimScenario.getNetwork(),controlerIO,beamConfig);
         beamConfigChangesObservable.addObserver(this);
+
+        personToHouseHold = scenario.getHouseholds().getHouseholds().values().stream().flatMap(h -> h.getMemberIds().stream().map(m -> new AbstractMap.SimpleEntry<Id<Person>, Household>(m, h)))
+                .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
+
     }
 
 
@@ -390,7 +398,7 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
                 caccVehiclesMap.put(vehicleId, isCaccEnabled);
 
                 Id<Person> personId = Id.createPersonId(vehicleId);
-                initializePersonAndPlanIfNeeded(personId);
+                initializePersonAndPlanIfNeeded(personId, Id.createPersonId(pte.driverId()));
 
                 // add previous activity and leg to plan
                 Person person = jdeqsimPopulation.getPersons().get(personId);
@@ -409,7 +417,7 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
         }
     }
 
-    private void initializePersonAndPlanIfNeeded(Id<Person> personId) {
+    private void initializePersonAndPlanIfNeeded(Id<Person> personId, Id<Person> driverId) {
         if (!jdeqsimPopulation.getPersons().containsKey(personId)) {
             Person person = jdeqsimPopulation.getFactory().createPerson(personId);
             Plan plan = jdeqsimPopulation.getFactory().createPlan();
@@ -418,12 +426,22 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
             person.setSelectedPlan(plan);
             jdeqsimPopulation.addPerson(person);
 
-            Person person1 = agentSimScenario.getPopulation().getPersons().get(personId);
-            if (person1 != null) {
-                log.info(person1.toString());
+            Person originalPerson = agentSimScenario.getPopulation().getPersons().get(driverId);
+            if (originalPerson != null) {
+                try {
+                    Attributes attributes = originalPerson.getAttributes();
+                    Stream<String> keys = Arrays.stream(attributes.toString().split("\\{ key=")).filter(x -> x.contains(";")).map(z -> z.split(";")[0]);
+                    keys.forEach(key -> {
+                        person.getAttributes().putAttribute(key, attributes.getAttribute(key));
+                    });
+                    final Household hh = personToHouseHold.get(originalPerson.getId());
+                    final AttributesOfIndividual attributesOfIndividual = PopulationAdjustment$.MODULE$.createAttributesOfIndividual(beamServices.beamScenario(), beamServices.matsimServices().getScenario().getPopulation(), originalPerson, hh);
+                    person.getCustomAttributes().put(PopulationAdjustment.BEAM_ATTRIBUTES(), attributesOfIndividual);
+                }
+                catch (Exception ex) {
+                    log.error("Could not create attributes for person {}", driverId);
+                }
             }
-            // Add person attributes from original matsim population
-
         }
     }
 
