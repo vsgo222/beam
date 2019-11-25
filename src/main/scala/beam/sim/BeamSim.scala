@@ -175,8 +175,10 @@ class BeamSim @Inject()(
   }
 
   override def notifyIterationStarts(event: IterationStartsEvent): Unit = {
-    clearRoutesIfNeeded(event.getIteration)
-    clearModesIfNeeded(event.getIteration)
+    if (event.getIteration <= 1) {
+      clearRoutesIfNeeded(event.getIteration)
+      clearModesIfNeeded(event.getIteration)
+    }
 
     beamConfigChangesObservable.notifyChangeToSubscribers()
 
