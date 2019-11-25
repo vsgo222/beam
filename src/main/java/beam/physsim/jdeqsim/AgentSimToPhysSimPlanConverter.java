@@ -137,6 +137,8 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
 
 
     private void setupActorsAndRunPhysSim(int iterationNumber) {
+
+
         PhysSim sim = new PhysSim(beamConfig, agentSimScenario, jdeqsimPopulation,
                 beamServices,
                 controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, shouldWritePhysSimEvents(iterationNumber));
@@ -385,10 +387,7 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
             if (mode.equalsIgnoreCase(BUS) && rand.nextDouble() > beamConfig.beam().physsim().ptSampleSize()) {
                 return;
             }
-
-
             if (isPhyssimMode(mode)) {
-
                 double departureTime = pte.departureTime();
                 String vehicleId = pte.vehicleId().toString();
 
@@ -397,13 +396,13 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
                 boolean isCaccEnabled = beamServices.beamScenario().vehicleTypes().get(beamVehicleTypeId).get().isCaccEnabled();
                 caccVehiclesMap.put(vehicleId, isCaccEnabled);
 
-                Id<Person> personId = Id.createPersonId(vehicleId);
-                initializePersonAndPlanIfNeeded(personId, Id.createPersonId(pte.driverId()));
-
-                // add previous activity and leg to plan
-                Person person = jdeqsimPopulation.getPersons().get(personId);
-                Plan plan = person.getSelectedPlan();
-                Leg leg = createLeg(pte);
+                // For every PathTraversalEvent which has PhysSim mode (CAR or BUS) we create
+                // - If person does not exist, we create Person from `vehicleId`. For that person we create plan, set it to selected plan and add attributes from the original person
+                // - Create leg
+                // - Create dummy activity
+                final Person person = initializePersonAndPlanIfNeeded(Id.createPersonId(vehicleId), Id.createPersonId(pte.driverId()));
+                final Plan plan = person.getSelectedPlan();
+                final Leg leg = createLeg(pte);
 
                 if (leg == null) {
                     return; // dont't process leg further, if empty
@@ -417,31 +416,40 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
         }
     }
 
-    private void initializePersonAndPlanIfNeeded(Id<Person> personId, Id<Person> driverId) {
-        if (!jdeqsimPopulation.getPersons().containsKey(personId)) {
-            Person person = jdeqsimPopulation.getFactory().createPerson(personId);
+    private Person initializePersonAndPlanIfNeeded(Id<Person> vehicleId, Id<Person> driverId) {
+        // Beam in PhysSim part (JDEQSim) simulates vehicles, not people!
+        // So, we have to create _person_ who actually is vehicle.
+        final Person alreadyInitedPerson = jdeqsimPopulation.getPersons().get(vehicleId);
+        if (alreadyInitedPerson == null) {
+            Person person = jdeqsimPopulation.getFactory().createPerson(vehicleId);
             Plan plan = jdeqsimPopulation.getFactory().createPlan();
             plan.setPerson(person);
             person.addPlan(plan);
             person.setSelectedPlan(plan);
+            // person.getAttributes().putAttribute("vehicle_type", vehType);
             jdeqsimPopulation.addPerson(person);
-
-            Person originalPerson = agentSimScenario.getPopulation().getPersons().get(driverId);
-            if (originalPerson != null) {
+            final Person originalPerson = agentSimScenario.getPopulation().getPersons().get(driverId);
+            final Person personToCopyFrom = originalPerson == null ? agentSimScenario.getPopulation().getPersons().get(vehicleId) : originalPerson;
+            // Try to copy person's attributes from original `agentSimScenario` to the created one. Attributes are important because they are used during R5 routing
+            if (personToCopyFrom != null) {
                 try {
-                    Attributes attributes = originalPerson.getAttributes();
+                    Attributes attributes = personToCopyFrom.getAttributes();
                     Stream<String> keys = Arrays.stream(attributes.toString().split("\\{ key=")).filter(x -> x.contains(";")).map(z -> z.split(";")[0]);
                     keys.forEach(key -> {
                         person.getAttributes().putAttribute(key, attributes.getAttribute(key));
                     });
-                    final Household hh = personToHouseHold.get(originalPerson.getId());
-                    final AttributesOfIndividual attributesOfIndividual = PopulationAdjustment$.MODULE$.createAttributesOfIndividual(beamServices.beamScenario(), beamServices.matsimServices().getScenario().getPopulation(), originalPerson, hh);
+                    final Household hh = personToHouseHold.get(personToCopyFrom.getId());
+                    final AttributesOfIndividual attributesOfIndividual = PopulationAdjustment$.MODULE$.createAttributesOfIndividual(beamServices.beamScenario(), beamServices.matsimServices().getScenario().getPopulation(), personToCopyFrom, hh);
                     person.getCustomAttributes().put(PopulationAdjustment.BEAM_ATTRIBUTES(), attributesOfIndividual);
                 }
                 catch (Exception ex) {
-                    log.error("Could not create attributes for person {}", driverId);
+                    log.error("Could not create attributes for person " + vehicleId, ex);
                 }
             }
+            return person;
+        }
+        else {
+            return alreadyInitedPerson;
         }
     }
 
@@ -470,6 +478,8 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
         leg.setDepartureTime(pte.departureTime());
         leg.setTravelTime(0);
         leg.setRoute(route);
+        leg.getAttributes().putAttribute("travel_time", pte.arrivalTime() - pte.departureTime());
+        leg.getAttributes().putAttribute("time", pte.time());
         return leg;
     }
 
