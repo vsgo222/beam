@@ -86,6 +86,11 @@ class CarTravelTimeHandler(isCACCVehicle: scala.collection.Map[String, Boolean])
     Statistics(allTravelTimes.map(t => t.toDouble / 60).toArray)
   }
 }
+object CarTravelTimeHandler {
+  def apply(isCACCVehicle: java.util.Map[String, java.lang.Boolean]): CarTravelTimeHandler = {
+    new CarTravelTimeHandler(isCACCVehicle.asScala.map { case (k, v) => k -> Boolean2boolean(v)})
+  }
+}
 
 
 class EventTypeCounter extends BasicEventHandler with StrictLogging {
