@@ -146,8 +146,8 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
                 beamServices,
                 controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, shouldWritePhysSimEvents(iterationNumber), rnd);
 
-        int numOfPhysSimIters = iterationNumber == 0 ? beamConfig.beam().physsim().relaxation().internalNumberOfIterations() : 1;
-        double fractionOfPopulationToReroute = iterationNumber == 0 ? beamConfig.beam().physsim().relaxation().fractionOfPopulationToReroute() : 0.0;
+        int numOfPhysSimIters = beamConfig.beam().physsim().relaxation().internalNumberOfIterations();
+        double fractionOfPopulationToReroute = beamConfig.beam().physsim().relaxation().fractionOfPopulationToReroute();
         TravelTime travelTimes = sim.run(numOfPhysSimIters, fractionOfPopulationToReroute, prevTravelTime);
         // Safe travel time to reuse it on the next PhysSim iteration
         prevTravelTime = travelTimes;
