@@ -96,7 +96,7 @@ class BeamMobsim @Inject()(
   }
 
   private def clearRoutesIfNeeded(iteration: Int): Unit = {
-    if (iteration <= 1 && beamServices.beamConfig.beam.physsim.relaxation.clearRoutesEveryIteration) {
+    if (beamServices.beamConfig.beam.physsim.relaxation.clearRoutesEveryIteration) {
       scenario.getPopulation.getPersons.values().asScala.foreach { p =>
         p.getPlans.asScala.foreach { plan =>
           plan.getPlanElements.asScala.foreach {
@@ -111,7 +111,7 @@ class BeamMobsim @Inject()(
   }
 
   private def clearModesIfNeeded(iteration: Int): Unit = {
-    if (iteration <= 1 && beamServices.beamConfig.beam.physsim.relaxation.clearModesEveryIteration) {
+    if (beamServices.beamConfig.beam.physsim.relaxation.clearModesEveryIteration) {
       scenario.getPopulation.getPersons.values().asScala.foreach { p =>
         p.getPlans.asScala.foreach { plan =>
           plan.getPlanElements.asScala.foreach {
