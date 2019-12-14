@@ -7,7 +7,10 @@ import beam.agentsim.events.SpaceTime
 import beam.agentsim.events.handling.{BeamEventsLogger, BeamEventsWriterCSV}
 import beam.analysis.via.EventWriterXML_viaCompatible
 import beam.physsim.jdeqsim.cacc.CACCSettings
-import beam.physsim.jdeqsim.cacc.roadCapacityAdjustmentFunctions.{Hao2018CaccRoadCapacityAdjustmentFunction, RoadCapacityAdjustmentFunction}
+import beam.physsim.jdeqsim.cacc.roadCapacityAdjustmentFunctions.{
+  Hao2018CaccRoadCapacityAdjustmentFunction,
+  RoadCapacityAdjustmentFunction
+}
 import beam.physsim.jdeqsim.cacc.sim.JDEQSimulation
 import beam.router.BeamRouter.{Access, RoutingRequest, RoutingResponse}
 import beam.router.Modes.BeamMode.CAR
@@ -93,8 +96,7 @@ class ApproxPhysSim(
     .collect { case (k, v) if v.vehicleCategory == VehicleCategory.Car => (k, v) }
     .maxBy(_._2.sampleProbabilityWithinCategory)
 
-  def run(nIterations: Int, reroutePerIterPct: Double, travelTime: TravelTime): TravelTime = {
-    assert(nIterations >= 1)
+  def run(travelTime: TravelTime): TravelTime = {
     val carTravelTimeWriter: CsvWriter = {
       val fileName = controlerIO.getIterationFilename(iterationNumber, "MultiJDEQSim_car_travel_time.csv")
       new CsvWriter(fileName, Array("iteration", "avg", "median", "p75", "p95", "p99", "min", "max"))
@@ -104,12 +106,11 @@ class ApproxPhysSim(
       new CsvWriter(fileName, Array("iteration", "avg", "median", "p75", "p95", "p99", "min", "max"))
     }
     try {
-      logger.info(s"Running PhysSim with nIterations = $nIterations and reroutePerIterPct = $reroutePerIterPct")
+      logger.info(s"Running ApproxPhysSim")
       run(
         1,
         numberOfPeopleToSimulateEveryIter.length,
         numberOfPeopleToSimulateEveryIter.head,
-        reroutePerIterPct,
         SimulationResult(-1, travelTime, Seq.empty, Statistics(Seq.empty)),
         SimulationResult(-1, travelTime, Seq.empty, Statistics(Seq.empty)),
         carTravelTimeWriter,
@@ -126,7 +127,6 @@ class ApproxPhysSim(
     currentIter: Int,
     nIterations: Int,
     numberOfPeopleToTake: Int,
-    reroutePerIterPct: Double,
     firstResult: SimulationResult,
     lastResult: SimulationResult,
     carTravelTimeWriter: CsvWriter,
@@ -168,37 +168,35 @@ class ApproxPhysSim(
         )
       )
       carTravelTimeWriter.flush()
-      if (reroutePerIterPct > 0) {
-        val before = printRouteStats(s"Before rerouting at $currentIter iter", finalPopulation)
+      val before = printRouteStats(s"Before rerouting at $currentIter iter", finalPopulation)
 //        logger.info("AverageCarTravelTime before replanning")
 //        PhysSim.printAverageCarTravelTime(getCarPeople(population))
-        val reroutedTravelTimeStats = reroutePeople(simulationResult.travelTime, nextSetOfPeople.toVector)
-        reroutedTravelTimeWriter.writeRow(
-          Vector(
-            currentIter,
-            reroutedTravelTimeStats.avg,
-            reroutedTravelTimeStats.median,
-            reroutedTravelTimeStats.p75,
-            reroutedTravelTimeStats.p95,
-            reroutedTravelTimeStats.p99,
-            reroutedTravelTimeStats.minValue,
-            reroutedTravelTimeStats.maxValue
-          )
+      val reroutedTravelTimeStats = reroutePeople(simulationResult.travelTime, nextSetOfPeople.toVector)
+      reroutedTravelTimeWriter.writeRow(
+        Vector(
+          currentIter,
+          reroutedTravelTimeStats.avg,
+          reroutedTravelTimeStats.median,
+          reroutedTravelTimeStats.p75,
+          reroutedTravelTimeStats.p95,
+          reroutedTravelTimeStats.p99,
+          reroutedTravelTimeStats.minValue,
+          reroutedTravelTimeStats.maxValue
         )
-        reroutedTravelTimeWriter.flush()
+      )
+      reroutedTravelTimeWriter.flush()
 //        logger.info("AverageCarTravelTime after replanning")
 //        PhysSim.printAverageCarTravelTime(getCarPeople(population))
-        val after = printRouteStats(s"After rerouting at $currentIter iter", finalPopulation)
-        val absTotalLenDiff = Math.abs(before.totalRouteLen - after.totalRouteLen)
-        val absAvgLenDiff = Math.abs(before.totalRouteLen / before.nRoutes - after.totalRouteLen / after.nRoutes)
-        val absTotalCountDiff = Math.abs(before.totalLinkCount - after.totalLinkCount)
-        val absAvgCountDiff = Math.abs(before.totalLinkCount / before.nRoutes - after.totalLinkCount / after.nRoutes)
-        logger.info(s"""
+      val after = printRouteStats(s"After rerouting at $currentIter iter", finalPopulation)
+      val absTotalLenDiff = Math.abs(before.totalRouteLen - after.totalRouteLen)
+      val absAvgLenDiff = Math.abs(before.totalRouteLen / before.nRoutes - after.totalRouteLen / after.nRoutes)
+      val absTotalCountDiff = Math.abs(before.totalLinkCount - after.totalLinkCount)
+      val absAvgCountDiff = Math.abs(before.totalLinkCount / before.nRoutes - after.totalLinkCount / after.nRoutes)
+      logger.info(s"""
              |Abs diff in total len: $absTotalLenDiff
              |Abs avg diff in len: $absAvgLenDiff
              |Abs dif in total link count: $absTotalCountDiff
              |Abs avg diff in link count: $absAvgCountDiff""".stripMargin)
-      }
       printStats(lastResult, simulationResult)
       val realFirstResult = if (currentIter == 1) simulationResult else firstResult
       val nextNumberOfPeopleToTake = numberOfPeopleToSimulateEveryIter.lift(currentIter).getOrElse(-1)
@@ -206,7 +204,6 @@ class ApproxPhysSim(
         currentIter + 1,
         nIterations,
         nextNumberOfPeopleToTake,
-        reroutePerIterPct,
         realFirstResult,
         simulationResult,
         carTravelTimeWriter,
@@ -333,13 +330,14 @@ class ApproxPhysSim(
       assert(person.getPlans.size() == 1)
       val hasCarLeg = person.getSelectedPlan.getPlanElements.asScala.exists {
         case activity: Activity => false
-        case leg: Leg => leg.getMode.equalsIgnoreCase("car")
+        case leg: Leg           => leg.getMode.equalsIgnoreCase("car")
       }
       hasCarLeg
     }
 
     val pctToNumberPersonToTake = (peopleWithCarLegs.size * reroutePerIterPct).toInt
-    val takeN = if (pctToNumberPersonToTake > peopleWithCarLegs.size) peopleWithCarLegs.size else pctToNumberPersonToTake
+    val takeN =
+      if (pctToNumberPersonToTake > peopleWithCarLegs.size) peopleWithCarLegs.size else pctToNumberPersonToTake
     val sampledPeople = rnd.shuffle(peopleWithCarLegs).take(takeN)
 
     reroutePeople(travelTime, sampledPeople)
