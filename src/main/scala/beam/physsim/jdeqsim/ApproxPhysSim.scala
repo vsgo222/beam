@@ -154,7 +154,7 @@ class ApproxPhysSim(
         s"finalPopulation size after: ${finalPopulation.getPersons.size}. Original population size: ${population.getPersons.size}"
       )
 
-      val simulationResult = simulate(currentIter, writeEvents = true)
+      val simulationResult = simulate(currentIter, writeEvents = shouldWritePhysSimEvents && currentIter == nIterations)
       carTravelTimeWriter.writeRow(
         Vector(
           currentIter,
