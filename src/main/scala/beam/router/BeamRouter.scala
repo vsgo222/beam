@@ -4,18 +4,7 @@ import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 
 import akka.actor.Status.Failure
-import akka.actor.{
-  Actor,
-  ActorLogging,
-  ActorRef,
-  Address,
-  Cancellable,
-  ExtendedActorSystem,
-  Props,
-  RelativeActorPath,
-  RootActorPath,
-  Stash
-}
+import akka.actor.{Actor, ActorLogging, ActorRef, Address, Cancellable, ExtendedActorSystem, Props, RelativeActorPath, RootActorPath, Stash}
 import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, Member, MemberStatus}
 import akka.pattern._
@@ -37,7 +26,7 @@ import com.conveyal.r5.profile.StreetMode
 import com.conveyal.r5.transit.TransportNetwork
 import com.romix.akka.serialization.kryo.KryoSerializer
 import org.matsim.api.core.v01.network.Network
-import org.matsim.api.core.v01.{Coord, Id, Scenario}
+import org.matsim.api.core.v01.{Coord, Id, Scenario, TransportMode}
 import org.matsim.core.population.routes.{NetworkRoute, RouteUtils}
 import org.matsim.core.router.util.TravelTime
 import org.matsim.vehicles.{Vehicle, Vehicles}
@@ -117,7 +106,7 @@ class BeamRouter(
   val tick = "work-pull-tick"
 
   val tickTask: Cancellable =
-    context.system.scheduler.schedule(10.seconds, 30.seconds, self, tick)(context.dispatcher)
+    context.system.scheduler.schedule(10.seconds, 60.seconds, self, tick)(context.dispatcher)
 
   private implicit val timeout: Timeout = Timeout(50000, TimeUnit.SECONDS)
 
@@ -145,8 +134,12 @@ class BeamRouter(
 
   private val updateTravelTimeTimeout: Timeout = Timeout(3, TimeUnit.MINUTES)
 
+  var beamModeToNumberOfRequests: mutable.Map[BeamMode, Int] = mutable.HashMap.empty
+  var nRoutingRequests: Int = 0
+
   override def receive: PartialFunction[Any, Unit] = {
     case `tick` =>
+      log.error(s"nRoutingRequests: $nRoutingRequests\nbeamModeToNumberOfRequests: $beamModeToNumberOfRequests")
       if (isWorkAndNoAvailableWorkers) notifyWorkersOfAvailableWork()
       logExcessiveOutstandingWorkAndClearIfEnabledAndOver
     case t: TryToSerialize =>
@@ -155,6 +148,9 @@ class BeamRouter(
         log.debug("TryToSerialize size in bytes: {}, MBytes: {}", byteArray.size, byteArray.size.toDouble / 1024 / 1024)
       }
     case msg: UpdateTravelTimeLocal =>
+      log.error(s"nRoutingRequests: $nRoutingRequests\nbeamModeToNumberOfRequests: $beamModeToNumberOfRequests")
+      nRoutingRequests = 0
+      beamModeToNumberOfRequests.clear()
       traveTimeOpt = Some(msg.travelTime)
       localNodes.foreach(_.forward(msg))
     case UpdateTravelTimeRemote(map) =>
@@ -311,6 +307,12 @@ class BeamRouter(
       case routingRequest: RoutingRequest =>
         outstandingWorkIdToOriginalSenderMap.put(routingRequest.requestId, originalSender) //TODO: Add a central Id trait so can just match on that and combine logic
         outstandingWorkIdToTimeSent.put(routingRequest.requestId, getCurrentTime)
+        val beamModes = routingRequest.streetVehicles.map(_.mode)
+        beamModes.foreach { mode =>
+          val prev = beamModeToNumberOfRequests.getOrElse(mode, 0)
+          beamModeToNumberOfRequests.put(mode, prev + 1)
+        }
+        nRoutingRequests += 1
         worker ! work
       case embodyWithCurrentTravelTime: EmbodyWithCurrentTravelTime =>
         outstandingWorkIdToOriginalSenderMap.put(

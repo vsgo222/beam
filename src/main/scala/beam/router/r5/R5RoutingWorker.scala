@@ -3,7 +3,7 @@ package beam.router.r5
 import java.time.temporal.ChronoUnit
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util
-import java.util.concurrent.{ExecutorService, Executors}
+import java.util.concurrent.{ConcurrentLinkedQueue, ExecutorService, Executors}
 import java.util.{Collections, Optional}
 
 import akka.actor._
@@ -23,7 +23,7 @@ import beam.router.model.BeamLeg._
 import beam.router.model.RoutingModel.TransitStopsInfo
 import beam.router.model.{EmbodiedBeamTrip, RoutingModel, _}
 import beam.router.osm.TollCalculator
-import beam.router.r5.R5RoutingWorker.{createBushwackingBeamLeg, R5Request, StopVisitor}
+import beam.router.r5.R5RoutingWorker.{R5Request, StopVisitor, createBushwackingBeamLeg}
 import beam.sim.BeamScenario
 import beam.sim.common.{GeoUtils, GeoUtilsImpl}
 import beam.sim.config.{BeamConfig, MatSimBeamConfigBuilder}
@@ -160,6 +160,8 @@ class R5RoutingWorker(workerParams: WorkerParameters) extends Actor with ActorLo
   // Let the dispatcher on which the Future in receive will be running
   // be the dispatcher on which this actor is running.
 
+  val latencies: ConcurrentLinkedQueue[Long] = new ConcurrentLinkedQueue[Long]()
+
   override final def receive: Receive = {
     case "tick" =>
       firstMsgTime match {
@@ -197,7 +199,12 @@ class R5RoutingWorker(workerParams: WorkerParameters) extends Actor with ActorLo
       if (firstMsgTime.isEmpty) firstMsgTime = Some(ZonedDateTime.now(ZoneOffset.UTC))
       val eventualResponse = Future {
         latency("request-router-time", Metrics.RegularLevel) {
-          r5.calcRoute(request)
+          val s = System.currentTimeMillis()
+          val res = r5.calcRoute(request)
+          val e  = System.currentTimeMillis()
+          val diff = e - s
+          latencies.add(diff)
+          res
         }
       }
       eventualResponse.recover {
@@ -208,6 +215,9 @@ class R5RoutingWorker(workerParams: WorkerParameters) extends Actor with ActorLo
       askForMoreWork()
 
     case UpdateTravelTimeLocal(newTravelTime) =>
+      val measurements = latencies.asScala.map(_.toDouble).toVector
+      log.info(s"Routing calculation latency: ${Statistics(measurements)}")
+      latencies.clear()
       r5 = new R5Wrapper(workerParams, newTravelTime)
       log.info(s"{} UpdateTravelTimeLocal. Set new travel time", getNameAndHashCode)
       askForMoreWork()
