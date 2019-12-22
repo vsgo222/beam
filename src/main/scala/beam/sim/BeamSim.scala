@@ -12,9 +12,10 @@ import beam.agentsim.agents.ridehail.{RideHailIterationHistory, RideHailIteratio
 import beam.analysis.plots.modality.ModalityStyleStats
 import beam.analysis.plots.{GraphUtils, GraphsStatsAgentSimEventsListener}
 import beam.analysis.via.ExpectedMaxUtilityHeatMap
-import beam.analysis.{DelayMetricAnalysis, IterationStatsProvider, RideHailUtilizationCollector}
+import beam.analysis.{DelayMetricAnalysis, GeofenceAnalyzer, IterationStatsProvider, RideHailUtilizationCollector}
 import beam.physsim.jdeqsim.AgentSimToPhysSimPlanConverter
 import beam.router.osm.TollCalculator
+import beam.router.r5.RouteDumper
 import beam.router.{BeamRouter, BeamSkimmer, RouteHistory, TravelTimeObserved}
 import beam.sim.config.{BeamConfig, BeamConfigHolder}
 import beam.sim.metrics.MetricsPrinter.{Print, Subscribe}
@@ -26,6 +27,7 @@ import beam.utils.{DebugLib, NetworkHelper, ProfilingUtils, SummaryVehicleStatsP
 import com.conveyal.r5.transit.TransportNetwork
 import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
+import org.matsim.core.events.handler.BasicEventHandler
 //import com.zaxxer.nuprocess.NuProcess
 import beam.analysis.PythonProcess
 import org.apache.commons.io.FileUtils
@@ -90,13 +92,23 @@ class BeamSim @Inject()(
   val runningPythonScripts = mutable.ListBuffer.empty[PythonProcess]
 
   val rideHailUtilizationCollector: RideHailUtilizationCollector = new RideHailUtilizationCollector(beamServices)
+  val geofenceAnalyzer: GeofenceAnalyzer = new GeofenceAnalyzer(beamServices)
+
+  val routerDumper: RouteDumper = new RouteDumper(beamServices)
+
+  val ehWithIterationEndsListener: List[BasicEventHandler with IterationEndsListener] =
+    List[BasicEventHandler with IterationEndsListener](rideHailUtilizationCollector, geofenceAnalyzer)
+
+  val startAndEndEventListeners: List[BasicEventHandler with IterationStartsListener with IterationEndsListener] =
+    List(routerDumper)
 
   override def notifyStartup(event: StartupEvent): Unit = {
 
     metricsPrinter ! Subscribe("counter", "**")
     metricsPrinter ! Subscribe("histogram", "**")
 
-    eventsManager.addHandler(rideHailUtilizationCollector)
+    ehWithIterationEndsListener.foreach(eventsManager.addHandler)
+    startAndEndEventListeners.foreach(eventsManager.addHandler)
 
     beamServices.beamRouter = actorSystem.actorOf(
       BeamRouter.props(
@@ -108,7 +120,8 @@ class BeamSim @Inject()(
         scenario,
         scenario.getTransitVehicles,
         beamServices.fareCalculator,
-        tollCalculator
+        tollCalculator,
+        eventsManager
       ),
       "router"
     )
@@ -194,7 +207,9 @@ class BeamSim @Inject()(
     if (isFirstIteration(iterationNumber)) {
       PlansCsvWriter.toCsv(scenario, controllerIO.getOutputFilename("plans.csv.gz"))
     }
-    rideHailUtilizationCollector.reset(event.getIteration)
+    ehWithIterationEndsListener.foreach(_.reset(event.getIteration))
+    startAndEndEventListeners.foreach(_.notifyIterationStarts(event))
+
   }
 
   private def shouldWritePlansAtCurrentIteration(iterationNumber: Int): Boolean = {
@@ -220,7 +235,8 @@ class BeamSim @Inject()(
     if (beamConfig.beam.debug.debugEnabled)
       logger.info(DebugLib.getMemoryLogMessage("notifyIterationEnds.start (after GC): "))
 
-    rideHailUtilizationCollector.notifyIterationEnds(event)
+    ehWithIterationEndsListener.foreach(_.notifyIterationEnds(event))
+    startAndEndEventListeners.foreach(_.notifyIterationEnds(event))
 
     val outputGraphsFuture = Future {
       if ("ModeChoiceLCCM".equals(beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {

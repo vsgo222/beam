@@ -28,7 +28,7 @@ import beam.router.Modes.BeamMode
 import beam.router.gtfs.FareCalculator
 import beam.router.model._
 import beam.router.osm.TollCalculator
-import beam.router.r5.R5RoutingWorker
+import beam.router.r5.{EmbodyWithCurrentTravelTimeEvent, R5RoutingWorker, RoutingRequestEvent, RoutingResponseEvent}
 import beam.sim.common.GeoUtils
 import beam.sim.population.AttributesOfIndividual
 import beam.sim.{BeamScenario, BeamServices}
@@ -38,6 +38,7 @@ import com.conveyal.r5.transit.TransportNetwork
 import com.romix.akka.serialization.kryo.KryoSerializer
 import org.matsim.api.core.v01.network.Network
 import org.matsim.api.core.v01.{Coord, Id, Scenario}
+import org.matsim.core.api.experimental.events.EventsManager
 import org.matsim.core.population.routes.{NetworkRoute, RouteUtils}
 import org.matsim.core.router.util.TravelTime
 import org.matsim.vehicles.{Vehicle, Vehicles}
@@ -58,7 +59,8 @@ class BeamRouter(
   scenario: Scenario,
   transitVehicles: Vehicles,
   fareCalculator: FareCalculator,
-  tollCalculator: TollCalculator
+  tollCalculator: TollCalculator,
+  eventsManager: EventsManager
 ) extends Actor
     with Stash
     with ActorLogging {
@@ -211,6 +213,7 @@ class BeamRouter(
         sendWorkTo(worker, work, originalSender, receivePath = "GimmeWork")
       }
     case routingResp: RoutingResponse =>
+      eventsManager.processEvent(RoutingResponseEvent(routingResp))
       pipeResponseToOriginalSender(routingResp)
       logIfResponseTookExcessiveTime(routingResp.requestId)
     case routingFailure: RoutingFailure =>
@@ -221,6 +224,7 @@ class BeamRouter(
       removeOutstandingWorkBy(workIdToClear)
 
     case work =>
+      processByEventsManagerIfNeeded(work)
       val originalSender = context.sender
       if (!isWorkAvailable) { //No existing work
         if (!isWorkerAvailable) {
@@ -234,6 +238,16 @@ class BeamRouter(
         if (!isWorkerAvailable) notifyWorkersOfAvailableWork() //Shouldn't need this but it should be relatively idempotent
         availableWorkWithOriginalSender.enqueue((work, originalSender))
       }
+  }
+
+  private def processByEventsManagerIfNeeded(work: Any): Unit = {
+    work match {
+      case e: EmbodyWithCurrentTravelTime =>
+        eventsManager.processEvent(EmbodyWithCurrentTravelTimeEvent(e))
+      case req: RoutingRequest =>
+        eventsManager.processEvent(RoutingRequestEvent(req))
+      case _ =>
+    }
   }
 
   private def isWorkAvailable: Boolean = availableWorkWithOriginalSender.nonEmpty
@@ -432,7 +446,8 @@ object BeamRouter {
     streetVehicles: IndexedSeq[StreetVehicle],
     attributesOfIndividual: Option[AttributesOfIndividual] = None,
     streetVehiclesUseIntermodalUse: IntermodalUse = Access,
-    requestId: Int = IdGeneratorImpl.nextId
+    requestId: Int = IdGeneratorImpl.nextId,
+    initiatedFrom: String
   ) {
     lazy val timeValueOfMoney
       : Double = attributesOfIndividual.fold(360.0)(3600.0 / _.valueOfTime) // 360 seconds per Dollar, i.e. 10$/h value of travel time savings
@@ -450,13 +465,18 @@ object BeamRouter {
     */
   case class RoutingResponse(
     itineraries: Seq[EmbodiedBeamTrip],
-    requestId: Int
+    requestId: Int,
+    request: Option[RoutingRequest],
+    isEmbodyWithCurrentTravelTime: Boolean
   )
 
   case class RoutingFailure(cause: Throwable, requestId: Int)
 
   object RoutingResponse {
-    val dummyRoutingResponse = Some(RoutingResponse(Vector(), IdGeneratorImpl.nextId))
+
+    val dummyRoutingResponse = Some(
+      RoutingResponse(Vector(), IdGeneratorImpl.nextId, None, isEmbodyWithCurrentTravelTime = false)
+    )
   }
 
   def props(
@@ -468,7 +488,8 @@ object BeamRouter {
     scenario: Scenario,
     transitVehicles: Vehicles,
     fareCalculator: FareCalculator,
-    tollCalculator: TollCalculator
+    tollCalculator: TollCalculator,
+    eventsManager: EventsManager
   ) = {
     checkForConsistentTimeZoneOffsets(beamScenario.dates, transportNetwork)
 
@@ -482,7 +503,8 @@ object BeamRouter {
         scenario,
         transitVehicles,
         fareCalculator,
-        tollCalculator
+        tollCalculator,
+        eventsManager
       )
     )
   }
