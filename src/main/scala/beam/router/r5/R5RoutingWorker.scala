@@ -1128,7 +1128,7 @@ class R5Wrapper(workerParams: WorkerParameters, travelTime: TravelTime, isZeroIt
     ThreadLocalRandom.current().nextDouble(1 - 0.5, 1 + 0.5)
   }
 
-  val travelTimeError: Double = workerParams.beamConfig.beam.routing.r5.travelTimeError
+  val travelTimeError: Double = 0.0
 
   private val errors: Array[Double] = if (travelTimeError == 0.0) {
     Array.empty
