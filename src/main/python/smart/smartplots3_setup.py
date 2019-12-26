@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
 import matplotlib.dates as mdates
+import matplotlib.cm as cm
 import os
 
 plt.style.use('seaborn-colorblind')
@@ -32,7 +33,7 @@ mode_colors = {'RH': colors['red'],
                'gas': colors['purple'],
                'diesel': colors['yellow']}
 angle = 0
-horizontal_align = "center"
+horizontal_align = "right"
 
 def getDfForPlt(_plt_setup3, _output_folder):
     if not os.path.exists('{}/{}'.format(_output_folder,_plt_setup3['plots_folder'])):
@@ -42,12 +43,21 @@ def getDfForPlt(_plt_setup3, _output_folder):
     years = _plt_setup3['scenarios_year']
     ids = _plt_setup3['scenarios_id']
     iterations = _plt_setup3['scenarios_itr']
+
     top_labels_xpos = [1]
-    bottom_labels_xpos = [1]
     for i in range(1, len(top_labels)):
-        top_labels_xpos.append(top_labels_xpos[i-1] + 1.2 + i % 2)
+        if ids[0] == 1:
+            top_labels_xpos.append(top_labels_xpos[i-1] + 1.2 + i % 2)
+        else:
+            top_labels_xpos.append(top_labels_xpos[i-1] + 1.2 + (i+1) % 2)
+
+    bottom_labels_xpos = [1]
     for i in range(1, len(bottom_labels)):
-        bottom_labels_xpos.append(bottom_labels_xpos[i-1] + 1.2 + i % 2)
+        if ids[0] == 1:
+            bottom_labels_xpos.append(bottom_labels_xpos[i-1] + 1.2 + i % 2)
+        else:
+            bottom_labels_xpos.append(bottom_labels_xpos[i-1] + 1.2 + (i+1) % 2)
+
     df = pd.DataFrame()
     df_td = pd.DataFrame()
     for i in range(len(ids)):
@@ -58,10 +68,12 @@ def getDfForPlt(_plt_setup3, _output_folder):
         df_temp = pd.read_csv(metrics_file).fillna(0)
         df = pd.concat([df, df_temp[df_temp['Rank'] == id]], sort=False)
         td_metrics_file = "{}/{}.{}.TD-metrics-final.csv".format(_output_folder, year, iteration)
-        df_td_temp = pd.read_csv(td_metrics_file).fillna(0)
-        df_td = pd.concat([df_td, df_td_temp[df_td_temp['Rank'] == id]], sort=False)
-
-    return (df.sort_values(by=['Rank']), df_td.sort_values(by=['Rank']), top_labels_xpos, bottom_labels_xpos)
+        df_td_temp = pd.DataFrame()
+        if os.path.exists(td_metrics_file):
+            df_td_temp = pd.read_csv(td_metrics_file).fillna(0)
+            df_td = pd.concat([df_td, df_td_temp[df_td_temp['Rank'] == id]], sort=False)
+            df_td = df_td.sort_values(by=['Rank'])
+    return (df.sort_values(by=['Rank']), df_td, top_labels_xpos, bottom_labels_xpos)
 
 # plots
 
@@ -107,7 +119,7 @@ def pltModeSplitByTripsInternal(_plt_setup3, _output_folder, rh_realized, filena
     plt_walk = plt.bar(x=top_labels_xpos, height=data['walk'], bottom=data[['transit', 'car', 'cav', 'rh', 'rhp', 'bike']].sum(axis=1), color=mode_colors['Walk'],zorder=3)
     plt.xticks(bottom_labels_xpos, bottom_labels, rotation=angle, ha=horizontal_align)
     plt.legend((plt_transit, plt_car, plt_cav, plt_rh, plt_rhp, plt_bike, plt_walk),
-               ('Transit', 'Car', 'CAV', 'Ridehail', 'Ridehail Pool', 'Bike', 'Walk'),
+               ('Transit', 'Car', 'Personal CAV', 'Ridehail', 'Ridehail Pool', 'Bike', 'Walk'),
                labelspacing=-2.5, bbox_to_anchor=(1.05, 0.5), frameon=False)
     ax = plt.gca()
     ax.grid(axis='y',linestyle='dashed', lw=0.5, alpha=0.5,zorder=0)
@@ -141,10 +153,90 @@ def createColumnIfNotExist(df, name, value):
         df[name].fillna(0, inplace=True)
 
 def tableSummary(_plt_setup3, _output_folder):
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    output_csv = '{}/{}/{}.summary.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+
+    createColumnIfNotExist(df, 'VMT_car_CAV', 0)
+    createColumnIfNotExist(df, 'VMT_car_RH_CAV', 0)
+    createColumnIfNotExist(df, 'PMT_car_CAV', 0)
+    createColumnIfNotExist(df, 'PMT_car_RH_CAV', 0)
+    createColumnIfNotExist(df, 'PHT_car_CAV', 0)
+    createColumnIfNotExist(df, 'PHT_car_RH_CAV', 0)
+    createColumnIfNotExist(df, 'VHT_car_CAV', 0)
+    createColumnIfNotExist(df, 'VHT_car_RH_CAV', 0)
+    createColumnIfNotExist(df, 'Energy_car_CAV', 0)
+    createColumnIfNotExist(df, 'Energy_car_RH_CAV', 0)
+    createColumnIfNotExist(df, 'personTravelTime_cav', 0)
+
+    exp_factor = _plt_setup3['expansion_factor']
+    commute_factor = _plt_setup3['percapita_factor']
+
+    tot_vmt_transit = (df['VMT_bus'].values+df['VMT_cable_car'].values+df['VMT_ferry'].values+df['VMT_rail'].values +
+                       df['VMT_subway'].values+df['VMT_tram'].values)
+
+    tot_vmt_non_transit = (df['VMT_car'].values+df['VMT_car_CAV'].values+df['VMT_car_RH'].values +
+                           df['VMT_car_RH_CAV'].values + df['VMT_walk'].values+df['VMT_bike'].values)
+
+    tot_vht_transit = (df['VHT_bus'].values+df['VHT_cable_car'].values+df['VHT_ferry'].values+df['VHT_rail'].values +
+                       df['VHT_subway'].values+df['VHT_tram'].values)
+
+    tot_vht_non_transit = (df['VHT_car'].values+df['VHT_car_CAV'].values+df['VHT_car_RH'].values +
+                           df['VHT_car_RH_CAV'].values + df['VHT_walk'].values+df['VHT_bike'].values)
+
+    tot_energy_transit = (df['Energy_bus'].values+df['Energy_cable_car'].values+df['Energy_ferry'].values+
+                          df['Energy_rail'].values+df['Energy_subway'].values+df['Energy_tram'].values)
+
+    tot_energy_non_transit = (df['Energy_car'].values+df['Energy_car_CAV'].values+df['Energy_car_RH'].values +
+                              df['Energy_car_RH_CAV'].values + df['Energy_walk'].values+df['Energy_bike'].values)
+
+    tot_vmt = tot_vmt_transit + tot_vmt_non_transit * exp_factor
+    tot_vht = tot_vht_transit + tot_vht_non_transit * exp_factor
+    tot_energy = tot_energy_transit + tot_energy_non_transit * exp_factor
+
+    tot_population = df['population'].values * exp_factor / commute_factor
+
+    tot_vht_ldv = (df['VHT_car'].values+df['VHT_car_CAV'].values+df['VHT_car_RH'].values+
+                   df['VHT_car_RH_CAV'].values) * exp_factor
+
+    tot_vmt_ldv = (df['VMT_car'].values+df['VMT_car_CAV'].values+df['VMT_car_RH'].values+
+                   df['VMT_car_RH_CAV'].values) * exp_factor
+
+    tot_pmt = (df['PMT_bike'].values+df['PMT_bus'].values+df['PMT_cable_car'].values+df['PMT_car'].values+
+               df['PMT_car_CAV'].values+df['PMT_car_RH'].values+df['PMT_car_RH_CAV'].values+
+               df['PMT_ferry'].values+df['PMT_rail'].values+df['PMT_subway'].values+df['PMT_tram'].values+
+               df['PMT_walk'].values)*exp_factor
+
+    tot_pht = (df['PHT_bike'].values+df['PHT_bus'].values+df['PHT_cable_car'].values+df['PHT_car'].values+
+               df['PHT_car_CAV'].values+df['PHT_car_RH'].values+df['PHT_car_RH_CAV'].values+
+               df['PHT_ferry'].values+df['PHT_rail'].values+df['PHT_subway'].values+df['PHT_tram'].values+
+               df['PHT_walk'].values)*exp_factor
+
+    data = pd.DataFrame(
+        {'Population (10^6)': tot_population * 1e-6,
+         'VMT Total (10^6)': tot_vmt * 1e-6,
+         'VMT per Capita': tot_vmt / tot_population,
+         'PMT Total (10^6)': tot_pmt * 1e-6,
+         'PMT per Capita': tot_pmt / tot_population,
+         'Driving Speed [miles/h]': tot_vmt / tot_vht,
+         'LDV Driving Speed [miles/h]': tot_vmt_ldv / tot_vht_ldv,
+         'VHT (10^6) [h]': tot_vht * 1e-6,
+         'Vehicle Energy (GWh)': tot_energy * 2.77778e-13,
+         'Vehicle Energy per Capita (kWh)': (tot_energy / tot_population) * 2.77778e-7,
+         'Person Hours (10^6)': tot_pht * 1e-6,
+         'VMT Light Duty Total (10^6)': tot_vmt_ldv * 1e-6,
+         'VMT Light Duty per Capita': tot_vmt_ldv / tot_population
+         })
+    data['Scenario'] = df['Scenario'].values.copy()
+    data['Technology'] = df['Technology'].values.copy()
+    data['year'] = _plt_setup3['scenarios_year']
+    data.to_csv(output_csv)
+
+
+def tableSummaryOld(_plt_setup3, _output_folder):
     #print(_plt_setup3)
     factor = _plt_setup3['expansion_factor']
     (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
-    output_csv = '{}/{}/{}.summary.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+    output_csv = '{}/{}/{}.summaryOld.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
 
     createColumnIfNotExist(df, 'VMT_car_CAV', 0)
     createColumnIfNotExist(df, 'VMT_car_RH_CAV', 0)
@@ -180,7 +272,7 @@ def tableSummary(_plt_setup3, _output_folder):
     data['Technology'] = df['Technology'].values.copy()
     data['year'] = _plt_setup3['scenarios_year']
     data.to_csv(output_csv)
-    #print(data)
+
 
 def pltAveragePersonSpeed_allModes(_plt_setup3, _output_folder):
     pltAverageSpeed_internal(_plt_setup3, _output_folder,'average_person_speed_all_modes','personAverageSpeedAllModes')
@@ -463,8 +555,8 @@ def pltModeSplitInPHT(_plt_setup3, _output_folder):
 
 
 def pltModeSplitInPMTPerCapita(_plt_setup3, _output_folder):
-    (df, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
-    pltModeSplitInPMT_internal(_plt_setup3, _output_folder,_plt_setup3['percapita_factor']/df['population'].values,'modesplit_pmt_per_capita',1,'Person Miles Traveled')
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    pltModeSplitInPMT_internal(_plt_setup3, _output_folder,_plt_setup3['percapita_factor']/df['population'].values,'modesplit_pmt_per_capita',1,'Person Miles Traveled Per Capita')
 
 
 def pltModeSplitInPHTPerCapita(_plt_setup3, _output_folder):
@@ -510,7 +602,7 @@ def pltModeSplitInPMT_internal(_plt_setup3, _output_folder,factor,fileNameLabel,
 
     plt.xticks(bottom_labels_xpos, bottom_labels, rotation=angle, ha=horizontal_align)
     plt.legend((plt_transit, plt_car, plt_cav, plt_rh, plt_bike, plt_walk),
-               ('Transit', 'Car', 'CAV', 'Ridehail', 'Bike', 'Walk'),
+               ('Transit', 'Car', 'Personal CAV', 'Ridehail', 'Bike', 'Walk'),
                labelspacing=-2.5, bbox_to_anchor=(1.05, 0.5), frameon=False)
     ax = plt.gca()
     ax.grid(axis='y',linestyle='dashed', lw=0.5, alpha=0.5,zorder=0)
@@ -642,7 +734,7 @@ def pltModeSplitInVMT_internal(_plt_setup3, _output_folder,factor,fileNameLabel,
     if withNonMotorizedMode:
         plt_nm = plt.bar(x=top_labels_xpos, height=data['nm'], bottom=data[['transit', 'car', 'cav', 'rh', 'rhp']].sum(axis=1), color=mode_colors['NM'])
         plt.legend((plt_transit, plt_car, plt_cav, plt_rh, plt_rhp, plt_nm, empty),
-                   ('Transit', 'Car', 'CAV', 'Ridehail', 'Ridehail Pool', 'NonMotorized', 'Deadheading'),
+                   ('Transit', 'Car', 'Personal CAV', 'Ridehail', 'Ridehail Pool', 'NonMotorized', 'Deadheading'),
                    labelspacing=-2.5, bbox_to_anchor=(1.05, 0.5), frameon=False)
     else:
         plt.legend((plt_transit, plt_car, plt_cav, plt_rh, plt_rhp, empty),
@@ -700,11 +792,52 @@ def pltLdvTechnologySplitInVMT(_plt_setup3, _output_folder):
     plt.close()
 
 
+def pltRHEmptyVMT(_plt_setup3, _output_folder):
+    plot_size = _plt_setup3['plot_size']
+    top_labels = _plt_setup3['top_labels']
+    bottom_labels = _plt_setup3['bottom_labels']
+    nb_scenarios = len(_plt_setup3['scenarios_id'])
+    factor = _plt_setup3['expansion_factor']
+    angle = _plt_setup3['bottom_labels_angle']
+    scale = 1 / 1000000
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    output_png = '{}/{}/{}.rh_empty_vmt.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+    output_csv = '{}/{}/{}.rh_empty_vmt.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+
+    data = pd.DataFrame(
+        {'deadheading': df['ridehail_distance_deadheading'].values * factor * scale/1609.34,
+         'relocation': df['ridehail_distance_relocation'].values * factor * scale/1609.34
+         })
+    height_all = data.sum(axis=1)
+    data['scenario'] = df['Scenario'].values.copy()
+    data['technology'] = df['Technology'].values.copy()
+    data.to_csv(output_csv)
+
+    plt.figure(figsize=plot_size)
+    plt_dh = plt.bar(x=top_labels_xpos, height=data['deadheading'],zorder=3)
+    plt_rel = plt.bar(x=top_labels_xpos, height=data['relocation'], bottom=data['deadheading'],zorder=3)
+    plt.xticks(bottom_labels_xpos, bottom_labels, rotation=angle, ha=horizontal_align)
+    plt.legend((plt_dh, plt_rel),
+               ('Deadheading', 'Repositioning'),
+               labelspacing=-2.5, bbox_to_anchor=(1.05, 0.5), frameon=False)
+    ax = plt.gca()
+    ax.grid(axis='y',linestyle='dashed', lw=0.5, alpha=0.5,zorder=0)
+    max_value = max(height_all)*1.05
+    ax.set_ylim((0, max_value))
+    for ind in range(nb_scenarios):
+        plt.text(top_labels_xpos[ind], max_value + 0.02*max_value, top_labels[ind], ha='center')
+    plt.ylabel('Vehicle Miles Traveled (millions)')
+    plt.savefig(output_png, transparent=True, bbox_inches='tight', dpi=200, facecolor='white')
+    plt.clf()
+    plt.close()
+
+
 def pltRHWaitTime(_plt_setup3, _output_folder):
     plot_size = _plt_setup3['plot_size']
     top_labels = _plt_setup3['top_labels']
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
+    angle = _plt_setup3['bottom_labels_angle']
     (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.rh_wait_time.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
     output_csv = '{}/{}/{}.rh_wait_time.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
@@ -730,6 +863,112 @@ def pltRHWaitTime(_plt_setup3, _output_folder):
     plt.savefig(output_png, transparent=True, bbox_inches='tight', dpi=200, facecolor='white')
     plt.clf()
     plt.close()
+
+
+def pltRHWaitTime2(_plt_setup3, _output_folder):
+    plot_size = _plt_setup3['plot_size']
+    top_labels = _plt_setup3['top_labels']
+    bottom_labels = _plt_setup3['bottom_labels']
+    nb_scenarios = len(_plt_setup3['scenarios_id'])
+    angle = _plt_setup3['bottom_labels_angle']
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    output_png = '{}/{}/{}.rh_wait_time2.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+    output_csv = '{}/{}/{}.rh_wait_time2.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+
+    data = pd.DataFrame(
+        {'rh_wait_time': df['ridehail_wait_time'].values.copy()/60.
+         })
+    height_all = data.sum(axis=1)
+    data['scenario'] = df['Scenario'].values.copy()
+    data['technology'] = df['Technology'].values.copy()
+    data.to_csv(output_csv)
+
+    plt.figure(figsize=plot_size)
+    plt.bar(x=top_labels_xpos, height=data['rh_wait_time'], color=mode_colors['RH'],zorder=3)
+    plt.xticks(bottom_labels_xpos, bottom_labels, rotation=angle, ha=horizontal_align)
+    ax = plt.gca()
+    ax.grid(axis='y',linestyle='dashed', lw=0.5, alpha=0.5,zorder=0)
+    max_value = max(height_all)*1.05
+    ax.set_ylim((0, max_value))
+    for ind in range(nb_scenarios):
+        plt.text(top_labels_xpos[ind], max_value + 0.02*max_value, top_labels[ind], ha='center')
+    plt.ylabel('Average Ride Hail Wait (min)')
+    plt.savefig(output_png, transparent=True, bbox_inches='tight', dpi=200, facecolor='white')
+    plt.clf()
+    plt.close()
+
+
+def pltRHTravelTime(_plt_setup3, _output_folder):
+    plot_size = _plt_setup3['plot_size']
+    top_labels = _plt_setup3['top_labels']
+    bottom_labels = _plt_setup3['bottom_labels']
+    nb_scenarios = len(_plt_setup3['scenarios_id'])
+    angle = _plt_setup3['bottom_labels_angle']
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    output_png = '{}/{}/{}.rh_travel_time.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+    output_csv = '{}/{}/{}.rh_travel_time.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+
+    data = pd.DataFrame(
+        {'ridehail_travel_time': df['ridehail_travel_time'].values.copy()/60.
+         })
+    height_all = data.sum(axis=1)
+    data['scenario'] = df['Scenario'].values.copy()
+    data['technology'] = df['Technology'].values.copy()
+    data.to_csv(output_csv)
+
+    plt.figure(figsize=plot_size)
+    plt.bar(x=top_labels_xpos, height=data['ridehail_travel_time'], color=mode_colors['RH'],zorder=3)
+    plt.xticks(bottom_labels_xpos, bottom_labels, rotation=angle, ha=horizontal_align)
+    ax = plt.gca()
+    ax.grid(axis='y',linestyle='dashed', lw=0.5, alpha=0.5,zorder=0)
+    max_value = max(height_all)*1.05
+    ax.set_ylim((0, max_value))
+    for ind in range(nb_scenarios):
+        plt.text(top_labels_xpos[ind], max_value + 0.02*max_value, top_labels[ind], ha='center')
+    plt.ylabel('Average Ride Hail Travel Time (min)')
+    plt.savefig(output_png, transparent=True, bbox_inches='tight', dpi=200, facecolor='white')
+    plt.clf()
+    plt.close()
+
+
+def pltRHServiceTime(_plt_setup3, _output_folder):
+    plot_size = _plt_setup3['plot_size']
+    top_labels = _plt_setup3['top_labels']
+    bottom_labels = _plt_setup3['bottom_labels']
+    nb_scenarios = len(_plt_setup3['scenarios_id'])
+    angle = _plt_setup3['bottom_labels_angle']
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    output_png = '{}/{}/{}.rh_service_time.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+    output_csv = '{}/{}/{}.rh_service_time.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+
+    data = pd.DataFrame(
+        {'rh_travel_time': df['ridehail_travel_time'].values.copy()/60.,
+         'rh_wait_time': df['ridehail_wait_time'].values.copy()/60.
+         })
+    height_all = data.sum(axis=1)
+    data['scenario'] = df['Scenario'].values.copy()
+    data['technology'] = df['Technology'].values.copy()
+    data.to_csv(output_csv)
+
+    plt.figure(figsize=plot_size)
+    plt_tt = plt.bar(x=top_labels_xpos, height=data['rh_travel_time'], color=mode_colors['RH'])
+    plt_wt = plt.bar(x=top_labels_xpos, height=data['rh_wait_time'],  bottom=data['rh_travel_time'], color=mode_colors['RHP'])
+    plt.xticks(bottom_labels_xpos, bottom_labels, rotation=angle, ha=horizontal_align)
+    plt.legend((plt_wt, plt_tt),
+               ('Avg Wait Time', 'Avg Travel Time'),
+               labelspacing=-2.5, bbox_to_anchor=(1.05, 0.5), frameon=False)
+
+    ax = plt.gca()
+    ax.grid(axis='y',linestyle='dashed', lw=0.5, alpha=0.5,zorder=0)
+    max_value = max(height_all)*1.05
+    ax.set_ylim((0, max_value))
+    for ind in range(nb_scenarios):
+        plt.text(top_labels_xpos[ind], max_value + 0.02*max_value, top_labels[ind], ha='center')
+    plt.ylabel('Average Ride Hail Service Time (min)')
+    plt.savefig(output_png, transparent=True, bbox_inches='tight', dpi=200, facecolor='white')
+    plt.clf()
+    plt.close()
+
 
 
 def pltOverallAverageSpeed(_plt_setup3, _output_folder):
@@ -777,6 +1016,7 @@ def pltRHEmptyPooled(_plt_setup3, _output_folder):
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
     factor = _plt_setup3['expansion_factor']
+    angle = _plt_setup3['bottom_labels_angle']
     scale = 1 / 1000000
     (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.rh_empty_shared.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
@@ -812,7 +1052,7 @@ def pltRHEmptyPooled(_plt_setup3, _output_folder):
     empty = mpatches.Patch(facecolor='white', label='The white data', hatch='///')
     plt.legend((plt_rh, plt_rhp, empty),
                ('Ridehail', 'Ridehail Pool', 'Deadheading'),
-               labelspacing=-2.5, bbox_to_anchor=(1.25, 0.5), frameon=False)
+               labelspacing=-2.5, bbox_to_anchor=(1.05, 0.5), frameon=False)
 
     ax = plt.gca()
     ax.grid(axis='y',linestyle='dashed', lw=0.5, alpha=0.5,zorder=0)
@@ -826,12 +1066,115 @@ def pltRHEmptyPooled(_plt_setup3, _output_folder):
     plt.close()
 
 
+def pltVMTPerRHOccupancy(_plt_setup3, _output_folder):
+    plot_size = _plt_setup3['plot_size']
+    top_labels = _plt_setup3['top_labels']
+    bottom_labels = _plt_setup3['bottom_labels']
+    nb_scenarios = len(_plt_setup3['scenarios_id'])
+    factor = _plt_setup3['expansion_factor']
+    angle = _plt_setup3['bottom_labels_angle']
+    scale = 1 / 1000000
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    output_png = '{}/{}/{}.rh_vmt_per_occupancy.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+    output_csv = '{}/{}/{}.rh_vmt_per_occupancy.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+
+    createColumnIfNotExist(df, 'VMT_car_CAV', 0)
+    createColumnIfNotExist(df, 'VMT_car_RH_CAV', 0)
+    createColumnIfNotExist(df, 'VMT_car_RH_CAV_shared', 0)
+    createColumnIfNotExist(df, 'VMT_car_CAV_empty', 0)
+    createColumnIfNotExist(df, 'VMT_car_CAV_shared', 0)
+    createColumnIfNotExist(df, 'VMT_car_RH_CAV_empty', 0)
+
+    VMT_car_RH_shared_1p = df['VMT_car_RH'] - df['VMT_car_RH_shared']
+    VMT_car_RH_CAV_shared_1p = df['VMT_car_RH_CAV'] - df['VMT_car_RH_CAV_shared']
+
+    data = pd.DataFrame(
+        {'rh1': (VMT_car_RH_shared_1p + VMT_car_RH_CAV_shared_1p) * factor * scale,
+         'rh2': (df['VMT_car_RH_shared_2p'] + df['VMT_car_RH_CAV_shared_2p']) * factor * scale,
+         'rh3': (df['VMT_car_RH_shared_3p'] + df['VMT_car_RH_CAV_shared_3p']) * factor * scale,
+         'rh4': (df['VMT_car_RH_shared_4p'] + df['VMT_car_RH_CAV_shared_4p']) * factor * scale
+         })
+
+    height_all = data.sum(axis=1)
+    data['rh0'] = (df['VMT_car_RH_empty'] + df['VMT_car_RH_CAV_empty']) * factor * scale
+    data['scenario'] = df['Scenario'].values.copy()
+    data['technology'] = df['Technology'].values.copy()
+    data.to_csv(output_csv)
+
+    plt.figure(figsize=plot_size)
+    plt_rh1 = plt.bar(x=top_labels_xpos, height=data['rh1'], color=mode_colors['RH'])
+    plt.bar(x=top_labels_xpos, height=data['rh0'], hatch='///', fill=False, lw=0,zorder=3)
+    plt_rh2 = plt.bar(x=top_labels_xpos, height=data['rh2'], bottom=data['rh1'], color=colors['light.purple'])
+    plt_rh3 = plt.bar(x=top_labels_xpos, height=data['rh3'], bottom=data['rh1']+data['rh2'], color=colors['light.orange'])
+    plt_rh4 = plt.bar(x=top_labels_xpos, height=data['rh4'], bottom=data['rh1']+data['rh2']+data['rh3'], color=colors['light.green'])
+
+    plt.xticks(bottom_labels_xpos, bottom_labels, rotation=angle, ha=horizontal_align)
+    empty = mpatches.Patch(facecolor='white', label='The white data', hatch='///')
+    plt.legend((empty, plt_rh1, plt_rh2, plt_rh3, plt_rh4),
+               ('Deadheading', 'Ridehail', 'Ridehail 2p', 'Ridehail 3p', 'Ridehail 4p+'),
+               labelspacing=-2.5, bbox_to_anchor=(1.05, 0.5), frameon=False)
+
+    ax = plt.gca()
+    ax.grid(axis='y',linestyle='dashed', lw=0.5, alpha=0.5,zorder=0)
+    max_value = max(height_all)*1.05
+    ax.set_ylim((0, max_value))
+    for ind in range(nb_scenarios):
+        plt.text(top_labels_xpos[ind], max_value + 0.02*max_value, top_labels[ind], ha='center')
+    plt.ylabel('Ridehail Vehicle Miles Traveled (millions)')
+    plt.savefig(output_png, transparent=True, bbox_inches='tight', dpi=200, facecolor='white')
+    plt.clf()
+    plt.close()
+
+
+def pltRHTripsCount(_plt_setup3, _output_folder):
+    plot_size = _plt_setup3['plot_size']
+    top_labels = _plt_setup3['top_labels']
+    bottom_labels = _plt_setup3['bottom_labels']
+    nb_scenarios = len(_plt_setup3['scenarios_id'])
+    factor = _plt_setup3['expansion_factor']
+    angle = _plt_setup3['bottom_labels_angle']
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    output_png = '{}/{}/{}.rh_trips_counts.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+    output_csv = '{}/{}/{}.rh_trips_counts.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+
+    rh_multi_passenger = df['ride_hail_pooled_counts'].values * df["multi_passengers_trips_per_pool_trips"].values
+    rh_solo_passenger = df['ride_hail_counts'].values  + (df['ride_hail_pooled_counts'].values - rh_multi_passenger)
+
+    data = pd.DataFrame(
+        {
+            'rh': rh_solo_passenger * 1e-6 * factor,
+            'rhp': rh_multi_passenger * 1e-6 * factor
+        })
+    height_all = data.sum(axis=1)
+    data['scenario'] = df['Scenario'].values.copy()
+    data['technology'] = df['Technology'].values.copy()
+    data.to_csv(output_csv)
+
+    plt.figure(figsize=plot_size)
+    plt_rh = plt.bar(x=top_labels_xpos, height=data['rh'], color=mode_colors['RH'])
+    plt_rhp = plt.bar(x=top_labels_xpos, height=data['rhp'], bottom=data['rh'], color=mode_colors['RHP'])
+
+    plt.xticks(bottom_labels_xpos, bottom_labels, rotation=angle, ha=horizontal_align)
+    plt.legend((plt_rh, plt_rhp), ('Ridehail', 'Ridehail Pool'),
+               labelspacing=-2.5, bbox_to_anchor=(1.05, 0.5), frameon=False)
+
+    ax = plt.gca()
+    ax.grid(axis='y',linestyle='dashed', lw=0.5, alpha=0.5,zorder=0)
+    max_value = max(height_all)*1.05
+    ax.set_ylim((0, max_value))
+    for ind in range(nb_scenarios):
+        plt.text(top_labels_xpos[ind], max_value + 0.02*max_value, top_labels[ind], ha='center')
+    plt.ylabel('Ridehail Trips Count in millions')
+    plt.savefig(output_png, transparent=True, bbox_inches='tight', dpi=200, facecolor='white')
+    plt.clf()
+    plt.close()
+
 def pltEnergyPerCapita(_plt_setup3, _output_folder):
     plot_size = _plt_setup3['plot_size']
     top_labels = _plt_setup3['top_labels']
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
-    scale = 2.77778e-13*_plt_setup3['percapita_factor']
+    scale = 2.77778e-7*_plt_setup3['percapita_factor']
     (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.energy_source_percapita.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
     output_csv = '{}/{}/{}.energy_source_percapita.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
@@ -856,7 +1199,7 @@ def pltEnergyPerCapita(_plt_setup3, _output_folder):
     ax.set_ylim((0, max_value))
     for ind in range(nb_scenarios):
         plt.text(top_labels_xpos[ind], max_value + 0.02*max_value,  top_labels[ind], ha='center')
-    plt.ylabel('Light Duty Vehicle Energy per Capita (GWh)')
+    plt.ylabel('Light Duty Vehicle Energy per Capita (kWh)')
     plt.legend((plt_Electricity, plt_Diesel, plt_Gas),
                ('Electricity', 'Diesel', 'Gasoline'), bbox_to_anchor=(1.05, 0.5), frameon=False)
     plt.savefig(output_png, transparent=True, bbox_inches='tight', dpi=200, facecolor='white')
@@ -869,6 +1212,7 @@ def pltRHAverageChainedTrips(_plt_setup3, _output_folder):
     top_labels = _plt_setup3['top_labels']
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
+    angle = _plt_setup3['bottom_labels_angle']
     (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.rh_chained_trips_requests.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
     output_csv = '{}/{}/{}.rh_chained_trips_requests.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
@@ -901,6 +1245,7 @@ def pltRHNumberChainedTrips(_plt_setup3, _output_folder):
     top_labels = _plt_setup3['top_labels']
     bottom_labels = _plt_setup3['bottom_labels']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
+    angle = _plt_setup3['bottom_labels_angle']
     (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
     output_png = '{}/{}/{}.rh_chained_trips_count.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
     output_csv = '{}/{}/{}.rh_chained_trips_count.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
@@ -961,18 +1306,48 @@ def pltMEP(_plt_setup3, _output_folder, _mep_data):
     plt.close()
 
 
-def pltRHNumberOfTrips(_plt_setup3, _scenariosLabel, _output_folder):
+def pltRateRHRequestsServed(_plt_setup3, _scenariosLabel, _output_folder):
+    pltRHEnroute(_plt_setup3, _scenariosLabel, _output_folder, 'rateRHRequestsServedPerHour', 'Rate of RH Requests Served k/Hour')
+
+def pltRHBusyVehicles(_plt_setup3, _scenariosLabel, _output_folder):
+    pltRHEnroute(_plt_setup3, _scenariosLabel, _output_folder, 'numRHBusyVehicles', 'RH Busy Vehicles k/Hour')
+
+def pltRHEmptyVehicles(_plt_setup3, _scenariosLabel, _output_folder):
+    pltRHEnroute(_plt_setup3, _scenariosLabel, _output_folder, 'numRHEmptyVehicles', 'RH Empty Vehicles k/Hour')
+
+def pltRHEnroutePMT(_plt_setup3, _scenariosLabel, _output_folder):
+    pltRHEnroute(_plt_setup3, _scenariosLabel, _output_folder, 'totRHEnroutePMT', 'RH Enroute PMT k/Hour ')
+
+def pltRHEnroutePHT(_plt_setup3, _scenariosLabel, _output_folder):
+    pltRHEnroute(_plt_setup3, _scenariosLabel, _output_folder,'totRHEnroutePHT', 'RH Enroute PHT k/Hour')
+
+def pltRHEnrouteVMT(_plt_setup3, _scenariosLabel, _output_folder):
+    pltRHEnroute(_plt_setup3, _scenariosLabel, _output_folder, 'totRHEnrouteVMT', 'RH Enroute VMT k/Hour')
+
+def pltRHEnrouteVHT(_plt_setup3, _scenariosLabel, _output_folder):
+    pltRHEnroute(_plt_setup3, _scenariosLabel, _output_folder, 'totRHEnrouteVHT', 'RH Enroute VHT k/Hour')
+
+def pltRHEnrouteVMTEmpty(_plt_setup3, _scenariosLabel, _output_folder):
+    pltRHEnroute(_plt_setup3, _scenariosLabel, _output_folder, 'totRHEnrouteVMTEmpty', 'RH Enroute VMT Deadheading k/Hour')
+
+def pltRHEnrouteVHTEmpty(_plt_setup3, _scenariosLabel, _output_folder):
+    pltRHEnroute(_plt_setup3, _scenariosLabel, _output_folder, 'totRHEnrouteVHTEmpty', 'RH Enroute VHT Deadheading k/Hour')
+
+def pltRHEnroute(_plt_setup3, _scenariosLabel, _output_folder, plotValue, plotYlabel):
     import helper_utils
     plot_size = _plt_setup3['plot_size']
     nb_scenarios = len(_plt_setup3['scenarios_id'])
     (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
-    output_png = '{}/{}/{}.rh_numRequestsServed.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+    output_png = '{}/{}/{}.rh_{}.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'], plotValue)
+    #output_csv= '{}/{}/{}.rh_{}.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'], plotValue)
 
     data = df_td.merge(_scenariosLabel, on='Scenario', how='left')
+    #data['numRHEnrouteNonDeadheading'] = data['numRHEnrouteVehicles'] - data['numRHEnrouteDeadheading']
     #data['hour'] = data['time'].map(lambda x: helper_utils.convert(x))
-    data['hour'] = data['time']/3600.
+    #data['hour'] = data['time']/3600.
     #print(data.iloc[:3])
-    data.pivot(index='hour', columns='Label', values='numRequestsServed').plot()
+    data[plotValue] = data[plotValue] * 1e-3
+    data.pivot(index='hour', columns='Label', values=plotValue).plot()
 
     ax = plt.gca()
     #ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
@@ -982,7 +1357,46 @@ def pltRHNumberOfTrips(_plt_setup3, _scenariosLabel, _output_folder):
     #plt.legend(bbox_to_anchor=(1.05, 0.5))
     plt.legend(loc='upper right')
 
-    plt.ylabel('Number of ongoing RH requests being served')
+    plt.ylabel(plotYlabel)
     plt.savefig(output_png, transparent=True, bbox_inches='tight', dpi=200, facecolor='white')
     plt.clf()
     plt.close()
+
+
+def pltRHRuntime(_plt_setup3, _output_folder):
+    plot_size = _plt_setup3['plot_size']
+    top_labels = _plt_setup3['top_labels']
+    bottom_labels = _plt_setup3['bottom_labels']
+    nb_scenarios = len(_plt_setup3['scenarios_id'])
+    (df, df_td, top_labels_xpos, bottom_labels_xpos) = getDfForPlt(_plt_setup3, _output_folder)
+    output_png = '{}/{}/{}.rh_runtime.png'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+    output_csv = '{}/{}/{}.rh_runtime.csv'.format(_output_folder,_plt_setup3['plots_folder'], _plt_setup3['name'])
+
+    data_plot = pd.DataFrame({
+        'mobsim': df['mobsim_time'].values.copy(),
+        'pooled_trips_share': df['multi_passengers_trips_per_ride_hail_trips'].values.copy(),
+        'label': bottom_labels
+    })
+    data = data_plot.copy()
+    data['pooled_trips_count'] = df['multi_passenger_pool_trips'].values.copy()
+    data['pooled_trips_relative_share'] = df['multi_passengers_trips_per_pool_trips'].values.copy()
+    data['chained_trips_avg'] = df['chained_trips_requests'].values.copy()
+    data['scenario'] = df['Scenario'].values.copy()
+    data['technology'] = df['Technology'].values.copy()
+    data.to_csv(output_csv)
+
+    colors = cm.rainbow(np.linspace(0, 1, len(bottom_labels)))
+    plt.figure(figsize=plot_size)
+    ax = plt.gca()
+
+    for d,color in zip(data_plot.values, colors):
+        label,mobsim,pooled_trips_share = d
+        plt.scatter(mobsim, pooled_trips_share, alpha=0.8, c=color, edgecolors='none', s=30, label=label)
+
+    plt.legend(labelspacing=-2.5, bbox_to_anchor=(1.9, 0.5), frameon=False, loc='upper right')
+    plt.xlabel('avg mobsim time (sec)')
+    plt.ylabel('share of pooled trips')
+    plt.savefig(output_png, transparent=True, bbox_inches='tight', dpi=200, facecolor='white')
+    plt.clf()
+    plt.close()
+

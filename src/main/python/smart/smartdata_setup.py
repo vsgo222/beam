@@ -4,7 +4,8 @@ import os
 import ssl
 import urllib.request
 from pandas.io.json import json_normalize
-from datetime import datetime
+import datetime
+import time
 import json
 import numpy as np
 
@@ -45,6 +46,20 @@ def download_stats(__url, __output_file_path):
     return downloaded_file
 
 
+def download_stopwatch(__url, __output_file_path):
+    downloaded_file = '{}.stopwatch.txt'.format(__output_file_path)
+    if not os.path.exists(downloaded_file):
+        if not os.path.exists(__output_file_path.rsplit("/", 1)[0]):
+            os.makedirs(__output_file_path.rsplit("/", 1)[0])
+        if (not os.environ.get('PYTHONHTTPSVERIFY', '') and
+                getattr(ssl, '_create_unverified_context', None)):
+            ssl._create_default_https_context = ssl._create_unverified_context
+        url = "{}/stopwatch.txt".format(__url)
+        print("downloading {} ...".format(url))
+        urllib.request.urlretrieve(url, downloaded_file)
+    return downloaded_file
+
+
 def download_beamLog(__url, __output_file_path):
     downloaded_file = '{}.beamLog.out'.format(__output_file_path)
     if not os.path.exists(downloaded_file):
@@ -57,6 +72,16 @@ def download_beamLog(__url, __output_file_path):
         print("downloading {} ...".format(url))
         urllib.request.urlretrieve(url, downloaded_file)
     return downloaded_file
+
+
+def get_metrics_from_stopwatch(__url, __output_file_path):
+    stopwatch_file = download_stopwatch(__url, __output_file_path)
+    stopwatch_df = pd.read_csv(stopwatch_file, sep="\t", index_col=None, header=0)
+    stopwatch_df = stopwatch_df[stopwatch_df['Iteration'] != 0]
+    stopwatch_df["mobsim_time"] = stopwatch_df["mobsim"].map(lambda x: time.strptime(x,'%H:%M:%S'))
+    stopwatch_df["mobsim_sec"] = stopwatch_df["mobsim_time"].map(lambda x: datetime.timedelta(hours=x.tm_hour,minutes=x.tm_min,seconds=x.tm_sec).total_seconds())
+    mobsim = stopwatch_df["mobsim_sec"].mean()
+    return pd.DataFrame([mobsim], columns = ['mobsim_time'])
 
 
 def get_metrics_from_stats(__url, __output_file_path, __iteration):
@@ -78,11 +103,55 @@ def get_TD_SumMetrics(__url, __output_file_path, __iteration):
     if filename.endswith(".gz"):
         compression = 'gzip'
     data = pd.read_csv(filename, sep=",", index_col=None, header=0, compression=compression)
-    data2 = data[(data['type'] == 'PathTraversal') & data['vehicle'].str.contains('rideHailVehicle-')].dropna(how='all', axis=1)
-    data2['time'] = pd.cut(data2['departureTime'], np.arange(0, 172800, 3600)).apply(lambda x: x.left) # 48 hours
-    data2 = data2.loc[:, ['vehicle', 'time', 'numPassengers']].groupby(['vehicle', 'time']).mean().groupby(['time']).sum()
-    data2 = data2.reset_index(drop=True).rename(columns={"numPassengers": "numRequestsServed"})
-    return data2
+    data_PEV = data.loc[data['type'] == 'PersonEntersVehicle']
+    data_PEV = data_PEV.loc[data_PEV['vehicle'].str.startswith('rideHailVehicle-', na=True)]
+    data_PEV = data_PEV.loc[~data_PEV['person'].str.startswith('rideHailAgent-', na=False)]
+    data_PEV['hour'] = pd.cut(data_PEV['time'], np.arange(0, 90001, 3600)).apply(lambda x: x.left/3600) # 1 hour bin
+
+    batch1 = data_PEV.loc[:, ['hour', 'type']].groupby('hour').agg([{'type':'count'}]).reset_index().rename(
+        columns={"type": "rateRHRequestsServedPerHour"})
+    batch1.columns = batch1.columns.get_level_values(0)
+
+    data_PT = data.loc[data['type'] == 'PathTraversal']
+    data_PT = data_PT.loc[data_PT['vehicle'].str.startswith('rideHailVehicle-', na=True)]
+    data_PT['PMT'] = data_PT['length'] * data_PT['numPassengers']/1609.344
+    data_PT['PHT'] = (data_PT['arrivalTime']-data_PT['departureTime']) * data_PT['numPassengers']/3600
+    data_PT['VMT'] = data_PT['length']/1609.344
+    data_PT['VHT'] = (data_PT['arrivalTime']-data_PT['departureTime'])/3600
+    data_PT['VMTEmpty'] = data_PT['VMT'] * data_PT['numPassengers'].map(lambda x: int(x==0))
+    data_PT['VHTEmpty'] = data_PT['VHT'] * data_PT['numPassengers'].map(lambda x: int(x==0))
+    data_PT['hour'] = pd.cut(data_PT['time'], np.arange(0, 90001, 3600)).apply(lambda x: x.left/3600) # 1 hour bin
+
+    batch2_1 = data_PT.loc[data_PT['numPassengers'] > 0].loc[:, ['hour', 'vehicle']]
+    batch2_1 = batch2_1.groupby('hour').agg({'vehicle':'count'}).reset_index().rename(columns={'vehicle':'numRHBusyVehicles'})
+    batch2_1.columns = batch2_1.columns.get_level_values(0)
+
+    batch2_2 = data_PT.loc[data_PT['numPassengers'] == 0].loc[:, ['hour', 'vehicle']]
+    batch2_2 = batch2_2.groupby('hour').agg({'vehicle':'count'}).reset_index().rename(columns={'vehicle':'numRHEmptyVehicles'})
+    batch2_2.columns = batch2_2.columns.get_level_values(0)
+
+    batch2 = batch2_1.merge(batch2_2, on='hour', how='left')
+
+    batch3 = data_PT.loc[:, ['hour', 'PMT', 'PHT', 'VMT', 'VHT', 'VMTEmpty', 'VHTEmpty']]
+    batch3 = batch3.groupby('hour').agg({
+        'PMT':'sum',
+        'PHT':'sum',
+        'VMT':'sum',
+        'VHT':'sum',
+        'VMTEmpty': 'sum',
+        'VHTEmpty': 'sum'
+    }).reset_index().rename(columns={
+        'PMT':'totRHEnroutePMT',
+        'PHT':'totRHEnroutePHT',
+        'VMT':'totRHEnrouteVMT',
+        'VHT':'totRHEnrouteVHT',
+        'VMTEmpty':'totRHEnrouteVMTEmpty',
+        'VHTEmpty':'totRHEnrouteVHTEmpty'
+    })
+    batch3.columns = batch3.columns.get_level_values(0)
+
+    batch4 = batch2.merge(batch3, on='hour', how='left')
+    return batch1.merge(batch4, on='hour', how='left')
 
 
 def get_metrics_from_beamLog(__url, __output_file_path):
@@ -126,8 +195,17 @@ def get_metrics(__setup, __output_dir):
             beamLog_df['Rank'] = rank
             beamLog_df.set_index(__index)
 
+            stopwatch_df = get_metrics_from_stopwatch(url, output_file_path)
+            stopwatch_df['Scenario'] = scenario
+            stopwatch_df['Technology'] = technology
+            stopwatch_df['Iteration'] = iteration
+            stopwatch_df['Year'] = year
+            stopwatch_df['Rank'] = rank
+            stopwatch_df.set_index(__index)
+
             merged_metrics_df = pd.merge(pool_metrics_df, summary_stats_df, on=__index, how='inner')
             merged_metrics_df = pd.merge(merged_metrics_df, beamLog_df, on=__index, how='inner')
+            merged_metrics_df = pd.merge(merged_metrics_df, stopwatch_df, on=__index, how='inner')
 
             # writing
             merged_metrics_df.set_index(__index).to_csv(local_metrics_file)
@@ -139,6 +217,7 @@ def get_metrics(__setup, __output_dir):
                                          pd.read_csv(local_metrics_file, sep=",", index_col=None, header=0)])
         print("{} ok!".format(remote_folder))
     return final_output_df
+
 
 def getTimeDepedentMetrics(__setup, __output_dir):
     __index = ['Rank', 'Year', 'Scenario', 'Iteration']
@@ -157,7 +236,7 @@ def getTimeDepedentMetrics(__setup, __output_dir):
             td_sum_metrics_df['Rank'] = rank
             # td_sum_metrics_df.set_index(__index)
             # writing
-            td_sum_metrics_df.to_csv(local_metrics_file)
+            td_sum_metrics_df.to_csv(local_metrics_file, index_label=False, index=False)
             # concat
             final_td_sum_metrics_df = pd.concat([final_td_sum_metrics_df, td_sum_metrics_df])
         else:

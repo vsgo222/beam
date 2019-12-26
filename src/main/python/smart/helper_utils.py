@@ -7,7 +7,7 @@ def convert(seconds):
 def createUrl(foldername):
     return "https://beam-outputs.s3.amazonaws.com/output/sfbay/"+foldername
 
-def createSetup(name,expansion_factor,percapita_factor,plot_size,settings):
+def createSetup(name,expansion_factor,percapita_factor,plot_size,settings, angle=0):
     plt_setup_smart={
         'name': name,
         'expansion_factor':expansion_factor,
@@ -18,7 +18,8 @@ def createSetup(name,expansion_factor,percapita_factor,plot_size,settings):
         'plot_size': plot_size,
         'bottom_labels': [],
         'top_labels': [],
-        'plots_folder': "makeplots3"
+        'plots_folder': "makeplots3",
+        'bottom_labels_angle': angle
     }
     plt_setup_smart['name']=name
     plt_setup_smart['expansion_factor']=expansion_factor
