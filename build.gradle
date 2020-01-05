@@ -32,6 +32,7 @@ plugins {
 apply plugin: 'java'
 apply plugin: 'scala'
 apply plugin: 'maven'
+apply plugin: 'maven-publish'
 apply plugin: 'idea'
 apply plugin: 'kr.motd.sphinx'
 apply plugin: 'application'
@@ -114,7 +115,7 @@ dependencies {
         exclude group: 'com.github.LBNL-UCB-STI', module: 'r5'
         exclude group: 'org.matsim', module: 'matsim'
     }
-    
+
     ////////////////////////////
     // Java dependencies
     ////////////////////////////
@@ -159,7 +160,7 @@ dependencies {
         exclude group: 'org.matsim', module: 'matsim'
     }
 
-    compile(group: 'com.github.wrashid.matsim', name: 'matsim', version: '0.10.1-beam-6') {
+    compile(group: 'com.github.wrashid.matsim', name: 'matsim', version: '0.10.1-beam-11') {
         exclude group: 'log4j', module: 'log4j'
     }
 
@@ -207,8 +208,12 @@ dependencies {
     compile "net.codingwell:scala-guice_${scalaBinaryVersion}:4.1.0"  // DI
     compile('com.github.carueda:tscfg:v' + tscfgVersion) { // config
         exclude group: 'org.scala-lang.modules', module: 'scala-xml_2.11'
+        exclude group: 'com.typesafe', module: 'config'
     }
-    // https://mvnrepository.com/artifact/io.circe/circe-core_2.12
+    compile group: 'com.typesafe', name: 'config', version: '1.4.0'
+
+
+        // https://mvnrepository.com/artifact/io.circe/circe-core_2.12
     compile group: 'io.circe', name: "circe-core_${scalaBinaryVersion}", version: circeBinaryVersion
     // https://mvnrepository.com/artifact/io.circe/circe-generic_2.12
     compile group: 'io.circe', name: "circe-generic_${scalaBinaryVersion}", version: circeBinaryVersion
@@ -434,10 +439,15 @@ def jfrWithMem = ["-XX:+UnlockCommercialFeatures", "-XX:+UnlockDiagnosticVMOptio
                   "-XX:StartFlightRecording=delay=2s,duration=60m,name=mem_ex,filename=recording.jfr,settings=profile_heap_exception",
                   "-XX:+FlightRecorder", "-XX:FlightRecorderOptions=disk=true,maxage=10h,dumponexit=true,loglevel=info"]
 
+
+def jmx = ["-Dcom.sun.management.jmxremote", "-Dcom.sun.management.jmxremote.port=9005", "-Dcom.sun.management.jmxremote.host=127.0.0.1",
+           "-Dcom.sun.management.jmxremote.local.only=true", "-Dcom.sun.management.jmxremote.authenticate=false", "-Dcom.sun.management.jmxremote.ssl=false",
+           "-Djava.net.preferIPv4Stack=true", "-Djava.rmi.server.hostname=127.0.0.1"]
+
 // UseParallelGC
 applicationDefaultJvmArgs = ["-Xmx${myAvailableRam}g", "-Xms${myAvailableRam/2}g",
                              "-XX:+UseParallelGC", "-XX:+UseParallelOldGC", "-XX:MetaspaceSize=150M", "-Djava.awt.headless=true",
-                             "-Dlogback.configurationFile=logback_prod.xml"] + logGC
+                             "-Dlogback.configurationFile=logback_prod.xml"] + logGC + jmx
 
 println(applicationDefaultJvmArgs)
 
@@ -509,7 +519,7 @@ tasks.withType(ScalaCompile) {
     scalaCompileOptions.additionalParameters = ["-unchecked", "-deprecation", "-feature", "-Xfatal-warnings"]
 }
 
-task fmt(dependsOn: scalafmtAll) 
+task fmt(dependsOn: scalafmtAll)
 task checkScalaFmt() {
     doLast {
         try {

@@ -169,8 +169,8 @@ class ApproxPhysSim(
       )
       carTravelTimeWriter.flush()
       val before = printRouteStats(s"Before rerouting at $currentIter iter", finalPopulation)
-//        logger.info("AverageCarTravelTime before replanning")
-//        PhysSim.printAverageCarTravelTime(getCarPeople(population))
+      //        logger.info("AverageCarTravelTime before replanning")
+      //        PhysSim.printAverageCarTravelTime(getCarPeople(population))
       val reroutedTravelTimeStats = reroutePeople(simulationResult.travelTime, nextSetOfPeople.toVector)
       reroutedTravelTimeWriter.writeRow(
         Vector(
@@ -185,18 +185,18 @@ class ApproxPhysSim(
         )
       )
       reroutedTravelTimeWriter.flush()
-//        logger.info("AverageCarTravelTime after replanning")
-//        PhysSim.printAverageCarTravelTime(getCarPeople(population))
+      //        logger.info("AverageCarTravelTime after replanning")
+      //        PhysSim.printAverageCarTravelTime(getCarPeople(population))
       val after = printRouteStats(s"After rerouting at $currentIter iter", finalPopulation)
       val absTotalLenDiff = Math.abs(before.totalRouteLen - after.totalRouteLen)
       val absAvgLenDiff = Math.abs(before.totalRouteLen / before.nRoutes - after.totalRouteLen / after.nRoutes)
       val absTotalCountDiff = Math.abs(before.totalLinkCount - after.totalLinkCount)
       val absAvgCountDiff = Math.abs(before.totalLinkCount / before.nRoutes - after.totalLinkCount / after.nRoutes)
       logger.info(s"""
-             |Abs diff in total len: $absTotalLenDiff
-             |Abs avg diff in len: $absAvgLenDiff
-             |Abs dif in total link count: $absTotalCountDiff
-             |Abs avg diff in link count: $absAvgCountDiff""".stripMargin)
+                     |Abs diff in total len: $absTotalLenDiff
+                     |Abs avg diff in len: $absAvgLenDiff
+                     |Abs dif in total link count: $absTotalCountDiff
+                     |Abs avg diff in link count: $absAvgCountDiff""".stripMargin)
       printStats(lastResult, simulationResult)
       val realFirstResult = if (currentIter == 1) simulationResult else firstResult
       val nextNumberOfPeopleToTake = numberOfPeopleToSimulateEveryIter.lift(currentIter).getOrElse(-1)
@@ -233,7 +233,7 @@ class ApproxPhysSim(
       .toList
       .sortBy { case (k, _) => k }
     logger.info(s"Diff in eventTypeToNumberOfMessages map: \n${diffMap.mkString("\n")}")
-//    PhysSim.printAverageCarTravelTime(getCarPeople)
+    //    PhysSim.printAverageCarTravelTime(getCarPeople)
     logger.info(s"Car travel time stats at iteration ${prevResult.iteration}: ${prevResult.carTravelTimeStats}")
     logger.info(s"Car travel time stats at iteration ${currentResult.iteration}: ${currentResult.carTravelTimeStats}")
   }
@@ -262,12 +262,9 @@ class ApproxPhysSim(
     jdeqsimEvents.addHandler(travelTimeCalculator)
     jdeqsimEvents.addHandler(new JDEQSimMemoryFootprint(beamConfig.beam.debug.debugEnabled))
     val maybeEventWriter = if (writeEvents) {
-      val viaXmlEventWriter = createViaXmlEventsWriter(currentPhysSimIter)
-      jdeqsimEvents.addHandler(viaXmlEventWriter)
-
-      val csvEventsWriter: BeamEventsWriterCSV = createCsvWriter(currentPhysSimIter, jdeqsimEvents)
-      jdeqsimEvents.addHandler(csvEventsWriter)
-      Some((viaXmlEventWriter, csvEventsWriter))
+      val writer = PhysSimEventWriter(beamServices, jdeqsimEvents)
+      jdeqsimEvents.addHandler(writer)
+      Some(writer)
     } else None
 
     val maybeRoadCapacityAdjustmentFunction = if (beamConfig.beam.physsim.jdeqsim.cacc.enabled) {
@@ -296,10 +293,8 @@ class ApproxPhysSim(
       }
 
     } finally {
-      maybeEventWriter.foreach {
-        case (w1, w2) =>
-          Try(w1.closeFile())
-          Try(w2.closeFile())
+      maybeEventWriter.foreach { wrt =>
+        Try(wrt.closeFile())
       }
       maybeRoadCapacityAdjustmentFunction.foreach(_.reset())
     }
@@ -444,11 +439,11 @@ class ApproxPhysSim(
     val avgRouteLen = totalRouteLen / routes.size
     val avgLinkCount = totalLinkCount / routes.size
     logger.info(s"""$str.
-         |Number of routes: ${routes.size}
-         |Total route length: $totalRouteLen
-         |Avg route length: $avgRouteLen
-         |Total link count: $totalLinkCount
-         |Avg link count: $avgLinkCount""".stripMargin)
+                   |Number of routes: ${routes.size}
+                   |Total route length: $totalRouteLen
+                   |Avg route length: $avgRouteLen
+                   |Total link count: $totalLinkCount
+                   |Avg link count: $avgLinkCount""".stripMargin)
     RerouteStats(routes.size, totalRouteLen, totalLinkCount)
   }
 
@@ -467,13 +462,13 @@ class ApproxPhysSim(
         val matsimEndLinkId = leg.getRoute.getEndLinkId.toString.toInt
         if (startLinkId != matsimStartLinkId && shouldLogWhenLinksAreNotTheSame) {
           logger.info(s"""startLinkId[$startLinkId] != matsimStartLinkId[$matsimStartLinkId].
-             |r5Leg: $r5Leg. LinkIds=[${r5Leg.beamLeg.travelPath.linkIds.mkString(", ")}]
-             |MATSim leg: ${leg}""".stripMargin)
+                         |r5Leg: $r5Leg. LinkIds=[${r5Leg.beamLeg.travelPath.linkIds.mkString(", ")}]
+                         |MATSim leg: ${leg}""".stripMargin)
         }
         if (endLinkId != matsimEndLinkId && shouldLogWhenLinksAreNotTheSame) {
           logger.info(s"""endLinkId[$endLinkId] != matsimEndLinkId[$matsimEndLinkId].
-             |r5Leg: $r5Leg. LinkIds=[${r5Leg.beamLeg.travelPath.linkIds.mkString(", ")}]
-             |MATSim leg: ${leg}""".stripMargin)
+                         |r5Leg: $r5Leg. LinkIds=[${r5Leg.beamLeg.travelPath.linkIds.mkString(", ")}]
+                         |MATSim leg: ${leg}""".stripMargin)
         }
         // r5Leg
         ()
@@ -550,7 +545,15 @@ class ApproxPhysSim(
         )
         val caccSettings = new CACCSettings(isCACCVehicle, roadCapacityAdjustmentFunction)
         val speedAdjustmentFactor = beamConfig.beam.physsim.jdeqsim.cacc.speedAdjustmentFactor
-        new JDEQSimulation(config, jdeqSimScenario, jdeqsimEvents, caccSettings, speedAdjustmentFactor)
+        val minimumRoadSpeedInMetersPerSecond = beamConfig.beam.physsim.jdeqsim.cacc.minimumRoadSpeedInMetersPerSecond
+        new JDEQSimulation(
+          config,
+          jdeqSimScenario,
+          jdeqsimEvents,
+          caccSettings,
+          speedAdjustmentFactor,
+          minimumRoadSpeedInMetersPerSecond
+        )
 
       case None =>
         logger.info("CACC disabled")
@@ -577,7 +580,12 @@ class ApproxPhysSim(
   private def createCsvWriter(currentPhysSimIter: Int, jdeqsimEvents: EventsManagerImpl): BeamEventsWriterCSV = {
     val fileName =
       controlerIO.getIterationFilename(iterationNumber, s"${currentPhysSimIter}_MultiJDEQSim_physSimEvents.csv.gz")
-    val beamEventLogger = new BeamEventsLogger(beamServices, beamServices.matsimServices, jdeqsimEvents)
+    val beamEventLogger = new BeamEventsLogger(
+      beamServices,
+      beamServices.matsimServices,
+      jdeqsimEvents,
+      beamServices.beamConfig.beam.physsim.events.eventsToWrite
+    )
     val csvEventsWriter = new BeamEventsWriterCSV(fileName, beamEventLogger, beamServices, null)
     csvEventsWriter
   }
