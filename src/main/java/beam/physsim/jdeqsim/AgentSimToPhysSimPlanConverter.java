@@ -142,11 +142,12 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
     private void setupActorsAndRunPhysSim(int iterationNumber) {
 
 
-        ApproxPhysSim sim = new ApproxPhysSim(beamConfig, agentSimScenario, jdeqsimPopulation,
+        PhysSim sim = new PhysSim(beamConfig, agentSimScenario, jdeqsimPopulation,
                 beamServices,
                 controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, shouldWritePhysSimEvents(iterationNumber), rnd);
-
-        TravelTime travelTimes = sim.run(prevTravelTime);
+        int numOfPhysSimIters = beamConfig.beam().physsim().relaxation().internalNumberOfIterations();
+        double fractionOfPopulationToReroute = beamConfig.beam().physsim().relaxation().fractionOfPopulationToReroute();
+        TravelTime travelTimes = sim.run(numOfPhysSimIters, fractionOfPopulationToReroute, prevTravelTime);
         // Safe travel time to reuse it on the next PhysSim iteration
         prevTravelTime = travelTimes;
 //        PhysSimEventWriter eventWriter = null;
