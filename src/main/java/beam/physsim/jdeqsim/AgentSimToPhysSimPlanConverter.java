@@ -140,14 +140,36 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
 
 
     private void setupActorsAndRunPhysSim(int iterationNumber) {
-
-
-        PhysSim sim = new PhysSim(beamConfig, agentSimScenario, jdeqsimPopulation,
-                beamServices,
-                controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, shouldWritePhysSimEvents(iterationNumber), rnd);
-        int numOfPhysSimIters = beamConfig.beam().physsim().relaxation().internalNumberOfIterations();
-        double fractionOfPopulationToReroute = beamConfig.beam().physsim().relaxation().fractionOfPopulationToReroute();
-        TravelTime travelTimes = sim.run(numOfPhysSimIters, fractionOfPopulationToReroute, prevTravelTime);
+        RelaxationExperiment sim = null;
+        switch (beamConfig.beam().physsim().relaxation().type()) {
+            case "normal":
+                sim = new Normal(beamConfig, agentSimScenario, jdeqsimPopulation,
+                        beamServices,
+                        controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, shouldWritePhysSimEvents(iterationNumber), rnd);
+                break;
+            case "experiment_2.0":
+                sim = new Experiment_2_0(beamConfig, agentSimScenario, jdeqsimPopulation,
+                        beamServices,
+                        controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, shouldWritePhysSimEvents(iterationNumber), rnd);
+                break;
+            case "experiment_2.1":
+                sim = new Experiment_2_1(beamConfig, agentSimScenario, jdeqsimPopulation,
+                        beamServices,
+                        controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, shouldWritePhysSimEvents(iterationNumber), rnd);
+                break;
+            case "experiment_3.0":
+                sim = new Experiment_3_0(beamConfig, agentSimScenario, jdeqsimPopulation,
+                        beamServices,
+                        controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, shouldWritePhysSimEvents(iterationNumber), rnd);
+                break;
+            case "experiment_4.0":
+                sim = new Experiment_4_0(beamConfig, agentSimScenario, jdeqsimPopulation,
+                        beamServices,
+                        controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, shouldWritePhysSimEvents(iterationNumber), rnd);
+                break;
+        }
+        log.info("RelaxationExperiment is {}, type is {}", sim.getClass().getSimpleName(), beamConfig.beam().physsim().relaxation().type());
+        TravelTime travelTimes = sim.run(prevTravelTime);
         // Safe travel time to reuse it on the next PhysSim iteration
         prevTravelTime = travelTimes;
 //        PhysSimEventWriter eventWriter = null;

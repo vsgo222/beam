@@ -47,8 +47,6 @@ class BeamMobsim @Inject()(
   val rideHailSurgePricingManager: RideHailSurgePricingManager,
   val rideHailIterationHistory: RideHailIterationHistory,
   val routeHistory: RouteHistory,
-  val beamSkimmer: BeamSkimmer,
-  val travelTimeObserved: TravelTimeObserved,
   val geo: GeoUtils,
   val networkHelper: NetworkHelper
 ) extends Mobsim
@@ -78,9 +76,7 @@ class BeamMobsim @Inject()(
           beamServices,
           rideHailSurgePricingManager,
           rideHailIterationHistory,
-          routeHistory,
-          beamSkimmer,
-          travelTimeObserved
+          routeHistory
         )
       ),
       "BeamMobsim.iteration"
@@ -96,32 +92,60 @@ class BeamMobsim @Inject()(
   }
 
   private def clearRoutesIfNeeded(iteration: Int): Unit = {
-    if (iteration <= 1 && beamServices.beamConfig.beam.physsim.relaxation.clearRoutesEveryIteration) {
-      scenario.getPopulation.getPersons.values().asScala.foreach { p =>
-        p.getPlans.asScala.foreach { plan =>
-          plan.getPlanElements.asScala.foreach {
-            case leg: Leg =>
-              leg.setRoute(null)
-            case _ =>
-          }
-        }
-      }
-      logger.info(s"Clear all routes at iteration ${iteration}")
+    val experimentType = beamServices.beamConfig.beam.physsim.relaxation.`type`
+    if (experimentType == "experiment_2.0" && beamServices.beamConfig.beam.physsim.relaxation.experiment2_0.clearRoutesEveryIteration) {
+      clearRoutes()
+      logger.info(s"Experiment_2.0: Clear all routes at iteration ${iteration}")
+    } else if (experimentType == "experiment_2.1" && beamServices.beamConfig.beam.physsim.relaxation.experiment2_1.clearRoutesEveryIteration) {
+      clearRoutes()
+      logger.info(s"Experiment_2.1: Clear all routes at iteration ${iteration}")
+    } else if (experimentType == "experiment_3.0" && iteration <= 1) {
+      clearRoutes()
+      logger.info(s"Experiment_3.0: Clear all routes at iteration ${iteration}")
+    } else if (experimentType == "experiment_4.0" && iteration <= 1) {
+      clearRoutes()
+      logger.info(s"Experiment_4.0: Clear all routes at iteration ${iteration}")
     }
   }
 
   private def clearModesIfNeeded(iteration: Int): Unit = {
-    if (iteration <= 1 && beamServices.beamConfig.beam.physsim.relaxation.clearModesEveryIteration) {
-      scenario.getPopulation.getPersons.values().asScala.foreach { p =>
-        p.getPlans.asScala.foreach { plan =>
-          plan.getPlanElements.asScala.foreach {
-            case leg: Leg =>
-              leg.setMode("")
-            case _ =>
-          }
+    val experimentType = beamServices.beamConfig.beam.physsim.relaxation.`type`
+    if (experimentType == "experiment_2.0" && beamServices.beamConfig.beam.physsim.relaxation.experiment2_0.clearModesEveryIteration) {
+      clearModes()
+      logger.info(s"Experiment_2.0: Clear all modes at iteration ${iteration}")
+    } else if (experimentType == "experiment_2.1" && beamServices.beamConfig.beam.physsim.relaxation.experiment2_1.clearModesEveryIteration) {
+      clearModes()
+      logger.info(s"Experiment_2.1: Clear all modes at iteration ${iteration}")
+    } else if (experimentType == "experiment_3.0" && iteration <= 1) {
+      clearModes()
+      logger.info(s"Experiment_3.0: Clear all modes at iteration ${iteration}")
+    } else if (experimentType == "experiment_4.0" && iteration <= 1) {
+      clearModes()
+      logger.info(s"Experiment_4.0: Clear all modes at iteration ${iteration}")
+    }
+  }
+
+  private def clearRoutes(): Unit = {
+    scenario.getPopulation.getPersons.values().asScala.foreach { p =>
+      p.getPlans.asScala.foreach { plan =>
+        plan.getPlanElements.asScala.foreach {
+          case leg: Leg =>
+            leg.setRoute(null)
+          case _ =>
         }
       }
-      logger.info(s"Clear all modes at iteration ${iteration}")
+    }
+  }
+
+  private def clearModes(): Unit = {
+    scenario.getPopulation.getPersons.values().asScala.foreach { p =>
+      p.getPlans.asScala.foreach { plan =>
+        plan.getPlanElements.asScala.foreach {
+          case leg: Leg =>
+            leg.setMode("")
+          case _ =>
+        }
+      }
     }
   }
 
@@ -151,9 +175,7 @@ class BeamMobsimIteration(
   val beamServices: BeamServices,
   val rideHailSurgePricingManager: RideHailSurgePricingManager,
   val rideHailIterationHistory: RideHailIterationHistory,
-  val routeHistory: RouteHistory,
-  val beamSkimmer: BeamSkimmer,
-  val travelTimeObserved: TravelTimeObserved
+  val routeHistory: RouteHistory
 ) extends Actor
     with ActorLogging
     with MetricsSupport {
@@ -212,7 +234,6 @@ class BeamMobsimIteration(
         activityQuadTreeBounds,
         rideHailSurgePricingManager,
         rideHailIterationHistory.oscillationAdjustedTNCIterationStats,
-        beamSkimmer,
         routeHistory
       )
     ).withDispatcher("ride-hail-manager-pinned-dispatcher"),
@@ -238,7 +259,7 @@ class BeamMobsimIteration(
 
   private val sharedVehicleFleets = config.agents.vehicles.sharedFleets.map { fleetConfig =>
     context.actorOf(
-      Fleets.lookup(fleetConfig).props(beamServices, beamSkimmer, scheduler, parkingManager),
+      Fleets.lookup(fleetConfig).props(beamServices, scheduler, parkingManager),
       fleetConfig.name
     )
   }
@@ -278,8 +299,6 @@ class BeamMobsimIteration(
       sharedVehicleFleets,
       matsimServices.getEvents,
       routeHistory,
-      beamSkimmer,
-      travelTimeObserved,
       envelopeInUTM
     ),
     "population"
