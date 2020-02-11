@@ -2,7 +2,6 @@ package beam.agentsim.agents.household
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.FSM.Failure
 import akka.actor.SupervisorStrategy.Stop
 import akka.actor.{Actor, ActorLogging, ActorRef, OneForOneStrategy, Props, Status, Terminated}
 import akka.pattern._
@@ -10,6 +9,7 @@ import akka.util.Timeout
 import beam.agentsim.Resource.NotifyVehicleIdle
 import beam.agentsim.agents.BeamAgent.Finish
 import beam.agentsim.agents._
+import beam.agentsim.agents.choice.logit.{DestinationChoiceModel, MultinomialLogit}
 import beam.agentsim.agents.modalbehaviors.ChoosesMode.{CavTripLegsRequest, CavTripLegsResponse}
 import beam.agentsim.agents.modalbehaviors.DrivesVehicle.VehicleOrToken
 import beam.agentsim.agents.modalbehaviors.{ChoosesMode, ModeChoiceCalculator}
@@ -20,16 +20,18 @@ import beam.agentsim.agents.ridehail.RideHailAgent.{
   ModifyPassengerScheduleAcks
 }
 import beam.agentsim.agents.ridehail.RideHailManager.RoutingResponses
-import beam.agentsim.agents.vehicles.{BeamVehicle, PassengerSchedule, PersonIdWithActorRef}
+import beam.agentsim.agents.vehicles.{BeamVehicle, PassengerSchedule, PersonIdWithActorRef, VehicleCategory}
 import beam.agentsim.events.SpaceTime
 import beam.agentsim.infrastructure.{ParkingInquiry, ParkingInquiryResponse}
 import beam.agentsim.scheduler.BeamAgentScheduler.{CompletionNotice, ScheduleTrigger}
 import beam.agentsim.scheduler.Trigger.TriggerWithId
+import beam.replanning.SupplementaryTripGenerator
 import beam.router.BeamRouter.RoutingResponse
+import beam.router.Modes.BeamMode
 import beam.router.Modes.BeamMode.CAV
+import beam.router.RouteHistory
 import beam.router.model.{BeamLeg, EmbodiedBeamLeg}
 import beam.router.osm.TollCalculator
-import beam.router.{BeamSkimmer, RouteHistory, TravelTimeObserved}
 import beam.sim.population.AttributesOfIndividual
 import beam.sim.{BeamScenario, BeamServices}
 import com.conveyal.r5.transit.TransportNetwork
@@ -69,8 +71,6 @@ object HouseholdActor {
     homeCoord: Coord,
     sharedVehicleFleets: Seq[ActorRef] = Vector(),
     routeHistory: RouteHistory,
-    beamSkimmer: BeamSkimmer,
-    travelTimeObserved: TravelTimeObserved,
     boundingBox: Envelope
   ): Props = {
     Props(
@@ -91,8 +91,6 @@ object HouseholdActor {
         homeCoord,
         sharedVehicleFleets,
         routeHistory,
-        beamSkimmer,
-        travelTimeObserved,
         boundingBox
       )
     )
@@ -133,8 +131,6 @@ object HouseholdActor {
     homeCoord: Coord,
     sharedVehicleFleets: Seq[ActorRef] = Vector(),
     routeHistory: RouteHistory,
-    beamSkimmer: BeamSkimmer,
-    travelTimeObserved: TravelTimeObserved,
     boundingBox: Envelope
   ) extends Actor
       with HasTickAndTrigger
@@ -184,6 +180,39 @@ object HouseholdActor {
         }
         // If any of my vehicles are CAVs then go through scheduling process
         var cavs = vehicles.values.filter(_.beamVehicleType.automationLevel > 3).toList
+
+        val destinationChoiceModel = beamServices.beamScenario.destinationChoiceModel
+
+        val nonCavModesAvailable: List[BeamMode] = vehiclesByCategory.keys.collect {
+          case VehicleCategory.Car  => BeamMode.CAR
+          case VehicleCategory.Bike => BeamMode.BIKE
+        }.toList
+
+        val cavModeAvailable: List[BeamMode] =
+          if (cavs.nonEmpty) { List[BeamMode](BeamMode.CAV) } else { List[BeamMode]() }
+
+        val modesAvailable: List[BeamMode] = nonCavModesAvailable ++ cavModeAvailable
+
+        household.members.foreach { person =>
+          val supplementaryTripGenerator =
+            new SupplementaryTripGenerator(
+              person.getCustomAttributes.get("beam-attributes").asInstanceOf[AttributesOfIndividual],
+              destinationChoiceModel,
+              beamServices,
+              person.getId
+            )
+          val newPlan =
+            supplementaryTripGenerator.generateNewPlans(person.getSelectedPlan, destinationChoiceModel, modesAvailable)
+          newPlan match {
+            case Some(plan) =>
+              person.removePlan(person.getSelectedPlan)
+              person.addPlan(plan)
+              person.setSelectedPlan(plan)
+            case None =>
+          }
+
+        }
+
         if (cavs.nonEmpty) {
 //          log.debug("Household {} has {} CAVs and will do some planning", household.getId, cavs.size)
           cavs.foreach { cav =>
@@ -216,13 +245,7 @@ object HouseholdActor {
             }
           }
 
-          val cavScheduler = new FastHouseholdCAVScheduling(
-            household,
-            cavs,
-            beamServices = Some(beamServices),
-            skimmer = beamSkimmer
-          )(beamServices.matsimServices.getScenario.getPopulation)
-
+          val cavScheduler = new FastHouseholdCAVScheduling(household, cavs, beamServices)
           //val optimalPlan = cavScheduler.getKBestCAVSchedules(1).headOption.getOrElse(List.empty)
           val optimalPlan = cavScheduler.getBestProductiveSchedule
           if (optimalPlan.isEmpty || !optimalPlan.exists(_.schedule.size > 1)) {
@@ -291,9 +314,7 @@ object HouseholdActor {
               self,
               person.getSelectedPlan,
               fleetManagers ++: sharedVehicleFleets,
-              beamSkimmer,
               routeHistory,
-              travelTimeObserved,
               boundingBox
             ),
             person.getId.toString

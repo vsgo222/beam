@@ -8,8 +8,9 @@ import beam.agentsim.agents.vehicles.BeamVehicleType
 import beam.agentsim.agents.vehicles.VehicleProtocol.StreetVehicle
 import beam.agentsim.events.SpaceTime
 import beam.router.BeamRouter.RoutingRequest
-import beam.router.BeamSkimmer
 import beam.router.Modes.BeamMode.CAR
+import beam.router.skim.{ODSkims, Skims}
+import beam.sim.BeamServices
 import beam.sim.vehiclesharing.VehicleManager
 import org.matsim.api.core.v01.Id
 import org.matsim.core.utils.collections.QuadTree
@@ -45,7 +46,7 @@ class PoolingAlonsoMora(val rideHailManager: RideHailManager)
         inquiry.departAt
       ) match {
       case Some(agentETA) =>
-        val timeCostFactors = rideHailManager.beamSkimmer.getRideHailPoolingTimeAndCostRatios(
+        val timeCostFactors = Skims.od_skimmer.getRideHailPoolingTimeAndCostRatios(
           inquiry.pickUpLocationUTM,
           inquiry.destinationUTM,
           inquiry.departAt,
@@ -62,7 +63,8 @@ class PoolingAlonsoMora(val rideHailManager: RideHailManager)
 
   override def allocateVehiclesToCustomers(
     tick: Int,
-    vehicleAllocationRequest: AllocationRequests
+    vehicleAllocationRequest: AllocationRequests,
+    beamServices: BeamServices
   ): AllocationResponse = {
     rideHailManager.log.debug("Alloc requests {}", vehicleAllocationRequest.requests.size)
     var toAllocate: Set[RideHailRequest] = Set()
@@ -128,7 +130,6 @@ class PoolingAlonsoMora(val rideHailManager: RideHailManager)
       }
     }
     if (toAllocate.nonEmpty) {
-      implicit val skimmer: BeamSkimmer = rideHailManager.beamSkimmer
       val pooledAllocationReqs = toAllocate.filter(_.asPooled)
       val customerIdToReqs = toAllocate.map(rhr => rhr.customer.personId -> rhr).toMap
       val vehiclePoolToUse =
@@ -182,8 +183,7 @@ class PoolingAlonsoMora(val rideHailManager: RideHailManager)
         new VehicleCentricMatchingForRideHail(
           spatialPoolCustomerReqs,
           availVehicles,
-          rideHailManager.beamServices,
-          skimmer
+          rideHailManager.beamServices
         )
       import scala.concurrent.duration._
       val assignment = try {
@@ -276,7 +276,7 @@ class PoolingAlonsoMora(val rideHailManager: RideHailManager)
       val nonAllocated = pooledAllocationReqs.filterNot(req => wereAllocated.contains(req.requestId))
       var s = System.currentTimeMillis()
       nonAllocated.foreach { unsatisfiedReq =>
-        Pooling.serveOneRequest(unsatisfiedReq, tick, alreadyAllocated, rideHailManager) match {
+        Pooling.serveOneRequest(unsatisfiedReq, tick, alreadyAllocated, rideHailManager, beamServices) match {
           case res @ RoutingRequiredToAllocateVehicle(_, routes) =>
             allocResponses = allocResponses :+ res
             alreadyAllocated = alreadyAllocated + routes.head.streetVehicles.head.id
@@ -291,24 +291,12 @@ class PoolingAlonsoMora(val rideHailManager: RideHailManager)
       // Now satisfy the solo customers
       val soloCustomer = toAllocate.filterNot(_.asPooled)
       toAllocate.filterNot(_.asPooled).foreach { req =>
-        Pooling.serveOneRequest(req, tick, alreadyAllocated, rideHailManager) match {
+        Pooling.serveOneRequest(req, tick, alreadyAllocated, rideHailManager, beamServices) match {
           case res @ RoutingRequiredToAllocateVehicle(_, routes) =>
             allocResponses = allocResponses :+ res
             alreadyAllocated = alreadyAllocated + routes.head.streetVehicles.head.id
-            skimmer.countEventsByTAZ(
-              tick,
-              req.pickUpLocationUTM,
-              Id.create("pooling-alonso-mora", classOf[VehicleManager]),
-              "rd-solo-matched"
-            )
           case res =>
             allocResponses = allocResponses :+ res
-            skimmer.countEventsByTAZ(
-              tick,
-              req.pickUpLocationUTM,
-              Id.create("pooling-alonso-mora", classOf[VehicleManager]),
-              "rd-solo-unmatched"
-            )
         }
       }
       e = System.currentTimeMillis()

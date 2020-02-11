@@ -24,7 +24,7 @@ import beam.router.Modes.BeamMode.CAR
 import beam.router.model.{EmbodiedBeamLeg, EmbodiedBeamTrip}
 import beam.router.osm.TollCalculator
 import beam.sim.common.Range
-import beam.sim.{BeamScenario, BeamServices, Geofence}
+import beam.sim.{BeamScenario, BeamServices, Geofence, RideHailFleetInitializer}
 import beam.utils.logging.LogActorState
 import beam.utils.reflection.ReflectionUtils
 import com.conveyal.r5.transit.TransportNetwork
@@ -668,7 +668,7 @@ class RideHailAgent(
         geo.wgs2Utm(vehicle.spaceTime),
         PassengerSchedule(),
         vehicle.getState,
-        None,
+        geofence,
         _currentTriggerId
       )
     )
@@ -677,7 +677,7 @@ class RideHailAgent(
   def parkAndStartRefueling(stall: ParkingStall) = {
     val (tick, triggerId) = releaseTickAndTriggerId()
     eventsManager.processEvent(
-      ParkEvent(tick, stall, geo.utm2Wgs(stall.locationUTM), currentBeamVehicle.id, id.toString)
+      ParkingEvent(tick, stall, geo.utm2Wgs(stall.locationUTM), currentBeamVehicle.id, id.toString)
     )
     log.debug("Refuel started at {}, triggerId: {}", tick, triggerId)
     startRefueling(tick, triggerId)
