@@ -8,7 +8,7 @@ import beam.router.FreeFlowTravelTime
 import beam.router.Modes.BeamMode
 import beam.utils.csv.CsvWriter
 import beam.utils.{EventReader, NetworkHelper, NetworkHelperImpl, Statistics}
-import com.typesafe.scalalogging.LazyLogging
+import beam.utils.logging.ExponentialLazyLogging
 import org.jfree.chart.ChartFactory
 import org.jfree.chart.plot.PlotOrientation
 import org.jfree.data.category.{CategoryDataset, DefaultCategoryDataset}
@@ -30,7 +30,7 @@ import scala.util.control.NonFatal
 class CarRideStatsFromPathTraversalEventHandler(
   val networkHelper: NetworkHelper,
   val maybeControlerIO: Option[OutputDirectoryHierarchy]
-) extends LazyLogging
+) extends ExponentialLazyLogging
     with IterationEndsListener
     with BasicEventHandler
     with ShutdownListener {
@@ -365,7 +365,7 @@ class CarRideStatsFromPathTraversalEventHandler(
   }
 }
 
-object CarRideStatsFromPathTraversalEventHandler extends LazyLogging {
+object CarRideStatsFromPathTraversalEventHandler extends ExponentialLazyLogging {
 
   def eventsFilterWhenReadFromCsv(event: Event): Boolean = {
     event.getEventType == "PathTraversal"
