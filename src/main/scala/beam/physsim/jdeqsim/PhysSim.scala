@@ -117,7 +117,7 @@ class PhysSim(
       printStats(firstResult, lastResult)
       lastResult
     } else {
-      val simulationResult = simulate(currentIter, writeEvents = shouldWritePhysSimEvents && currentIter == nIterations)
+      val simulationResult = simulate(currentIter, writeEvents = true/*shouldWritePhysSimEvents && currentIter == nIterations*/)
       carTravelTimeWriter.writeRow(
         Vector(
           currentIter,
