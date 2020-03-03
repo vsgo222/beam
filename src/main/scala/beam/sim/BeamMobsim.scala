@@ -28,7 +28,7 @@ import beam.utils.matsim_conversion.ShapeUtils.QuadTreeBounds
 import com.conveyal.r5.transit.TransportNetwork
 import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
-import org.matsim.api.core.v01.population.{Activity, Person, Population => MATSimPopulation}
+import org.matsim.api.core.v01.population.{Activity, Leg, Person, Population => MATSimPopulation}
 import org.matsim.api.core.v01.{Id, Scenario}
 import org.matsim.core.api.experimental.events.EventsManager
 import org.matsim.core.mobsim.framework.Mobsim
@@ -69,6 +69,9 @@ class BeamMobsim @Inject()(
     Metrics.iterationNumber = beamServices.matsimServices.getIterationNumber
     eventsManager.initProcessing()
 
+    clearRoutesIfNeeded(beamServices.matsimServices.getIterationNumber)
+    clearModesIfNeeded(beamServices.matsimServices.getIterationNumber)
+
     val iteration = actorSystem.actorOf(
       Props(
         new BeamMobsimIteration(
@@ -88,6 +91,82 @@ class BeamMobsim @Inject()(
     endSegment("agentsim-events", "agentsim")
 
     logger.info("Processing Agentsim Events (End)")
+  }
+
+  private def clearRoutesIfNeeded(iteration: Int): Unit = {
+    val experimentType = beamServices.beamConfig.beam.physsim.relaxation.`type`
+    if (experimentType == "experiment_2.0" && beamServices.beamConfig.beam.physsim.relaxation.experiment2_0.clearRoutesEveryIteration) {
+      clearRoutes()
+      logger.info(s"Experiment_2.0: Clear all routes at iteration ${iteration}")
+    } else if (experimentType == "experiment_2.1" && beamServices.beamConfig.beam.physsim.relaxation.experiment2_1.clearRoutesEveryIteration) {
+      clearRoutes()
+      logger.info(s"Experiment_2.1: Clear all routes at iteration ${iteration}")
+    } else if (experimentType == "experiment_3.0" && iteration <= 1) {
+      clearRoutes()
+      logger.info(s"Experiment_3.0: Clear all routes at iteration ${iteration}")
+    } else if (experimentType == "experiment_4.0" && iteration <= 1) {
+      clearRoutes()
+      logger.info(s"Experiment_4.0: Clear all routes at iteration ${iteration}")
+    } else if (experimentType == "experiment_5.0" && iteration <= 1) {
+      clearRoutes()
+      logger.info(s"Experiment_5.0: Clear all routes at iteration ${iteration}")
+    } else if (experimentType == "experiment_5.1" && iteration <= 1) {
+      clearRoutes()
+      logger.info(s"Experiment_5.1: Clear all routes at iteration ${iteration}")
+    } else if (experimentType == "experiment_5.2" && iteration <= 1) {
+      clearRoutes()
+      logger.info(s"Experiment_5.2: Clear all routes at iteration ${iteration}")
+    }
+  }
+
+  private def clearModesIfNeeded(iteration: Int): Unit = {
+    val experimentType = beamServices.beamConfig.beam.physsim.relaxation.`type`
+    if (experimentType == "experiment_2.0" && beamServices.beamConfig.beam.physsim.relaxation.experiment2_0.clearModesEveryIteration) {
+      clearModes()
+      logger.info(s"Experiment_2.0: Clear all modes at iteration ${iteration}")
+    } else if (experimentType == "experiment_2.1" && beamServices.beamConfig.beam.physsim.relaxation.experiment2_1.clearModesEveryIteration) {
+      clearModes()
+      logger.info(s"Experiment_2.1: Clear all modes at iteration ${iteration}")
+    } else if (experimentType == "experiment_3.0" && iteration <= 1) {
+      clearModes()
+      logger.info(s"Experiment_3.0: Clear all modes at iteration ${iteration}")
+    } else if (experimentType == "experiment_4.0" && iteration <= 1) {
+      clearModes()
+      logger.info(s"Experiment_4.0: Clear all modes at iteration ${iteration}")
+    } else if (experimentType == "experiment_5.0" && iteration <= 1) {
+      clearModes()
+      logger.info(s"Experiment_5.0: Clear all modes at iteration ${iteration}")
+    } else if (experimentType == "experiment_5.1" && iteration <= 1) {
+      clearModes()
+      logger.info(s"Experiment_5.1: Clear all modes at iteration ${iteration}")
+    } else if (experimentType == "experiment_5.2" && iteration <= 1) {
+      clearModes()
+      logger.info(s"Experiment_5.2: Clear all modes at iteration ${iteration}")
+    }
+  }
+
+  private def clearRoutes(): Unit = {
+    scenario.getPopulation.getPersons.values().asScala.foreach { p =>
+      p.getPlans.asScala.foreach { plan =>
+        plan.getPlanElements.asScala.foreach {
+          case leg: Leg =>
+            leg.setRoute(null)
+          case _ =>
+        }
+      }
+    }
+  }
+
+  private def clearModes(): Unit = {
+    scenario.getPopulation.getPersons.values().asScala.foreach { p =>
+      p.getPlans.asScala.foreach { plan =>
+        plan.getPlanElements.asScala.foreach {
+          case leg: Leg =>
+            leg.setMode("")
+          case _ =>
+        }
+      }
+    }
   }
 
   def validateVehicleTypes(): Unit = {
