@@ -226,7 +226,7 @@ class PhysSim(
     jdeqsimEvents.addHandler(travelTimeCalculator)
     jdeqsimEvents.addHandler(new JDEQSimMemoryFootprint(beamConfig.beam.debug.debugEnabled))
     val maybeEventWriter = if (writeEvents) {
-      val writer = PhysSimEventWriter(beamServices, jdeqsimEvents)
+      val writer = PhysSimEventWriter(beamServices, jdeqsimEvents, currentPhysSimIter)
       jdeqsimEvents.addHandler(writer)
       Some(writer)
     } else None
