@@ -100,7 +100,7 @@ class PhysSim(
         currentIter
       )
       val simulationResult =
-        jdeqSimRunner.simulate(currentIter, writeEvents = shouldWritePhysSimEvents && currentIter == nIterations)
+        jdeqSimRunner.simulate(currentIter, writeEvents = true)
       carTravelTimeWriter.writeRow(
         Vector(
           currentIter,
