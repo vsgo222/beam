@@ -5,10 +5,8 @@ import beam.agentsim.agents.vehicles.BeamVehicleType;
 import beam.agentsim.events.PathTraversalEvent;
 import beam.analysis.IterationStatsProvider;
 import beam.analysis.physsim.*;
-import beam.analysis.via.EventWriterXML_viaCompatible;
 import beam.calibration.impl.example.CountsObjectiveFunction;
 import beam.physsim.jdeqsim.cacc.CACCSettings;
-import beam.physsim.jdeqsim.cacc.roadCapacityAdjustmentFunctions.Hao2018CaccRoadCapacityAdjustmentFunction;
 import beam.physsim.jdeqsim.cacc.roadCapacityAdjustmentFunctions.RoadCapacityAdjustmentFunction;
 import beam.physsim.jdeqsim.cacc.sim.JDEQSimulation;
 import beam.router.BeamRouter;
@@ -17,6 +15,9 @@ import beam.sim.BeamConfigChangesObservable;
 import beam.sim.BeamServices;
 import beam.sim.config.BeamConfig;
 import beam.sim.metrics.MetricsSupport;
+import beam.sim.population.AttributesOfIndividual;
+import beam.sim.population.PopulationAdjustment;
+import beam.sim.population.PopulationAdjustment$;
 import beam.utils.DebugLib;
 import beam.utils.TravelTimeCalculatorHelper;
 import com.conveyal.r5.transit.TransportNetwork;
@@ -29,7 +30,6 @@ import org.matsim.api.core.v01.population.*;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.controler.OutputDirectoryHierarchy;
 import org.matsim.core.controler.events.IterationEndsEvent;
-import org.matsim.core.events.EventsManagerImpl;
 import org.matsim.core.events.handler.BasicEventHandler;
 import org.matsim.core.gbl.MatsimRandom;
 import org.matsim.core.mobsim.jdeqsim.JDEQSimConfigGroup;
@@ -40,8 +40,8 @@ import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.population.routes.RouteUtils;
 import org.matsim.core.router.util.TravelTime;
 import org.matsim.core.scenario.MutableScenario;
-import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.core.trafficmonitoring.TravelTimeCalculator;
+import org.matsim.households.Household;
+import org.matsim.utils.objectattributes.attributable.Attributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
@@ -52,6 +52,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 /**
@@ -87,6 +89,13 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
 
     Map<String, Boolean> caccVehiclesMap = new TreeMap<>();
 
+
+    private TravelTime prevTravelTime = new FreeFlowTravelTime();
+
+    private final Random rnd;
+
+    private Map<Id<Person>, Household> personToHouseHold;
+
     public AgentSimToPhysSimPlanConverter(EventsManager eventsManager,
                                           TransportNetwork transportNetwork,
                                           OutputDirectoryHierarchy controlerIO,
@@ -111,72 +120,78 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
         preparePhysSimForNewIteration();
 
         linkStatsGraph = new PhyssimCalcLinkStats(agentSimScenario.getNetwork(), controlerIO, beamServices.beamConfig(),
-                scenario.getConfig().travelTimeCalculator(),beamConfigChangesObservable);
+                scenario.getConfig().travelTimeCalculator(), beamConfigChangesObservable);
         linkSpeedStatsGraph = new PhyssimCalcLinkSpeedStats(agentSimScenario.getNetwork(), controlerIO, beamConfig);
         linkSpeedDistributionStatsGraph = new PhyssimCalcLinkSpeedDistributionStats(agentSimScenario.getNetwork(), controlerIO, beamConfig);
-        physsimNetworkLinkLengthDistribution = new PhyssimNetworkLinkLengthDistribution(agentSimScenario.getNetwork(),controlerIO,beamConfig);
-        physsimNetworkEuclideanVsLengthAttribute = new PhyssimNetworkComparisonEuclideanVsLengthAttribute(agentSimScenario.getNetwork(),controlerIO,beamConfig);
+        physsimNetworkLinkLengthDistribution = new PhyssimNetworkLinkLengthDistribution(agentSimScenario.getNetwork(), controlerIO, beamConfig);
+        physsimNetworkEuclideanVsLengthAttribute = new PhyssimNetworkComparisonEuclideanVsLengthAttribute(agentSimScenario.getNetwork(), controlerIO, beamConfig);
         beamConfigChangesObservable.addObserver(this);
+
+
+        rnd = new Random(beamConfig.matsim().modules().global().randomSeed());
     }
 
 
     private void preparePhysSimForNewIteration() {
         jdeqsimPopulation = PopulationUtils.createPopulation(agentSimScenario.getConfig());
+        buildPersonToHousehold();
+    }
+
+    public void buildPersonToHousehold() {
+        personToHouseHold = beamServices.matsimServices().getScenario().getHouseholds().getHouseholds().values().stream().flatMap(h -> h.getMemberIds().stream().map(m -> new AbstractMap.SimpleEntry<Id<Person>, Household>(m, h)))
+                .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
     }
 
 
     private void setupActorsAndRunPhysSim(int iterationNumber) {
-        MutableScenario jdeqSimScenario = (MutableScenario) ScenarioUtils.createScenario(agentSimScenario.getConfig());
-        jdeqSimScenario.setNetwork(agentSimScenario.getNetwork());
-        jdeqSimScenario.setPopulation(jdeqsimPopulation);
-        EventsManager jdeqsimEvents = new EventsManagerImpl();
-        TravelTimeCalculator travelTimeCalculator = new TravelTimeCalculator(agentSimScenario.getNetwork(), agentSimScenario.getConfig().travelTimeCalculator());
-        jdeqsimEvents.addHandler(travelTimeCalculator);
-        jdeqsimEvents.addHandler(new JDEQSimMemoryFootprint(beamConfig.beam().debug().debugEnabled()));
-
-        if (beamConfig.beam().physsim().writeMATSimNetwork()) {
-            createNetworkFile(jdeqSimScenario.getNetwork());
+        RelaxationExperiment sim = null;
+        switch (beamConfig.beam().physsim().relaxation().type()) {
+            case "normal":
+            case "consecutive_increase_of_population":
+                sim = new Normal(beamConfig, agentSimScenario, jdeqsimPopulation,
+                        beamServices,
+                        controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, linkStatsGraph, shouldWritePhysSimEvents(iterationNumber), rnd);
+                break;
+            case "experiment_2.0":
+                sim = new Experiment_2_0(beamConfig, agentSimScenario, jdeqsimPopulation,
+                        beamServices,
+                        controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, linkStatsGraph, shouldWritePhysSimEvents(iterationNumber), rnd);
+                break;
+            case "experiment_2.1":
+                sim = new Experiment_2_1(beamConfig, agentSimScenario, jdeqsimPopulation,
+                        beamServices,
+                        controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, linkStatsGraph, shouldWritePhysSimEvents(iterationNumber), rnd);
+                break;
+            case "experiment_3.0":
+                sim = new Experiment_3_0(beamConfig, agentSimScenario, jdeqsimPopulation,
+                        beamServices,
+                        controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, linkStatsGraph, shouldWritePhysSimEvents(iterationNumber), rnd);
+                break;
+            case "experiment_4.0":
+                sim = new Experiment_4_0(beamConfig, agentSimScenario, jdeqsimPopulation,
+                        beamServices,
+                        controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, linkStatsGraph, shouldWritePhysSimEvents(iterationNumber), rnd);
+                break;
+            case "experiment_5.0":
+                sim = new Experiment_5_0(beamConfig, agentSimScenario, jdeqsimPopulation,
+                        beamServices,
+                        controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, linkStatsGraph, shouldWritePhysSimEvents(iterationNumber), rnd);
+                break;
+            case "experiment_5.1":
+                sim = new Experiment_5_1(beamConfig, agentSimScenario, jdeqsimPopulation,
+                        beamServices,
+                        controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, linkStatsGraph, shouldWritePhysSimEvents(iterationNumber), rnd);
+                break;
+            case "experiment_5.2":
+                sim = new Experiment_5_2(beamConfig, agentSimScenario, jdeqsimPopulation,
+                        beamServices,
+                        controlerIO, caccVehiclesMap, beamConfigChangesObservable, iterationNumber, linkStatsGraph, shouldWritePhysSimEvents(iterationNumber), rnd);
+                break;
         }
-
-        PhysSimEventWriter eventWriter = null;
-        if (shouldWritePhysSimEvents(iterationNumber)) {
-            eventWriter = PhysSimEventWriter.apply(beamServices, jdeqsimEvents);
-            jdeqsimEvents.addHandler(eventWriter);
-        }
-        else {
-            if (beamConfig.beam().physsim().writeEventsInterval() < 1)
-                log.info("There will be no PhysSim events written because `beam.physsim.writeEventsInterval` is set to 0");
-            else
-                log.info("Skipping writing PhysSim events for iteration {}. beam.physsim.writeEventsInterval = {}", iterationNumber, beamConfig.beam().physsim().writeEventsInterval());
-        }
-
-
-        RoadCapacityAdjustmentFunction roadCapacityAdjustmentFunction = null;
-        try {
-            if (beamConfig.beam().physsim().jdeqsim().cacc().enabled()) {
-                roadCapacityAdjustmentFunction = new Hao2018CaccRoadCapacityAdjustmentFunction(
-                        beamConfig,
-                        iterationNumber,
-                        controlerIO,
-                        this.beamConfigChangesObservable
-                );
-            }
-            org.matsim.core.mobsim.jdeqsim.JDEQSimulation jdeqSimulation = getJDEQSimulation(jdeqSimScenario,
-                    jdeqsimEvents, iterationNumber, beamServices.matsimServices().getControlerIO(),
-                    roadCapacityAdjustmentFunction);
-            linkStatsGraph.notifyIterationStarts(jdeqsimEvents, agentSimScenario.getConfig().travelTimeCalculator());
-
-            log.info("JDEQSim Start");
-            startSegment("jdeqsim-execution", "jdeqsim");
-            if (beamConfig.beam().debug().debugEnabled()) {
-                log.info(DebugLib.getMemoryLogMessage("Memory Use Before JDEQSim: "));
-            }
-
-            jdeqSimulation.run();
-        }
-        finally {
-            if (roadCapacityAdjustmentFunction != null) roadCapacityAdjustmentFunction.reset();
-        }
+        log.info("RelaxationExperiment is {}, type is {}", sim.getClass().getSimpleName(), beamConfig.beam().physsim().relaxation().type());
+        TravelTime travelTimes = sim.run(prevTravelTime);
+        // Safe travel time to reuse it on the next PhysSim iteration
+        prevTravelTime = travelTimes;
 
         if (beamConfig.beam().debug().debugEnabled()) {
             log.info(DebugLib.getMemoryLogMessage("Memory Use After JDEQSim: "));
@@ -192,7 +207,7 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
                 String outPath =
                         controlerIO
                                 .getIterationFilename(iterationNumber, "countscompare.txt");
-                Double countsError = CountsObjectiveFunction.evaluateFromRun(outPath);
+                double countsError = CountsObjectiveFunction.evaluateFromRun(outPath);
                 log.info("counts Error: " + countsError);
             } catch (Exception e) {
                 log.error("exception {}", e.getMessage());
@@ -205,7 +220,7 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
         //################################################################################################################
         Collection<? extends Link> links = agentSimScenario.getNetwork().getLinks().values();
         int maxHour = (int) TimeUnit.SECONDS.toHours(agentSimScenario.getConfig().travelTimeCalculator().getMaxTime());
-        TravelTime travelTimes = travelTimeCalculator.getLinkTravelTimes();
+        // TravelTime travelTimes = travelTimeCalculator.getLinkTravelTimes();
         Map<String, double[]> map = TravelTimeCalculatorHelper.GetLinkIdToTravelTimeArray(links,
                 travelTimes, maxHour);
 
@@ -244,28 +259,22 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
         //################################################################################################################
         router.tell(new BeamRouter.UpdateTravelTimeLocal(travelTimes), ActorRef.noSender());
 
+        TravelTime finalTravelTimes = travelTimes;
         completableFutures.add(CompletableFuture.runAsync(() -> {
-            linkStatsGraph.notifyIterationEnds(iterationNumber, travelTimeCalculator);
+            linkStatsGraph.notifyIterationEnds(iterationNumber, finalTravelTimes);
             linkStatsGraph.clean();
         }));
 
-        completableFutures.add(CompletableFuture.runAsync(() -> linkSpeedStatsGraph.notifyIterationEnds(iterationNumber, travelTimeCalculator)));
+        completableFutures.add(CompletableFuture.runAsync(() -> linkSpeedStatsGraph.notifyIterationEnds(iterationNumber, finalTravelTimes)));
 
-        completableFutures.add(CompletableFuture.runAsync(() -> linkSpeedDistributionStatsGraph.notifyIterationEnds(iterationNumber, travelTimeCalculator)));
+        completableFutures.add(CompletableFuture.runAsync(() -> linkSpeedDistributionStatsGraph.notifyIterationEnds(iterationNumber, finalTravelTimes)));
 
         completableFutures.add(CompletableFuture.runAsync(() -> physsimNetworkLinkLengthDistribution.notifyIterationEnds(iterationNumber)));
 
         completableFutures.add(CompletableFuture.runAsync(() -> physsimNetworkEuclideanVsLengthAttribute.notifyIterationEnds(iterationNumber)));
 
-        if (shouldWritePhysSimEvents(iterationNumber)) {
-            assert eventWriter != null;
-            eventWriter.closeFile();
-        }
-
         Road.setAllRoads(null);
         Message.setEventsManager(null);
-        jdeqSimScenario.setNetwork(null);
-        jdeqSimScenario.setPopulation(null);
 
         if (iterationNumber == beamConfig.matsim().modules().controler().lastIteration()) {
             try {
@@ -281,42 +290,6 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
 
     }
 
-    public org.matsim.core.mobsim.jdeqsim.JDEQSimulation getJDEQSimulation(MutableScenario jdeqSimScenario, EventsManager jdeqsimEvents,
-            int iterationNumber, OutputDirectoryHierarchy controlerIO, RoadCapacityAdjustmentFunction roadCapacityAdjustmentFunction) {
-        JDEQSimConfigGroup config = new JDEQSimConfigGroup();
-        double flowCapacityFactor = beamConfig.beam().physsim().flowCapacityFactor();
-
-        config.setFlowCapacityFactor(flowCapacityFactor);
-        config.setStorageCapacityFactor(beamConfig.beam().physsim().storageCapacityFactor());
-        config.setSimulationEndTime(beamConfig.matsim().modules().qsim().endTime());
-
-        org.matsim.core.mobsim.jdeqsim.JDEQSimulation jdeqSimulation = null;
-
-        if (roadCapacityAdjustmentFunction != null) {
-            log.info("CACC enabled");
-            int caccCategoryRoadCount = 0;
-            for (Link link : jdeqSimScenario.getNetwork().getLinks().values()) {
-                if (roadCapacityAdjustmentFunction.isCACCCategoryRoad(link)) {
-                    caccCategoryRoadCount++;
-                }
-            }
-            log.info("caccCategoryRoadCount: " + caccCategoryRoadCount + " out of " + jdeqSimScenario.getNetwork().getLinks().values().size());
-
-            CACCSettings caccSettings = new CACCSettings(
-                    caccVehiclesMap, roadCapacityAdjustmentFunction
-            );
-            double speedAdjustmentFactor = beamConfig.beam().physsim().jdeqsim().cacc().speedAdjustmentFactor();
-            double minimumRoadSpeedInMetersPerSecond = beamConfig.beam().physsim().jdeqsim().cacc().minimumRoadSpeedInMetersPerSecond();
-            jdeqSimulation = new JDEQSimulation(config, jdeqSimScenario, jdeqsimEvents, caccSettings, speedAdjustmentFactor, minimumRoadSpeedInMetersPerSecond);
-        } else {
-            log.info("CACC disabled");
-            jdeqSimulation = new org.matsim.core.mobsim.jdeqsim.JDEQSimulation(config, jdeqSimScenario, jdeqsimEvents);
-        }
-
-        return jdeqSimulation;
-    }
-
-
     private boolean shouldWritePhysSimEvents(int iterationNumber) {
         return shouldWriteInIteration(iterationNumber, beamConfig.beam().physsim().writeEventsInterval());
     }
@@ -329,13 +302,6 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
         return interval == 1 || (interval > 0 && iterationNumber % interval == 0);
     }
 
-    private void createNetworkFile(Network network) {
-        String physSimNetworkFilePath = controlerIO.getOutputFilename("physSimNetwork.xml.gz");
-        if (!(new File(physSimNetworkFilePath)).exists()) {
-            completableFutures.add(CompletableFuture.runAsync(() -> NetworkUtils.writeNetwork(network, physSimNetworkFilePath)));
-        }
-    }
-
     private void writePhyssimPlans(IterationEndsEvent event) {
         if (shouldWritePlans(event.getIteration())) {
             final String plansFilename = controlerIO.getIterationFilename(event.getIteration(), "physsimPlans.xml.gz");
@@ -343,14 +309,12 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
         }
     }
 
-
     public static boolean isPhyssimMode(String mode) {
         return mode.equalsIgnoreCase(CAR) || mode.equalsIgnoreCase(BUS);
     }
 
     @Override
     public void handleEvent(Event event) {
-
         if (agentSimPhysSimInterfaceDebuggerEnabled) {
             agentSimPhysSimInterfaceDebugger.handleEvent(event);
         }
@@ -366,10 +330,7 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
             if (mode.equalsIgnoreCase(BUS) && rand.nextDouble() > beamConfig.beam().physsim().ptSampleSize()) {
                 return;
             }
-
-
             if (isPhyssimMode(mode)) {
-
                 double departureTime = pte.departureTime();
                 String vehicleId = pte.vehicleId().toString();
 
@@ -378,13 +339,13 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
                 boolean isCaccEnabled = beamServices.beamScenario().vehicleTypes().get(beamVehicleTypeId).get().isCaccEnabled();
                 caccVehiclesMap.put(vehicleId, isCaccEnabled);
 
-                Id<Person> personId = Id.createPersonId(vehicleId);
-                initializePersonAndPlanIfNeeded(personId);
-
-                // add previous activity and leg to plan
-                Person person = jdeqsimPopulation.getPersons().get(personId);
-                Plan plan = person.getSelectedPlan();
-                Leg leg = createLeg(CAR, pte.linkIdsJava(), departureTime);
+                // For every PathTraversalEvent which has PhysSim mode (CAR or BUS) we create
+                // - If person does not exist, we create Person from `vehicleId`. For that person we create plan, set it to selected plan and add attributes from the original person
+                // - Create leg
+                // - Create dummy activity
+                final Person person = initializePersonAndPlanIfNeeded(Id.createPersonId(vehicleId), Id.createPersonId(pte.driverId()));
+                final Plan plan = person.getSelectedPlan();
+                final Leg leg = createLeg(pte);
 
                 if (leg == null) {
                     return; // dont't process leg further, if empty
@@ -398,21 +359,45 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
         }
     }
 
-    private void initializePersonAndPlanIfNeeded(Id<Person> personId) {
-        if (!jdeqsimPopulation.getPersons().containsKey(personId)) {
-            Person person = jdeqsimPopulation.getFactory().createPerson(personId);
+    private Person initializePersonAndPlanIfNeeded(Id<Person> vehicleId, Id<Person> driverId) {
+        // Beam in PhysSim part (JDEQSim) simulates vehicles, not people!
+        // So, we have to create _person_ who actually is vehicle.
+        final Person alreadyInitedPerson = jdeqsimPopulation.getPersons().get(vehicleId);
+        if (alreadyInitedPerson == null) {
+            Person person = jdeqsimPopulation.getFactory().createPerson(vehicleId);
             Plan plan = jdeqsimPopulation.getFactory().createPlan();
             plan.setPerson(person);
             person.addPlan(plan);
             person.setSelectedPlan(plan);
+            // person.getAttributes().putAttribute("vehicle_type", vehType);
             jdeqsimPopulation.addPerson(person);
+            final Person originalPerson = agentSimScenario.getPopulation().getPersons().get(driverId);
+            final Person personToCopyFrom = originalPerson == null ? agentSimScenario.getPopulation().getPersons().get(vehicleId) : originalPerson;
+            // Try to copy person's attributes from original `agentSimScenario` to the created one. Attributes are important because they are used during R5 routing
+            if (personToCopyFrom != null) {
+                try {
+                    Attributes attributes = personToCopyFrom.getAttributes();
+                    Stream<String> keys = Arrays.stream(attributes.toString().split("\\{ key=")).filter(x -> x.contains(";")).map(z -> z.split(";")[0]);
+                    keys.forEach(key -> {
+                        person.getAttributes().putAttribute(key, attributes.getAttribute(key));
+                    });
+                    final Household hh = personToHouseHold.get(personToCopyFrom.getId());
+                    final AttributesOfIndividual attributesOfIndividual = PopulationAdjustment$.MODULE$.createAttributesOfIndividual(beamServices.beamScenario(), beamServices.matsimServices().getScenario().getPopulation(), personToCopyFrom, hh);
+                    person.getCustomAttributes().put(PopulationAdjustment.BEAM_ATTRIBUTES(), attributesOfIndividual);
+                } catch (Exception ex) {
+                    log.error("Could not create attributes for person " + vehicleId, ex);
+                }
+            }
+            return person;
+        } else {
+            return alreadyInitedPerson;
         }
     }
 
-    private Leg createLeg(String mode, List<Object> links, double departureTime) {
+    private Leg createLeg(PathTraversalEvent pte) {
         List<Id<Link>> linkIds = new ArrayList<>();
 
-        for (Object linkObjId : links) {
+        for (Object linkObjId : pte.linkIdsJava()) {
             Id<Link> linkId = Id.createLinkId(linkObjId.toString());
             linkIds.add(linkId);
         }
@@ -430,10 +415,13 @@ public class AgentSimToPhysSimPlanConverter implements BasicEventHandler, Metric
         // end of hack
 
         Route route = RouteUtils.createNetworkRoute(linkIds, agentSimScenario.getNetwork());
-        Leg leg = jdeqsimPopulation.getFactory().createLeg(mode);
-        leg.setDepartureTime(departureTime);
+        Leg leg = jdeqsimPopulation.getFactory().createLeg(CAR);
+        leg.setDepartureTime(pte.departureTime());
         leg.setTravelTime(0);
         leg.setRoute(route);
+        leg.getAttributes().putAttribute("travel_time", pte.arrivalTime() - pte.departureTime());
+        leg.getAttributes().putAttribute("departure_time", pte.departureTime());
+        leg.getAttributes().putAttribute("event_time", pte.time());
         return leg;
     }
 
