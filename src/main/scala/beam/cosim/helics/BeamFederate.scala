@@ -103,11 +103,10 @@ case class BeamFederate(beamServices: BeamServices) extends StrictLogging {
     val taz = tazTreeMap.getTAZ(location.getX, location.getY)
     val json: JsValue = Json.obj(
       "vehicle"     -> vehId,
-      "soc"     -> socInJoules,
+      "socInJoules"     -> socInJoules,
       "location" -> Json.obj("lat" -> taz.coord.getY, "long" -> taz.coord.getX)
     )
     val pubVar = Json.stringify(json)
-    //val pubVar = s"$vehId,$socInJoules,${taz.coord.getY},${taz.coord.getX}" // VEHICLE,SOC,LAT,LONG
     helics.helicsPublicationPublishString(registeredEvents(eventType), pubVar)
     logger.debug(s"publishing at $currentTime the value $pubVar")
   }
