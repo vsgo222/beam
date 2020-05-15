@@ -9,6 +9,11 @@ import com.java.helics.helicsJNI._
 import com.typesafe.scalalogging.StrictLogging
 import org.matsim.api.core.v01.Coord
 import org.matsim.api.core.v01.events.Event
+import play.api.libs.json._
+import play.api.libs.json.JsNull
+import play.api.libs.json.Json
+import play.api.libs.json.JsString
+import play.api.libs.json.JsValue
 
 import scala.collection.mutable
 
@@ -96,7 +101,13 @@ case class BeamFederate(beamServices: BeamServices) extends StrictLogging {
     location: Coord
   ): Unit = {
     val taz = tazTreeMap.getTAZ(location.getX, location.getY)
-    val pubVar = s"$vehId,$socInJoules,${taz.coord.getY},${taz.coord.getX}" // VEHICLE,SOC,LAT,LONG
+    val json: JsValue = Json.obj(
+      "vehicle"     -> vehId,
+      "soc"     -> socInJoules,
+      "location" -> Json.obj("lat" -> taz.coord.getY, "long" -> taz.coord.getX)
+    )
+    val pubVar = Json.stringify(json)
+    //val pubVar = s"$vehId,$socInJoules,${taz.coord.getY},${taz.coord.getX}" // VEHICLE,SOC,LAT,LONG
     helics.helicsPublicationPublishString(registeredEvents(eventType), pubVar)
     logger.debug(s"publishing at $currentTime the value $pubVar")
   }
