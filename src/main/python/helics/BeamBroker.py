@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import time
 import helics as h
+import json
 
 # Create broker #
 broker = h.helicsCreateBroker("zmq", "", "-f 2 --name=BeamBroker")
@@ -32,12 +33,12 @@ for t in range(timebin, timebin*360+1, timebin):
         currenttime = h.helicsFederateRequestTime(cfed, t)
     if h.helicsInputIsUpdated(subs_chargingPlugIn) == 1:
         chargingPlugIn = h.helicsInputGetString(subs_chargingPlugIn)
-        arr = chargingPlugIn.split(',')
-        print("vehId:{}, Joules:{}, lat:{}, lng:{}\n".format(arr[0], arr[1], arr[2], arr[3]))
+        output = json.loads(chargingPlugIn)
+        print("vehId:{}, Joules:{}, lat:{}, lng:{}\n".format(output["vehicle"], output["socInJoules"], output["location"]["lat"], output["location"]["long"]))
     if h.helicsInputIsUpdated(subs_chargingPlugOut) == 1:
         chargingPlugOut = h.helicsInputGetString(subs_chargingPlugOut)
-        arr = chargingPlugOut.split(',')
-        print("vehId:{}, Joules:{}, lat:{}, lng:{}\n".format(arr[0], arr[1], arr[2], arr[3]))
+        output = json.loads(chargingPlugOut)
+        print("vehId:{}, Joules:{}, lat:{}, lng:{}\n".format(output["vehicle"], output["socInJoules"], output["location"]["lat"], output["location"]["long"]))
 
 
 h.helicsFederateFinalize(cfed)

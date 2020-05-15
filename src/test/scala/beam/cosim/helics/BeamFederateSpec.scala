@@ -12,6 +12,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import org.matsim.core.controler.AbstractModule
 import org.matsim.core.scenario.{MutableScenario, ScenarioUtils}
 import org.scalatest.{FlatSpec, Matchers}
+import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -95,14 +96,14 @@ class BeamFederateSpec extends FlatSpec with Matchers with BeamHelper {
       if (helics.helicsInputIsUpdated(subsChargingPlugIn) == 1) {
         helics.helicsInputGetString(subsChargingPlugIn, buffer, bufferInt)
         val chargingPlugInEvent = buffer.take(bufferInt(0)).map(_.toChar).mkString
-        val arr = chargingPlugInEvent.split(",")
-        assume(arr.size == 4, "chargingPlugIn is not transmitting four values")
+        val output = extractValuesFromJson(chargingPlugInEvent)
+        assume(output._1.isDefined && output._2.isDefined && output._3.isDefined && output._4.isDefined, "chargingPlugIn is not transmitting four values")
       }
       if (helics.helicsInputIsUpdated(subsChargingPlugOut) == 1) {
         helics.helicsInputGetString(subsChargingPlugOut, buffer, bufferInt)
         val chargingPlugOutEvent = buffer.take(bufferInt(0)).map(_.toChar).mkString
-        val arr = chargingPlugOutEvent.split(",")
-        assume(arr.size == 4, "chargingPlugOut is not transmitting four values")
+        val output = extractValuesFromJson(chargingPlugOutEvent)
+        assume(output._1.isDefined && output._2.isDefined && output._3.isDefined && output._4.isDefined, "chargingPlugOut is not transmitting four values")
       }
     }
     helics.helicsFederateFinalize(fedComb)
@@ -110,5 +111,14 @@ class BeamFederateSpec extends FlatSpec with Matchers with BeamHelper {
     helics.helicsFederateFree(fedComb)
     helics.helicsBrokerFree(broker)
     helics.helicsCloseLibrary()
+  }
+
+  private def extractValuesFromJson(message: String) = {
+    val json: JsValue = Json.parse(message.replaceAll("[\\p{C}]","")  )
+    val lat = (json \ "location" \ "lat").get
+    val long = (json \ "location" \ "long").get
+    val vehicle = (json \ "vehicle").get
+    val socInJoules = (json \ "socInJoules").get
+    (vehicle.asOpt[String], socInJoules.asOpt[Double], lat.asOpt[Double], long.asOpt[Double])
   }
 }
