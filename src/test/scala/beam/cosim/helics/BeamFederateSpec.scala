@@ -97,13 +97,19 @@ class BeamFederateSpec extends FlatSpec with Matchers with BeamHelper {
         helics.helicsInputGetString(subsChargingPlugIn, buffer, bufferInt)
         val chargingPlugInEvent = buffer.take(bufferInt(0)).map(_.toChar).mkString
         val output = extractValuesFromJson(chargingPlugInEvent)
-        assume(output._1.isDefined && output._2.isDefined && output._3.isDefined && output._4.isDefined, "chargingPlugIn is not transmitting four values")
+        assume(
+          output._1.isDefined && output._2.isDefined && output._3.isDefined && output._4.isDefined,
+          "chargingPlugIn is not transmitting four values"
+        )
       }
       if (helics.helicsInputIsUpdated(subsChargingPlugOut) == 1) {
         helics.helicsInputGetString(subsChargingPlugOut, buffer, bufferInt)
         val chargingPlugOutEvent = buffer.take(bufferInt(0)).map(_.toChar).mkString
         val output = extractValuesFromJson(chargingPlugOutEvent)
-        assume(output._1.isDefined && output._2.isDefined && output._3.isDefined && output._4.isDefined, "chargingPlugOut is not transmitting four values")
+        assume(
+          output._1.isDefined && output._2.isDefined && output._3.isDefined && output._4.isDefined,
+          "chargingPlugOut is not transmitting four values"
+        )
       }
     }
     helics.helicsFederateFinalize(fedComb)
@@ -114,7 +120,7 @@ class BeamFederateSpec extends FlatSpec with Matchers with BeamHelper {
   }
 
   private def extractValuesFromJson(message: String) = {
-    val json: JsValue = Json.parse(message.replaceAll("[\\p{C}]","")  )
+    val json: JsValue = Json.parse(message.replaceAll("[\\p{C}]", ""))
     val lat = (json \ "location" \ "lat").get
     val long = (json \ "location" \ "long").get
     val vehicle = (json \ "vehicle").get
