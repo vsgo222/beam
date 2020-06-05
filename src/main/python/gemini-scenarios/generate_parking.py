@@ -12,350 +12,57 @@ import csv
 import yaml
 #%% Load TAZ data from MTC
 
-taz = gpd.read_file('data/Transportation_Analysis_Zones.shp')
-taz['taz_id'] = taz['taz1454']
-taz = taz.set_index('taz1454', drop=True)
-demo = pd.read_csv('data/Plan_Bay_Area_2040_Forecast__Population_and_Demographics.csv').set_index('zoneid',drop=True)
-emp = pd.read_csv('data/Plan_Bay_Area_2040_Forecast__Employment.csv').set_index('zoneid',drop=True)
-lut = pd.read_csv('data/Plan_Bay_Area_2040_Forecast__Land_Use_and_Transportation.csv').set_index('zoneid',drop=True)
-taz = taz.merge(demo, left_index=True,right_index=True).merge(emp, left_index=True,right_index=True).merge(lut, left_index=True,right_index=True)
-taz = pd.concat([taz.iloc[:,:8],taz.loc[:,taz.columns.str.endswith('15')]],axis=1)
-taz['area'] = taz['geometry'].to_crs({'init': 'epsg:3395'}).area/10**3 # in 1000s of sq meters (good numerically)
-sf_boundary = taz.loc[taz['county'] == 'San Francisco','geometry'].unary_union
-cols = taz.columns
-for col in cols[[8,20,21,22,23,24,25,26,27,31,32]]:
-    taz.loc[taz[col] == 0,col] += 0.1
-    taz[col+'_den'] = taz[col]/taz['area']
+depot = pd.read_csv('data/depot-parking-rich-100-b-lt.csv')
+evi = pd.read_csv('data/taz-charging-rich-b-lt.csv')
+parking = pd.read_csv('data/taz-parking-no-chargers.csv')
 
-taz['AreaType'] = 'Residential'
-taz.loc[taz['areatype15'] == 0,'AreaType'] = 'CBD'
-taz.loc[taz['areatype15'] == 1,'AreaType'] = 'Downtown'
-taz.loc[taz['areatype15'] == 2,'AreaType'] = 'Downtown'
-taz.loc[taz['areatype15'] == 3,'AreaType'] = 'Residential'
-taz['JobsAndResidents'] = taz['totemp15'] + taz['totpop15']
-taz['JobsAndResidents_den'] = taz['JobsAndResidents'] / taz['area']
-
-
+evi_public = evi.loc[(evi['parkingType']=='Public') | (evi['parkingType']=='Workplace')]
+evi_residential = evi.loc[(evi['parkingType']=='Residential')]
 #%%
 
-
-hh = pd.read_csv('data/households.csv.gz')
-buildings = pd.read_csv('data/buildings.csv.gz')
-parcels = pd.read_csv('data/parcels.csv.gz')
-buildings = buildings[['building_id','parcel_id']].merge(parcels[['parcel_id','x','y']],left_on='parcel_id',right_on='parcel_id')
-hh = hh.merge(buildings,left_on='building_id',right_on='building_id')
-hh = gpd.GeoDataFrame(hh, geometry=gpd.points_from_xy(hh.x, hh.y))
-hh.crs = {'init': 'epsg:4326'}
-hh_with_taz = gpd.sjoin(taz,hh[['household_id','cars','workers','persons','single_family','geometry']],how='inner',op='intersects')
-sfhh = hh_with_taz.loc[hh_with_taz['single_family'],:]
-mfhh = hh_with_taz.loc[~hh_with_taz['single_family'],:]
-del hh
-del buildings
-del parcels
-mf_cars = mfhh.groupby(mfhh.index).agg({'cars':'sum','persons':'sum','household_id':'count'}).rename(columns={"cars": "mf_cars", "persons":"mf_persons", "household_id": "mfhh"})
-sf_cars = sfhh.groupby(sfhh.index).agg({'cars':'sum','persons':'sum','household_id':'count'}).rename(columns={"cars": "sf_cars", "persons":"sf_persons", "household_id": "sfhh"})
-del sfhh
-del mfhh
-taz = taz.merge(mf_cars, left_index=True, right_index=True).merge(sf_cars, left_index=True, right_index=True)
-taz['cars_per_mfhh'] = taz['mf_cars']/taz['mfhh']
-taz['cars_per_sfhh'] = taz['sf_cars']/taz['sfhh']
-taz['cars'] = taz['mf_cars'] + taz['sf_cars']
-taz['hh'] = taz['sfhh'] + taz['mfhh']
-taz['pop'] = taz['mf_persons'] + taz['sf_persons']
-#%% Load BART distances
-
-bart_distances = pd.read_csv('data/distanceToBart.csv').set_index('InputID')
-taz = taz.merge(bart_distances,left_index=True,right_index=True,how='left')
-taz.rename(columns={'Distance':'DistanceToBART'},inplace=True)
-taz['NearBart'] = taz['DistanceToBART'] < 800
-
-#%% Load OSM data and group road segments by TAZ
-
-with open('gdfs.pickle', 'rb') as f:
-    gdfs = pickle.load(f)
-
-def center_of_linestring(x):
-    return Point(np.mean(x.coords.xy[0]),np.mean(x.coords.xy[1]))
-gdfs['geometry'] = gdfs['geometry'].apply(center_of_linestring)
-gdfs['oneway'] = gdfs['oneway'].str == 'True'
-gdfs.loc[~gdfs['oneway'],'length_corrected'] = gdfs.loc[~gdfs['oneway'],'length']/2
-gdfs['classification'] = gdfs['highway'].str.replace('_link','').replace('living_street','unclassified')
-
-gdfs.rename(columns={'length':'length_OSM','length_corrected':'length_corrected_OSM'},inplace=True)
-OSM_with_taz = gpd.sjoin(taz,gdfs[['oneway','geometry','length_OSM','length_corrected_OSM','classification']],how='inner',op='contains')
-taz_with_OSM = OSM_with_taz.groupby([OSM_with_taz.index,OSM_with_taz['classification']]).agg({'oneway':'sum','length_OSM':'sum','length_corrected_OSM':'sum'}).unstack(level=-1).fillna(0)
-taz_with_OSM.columns = taz_with_OSM.columns.to_flat_index().map('_'.join)
-
-#%% Group On Street Parking by TAZ
-
-onstp = gpd.read_file('data/OnStreetParking/geo_export_9c00c3f8-0452-4427-add0-07e5c897479a.shp')
-ECKERT_IV_PROJ4_STRING = "+proj=eck4 +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
-onstp['length'] = onstp['geometry'].to_crs(ECKERT_IV_PROJ4_STRING).length
-onstp['geometry'] = onstp['geometry'].apply(center_of_linestring)
-onstp_with_taz = gpd.sjoin(taz,onstp[['prkg_sply','geometry','length']],how='inner',op='intersects')
-taz_with_onstp = onstp_with_taz.groupby(onstp_with_taz.index).agg({'prkg_sply':'sum','length':'sum'}).fillna(0)
-taz_with_onstp.rename(columns={'length':'length_SF','prkg_sply':'OnStreetParking'},inplace=True)
-
-#%% Group Off Street Parking by TAZ
-offstp = gpd.read_file('data/OffStreetParking/OSP_09162011.shp')
-offstp['OffStreetParking'] = offstp['RegCap'] + offstp['ValetCap']
-offstp['PaidPublicParking'] = offstp['OffStreetParking'] * (offstp['PrimeType'] == 'PPA')
-offstp['FreePublicParking'] = offstp['OffStreetParking'] * ((offstp['PrimeType'] == 'FPA') | (offstp['PrimeType'] == 'CPO'))
-offstp['WorkParking'] = offstp['OffStreetParking'] * ((offstp['PrimeType'] == 'PHO') | (offstp['PrimeType'] == 'CGO'))
-
-
-
-offstp_with_taz = gpd.sjoin(taz,offstp[['RegCap','ValetCap','MCCap','OffStreetParking','PaidPublicParking','FreePublicParking','WorkParking','geometry']],how='inner',op='intersects')
-taz_with_offstp = offstp_with_taz.groupby(offstp_with_taz.index).agg({'objectid':'first','OffStreetParking':'sum','PaidPublicParking':'sum','FreePublicParking':'sum','WorkParking':'sum'}).fillna(0)
-
-#%% Group Parking Meters by TAZ
-
-parking_meters = pd.read_csv('data/OnStreetParking/Parking_Meters.csv')
-parking_meters = parking_meters.loc[parking_meters['ON_OFFSTREET_TYPE']=='ON',:]
-parking_meters = gpd.GeoDataFrame(parking_meters,geometry=gpd.points_from_xy(parking_meters['LONGITUDE'],parking_meters['LATITUDE']))
-parking_meters.crs = {'init': 'epsg:4326'}
-meters_with_taz = gpd.sjoin(taz,parking_meters[['OBJECTID','geometry']],how='inner',op='intersects')
-taz_with_meters = meters_with_taz.groupby(meters_with_taz.index).agg({'OBJECTID':'count'}).fillna(0)
-taz_with_meters.rename(columns={'OBJECTID':'ParkingMeters'},inplace=True)
-
+residential_sample = [0.1,0.5,1.0,2.0,10.0]
+charging_power = [50,100,150,200,250]
+depot_sample = 0.1
+public_sample = 0.1
 
 #%%
-taz_all = taz.merge(taz_with_onstp,left_index=True,right_index=True,how='left')
-taz_all = taz_all.merge(taz_with_OSM,left_index=True,right_index=True,how='left')
-taz_all = taz_all.merge(taz_with_offstp,left_index=True,right_index=True,how='left')
-taz_all = taz_all.merge(taz_with_meters, left_index=True, right_index = True, how='left')
+def draw_prob(n,p):
+    if p <= 1:
+        return np.random.binomial(n,p)
+    else:
+        fp = np.floor(p)
+        rp = p - fp
+        return fp * np.array(n) + np.random.binomial(n,rp)
 
-
-taz_all['AllParking'] = (taz_all['OffStreetParking'] + taz_all['OnStreetParking'])
-taz_all['AllParking_den'] = taz_all['AllParking'] / taz_all['area']
-taz_all['OffStreetParking_den'] = taz_all['OffStreetParking']/ taz_all['area']
-taz_all['OnStreetParking_den'] = taz_all['OnStreetParking']/ taz_all['area']
-taz_all['PortionOnStreet'] = taz_all['OnStreetParking'] / (taz_all['AllParking'] + 0.1 )
-taz_all['PortionOnStreetPaid'] = taz_all['ParkingMeters'] / (taz_all['OnStreetParking'] + 0.1)
-taz_all['PortionOffStreetPaid'] = taz_all['PaidPublicParking'] / (taz_all['OffStreetParking'] + 0.1)
-#taz_all.loc[taz_all['PortionOffStreetPaid'] > 1,'PortionOffStreetPaid'] = 1 # Why do these exist?
-taz_all.loc[taz_all['PortionOnStreetPaid'] > 1, 'PortionOnStreetPaid'] = 1
-taz_all.replace(np.nan, 0,inplace=True)
-#%% Get Just SF data to train models
-
-sf = taz_all.loc[taz['county']=='San Francisco',:]
-sf['OnStreetParkingPerDistance'] = sf['OnStreetParking']/sf['length_SF']
-sf['JobsPerOffStreetParking'] = sf['totemp15']/ (sf['OffStreetParking'] + 1)
-sf['JobsPerOnStreetParking'] = sf['totemp15']/ (sf['OnStreetParking'] + 1)
-sf['OnStreetParkingPerJob'] = sf['OnStreetParking'] /(sf['totemp15'] + 1)
-sf['OffStreetParkingPerJob'] = sf['OffStreetParking'] /(sf['totemp15'] + 1)
-
-
-sf = sf.loc[sf.index != 1258,:]# Get rid of candlestick park (outlier high off street parking)
-sf = sf.loc[sf.index != 1074,:]# Get rid of treasure island (outlier low on street parking, not measured maybe)
-
-sf['AllParkingPerJobAndResident'] = sf['AllParking'] / sf['JobsAndResidents']
-
-sf['OffStreetParkingPerJobAndResident'] = sf['OffStreetParking'] / sf['JobsAndResidents']
-
-sf['OnStreetParkingPerJobAndResident'] = sf['OnStreetParking'] / sf['JobsAndResidents']
-
-sf['OffStreetParkingPerJob'] = sf['OffStreetParking'] / sf['totemp15']
-
-sf['JobPerOffStreetParking'] =  sf['totemp15'] / sf['OffStreetParking']
-
-sf['AllParkingPerCar'] = sf['AllParking'] / (sf['totemp15'] + sf['cars'])
-
-#%%
-
-
-onstreet_simple = smf.ols(formula = 'np.log(OffStreetParking_den) ~ np.log(totemp15_den)', data = sf.loc[(sf['AllParkingPerJobAndResident'] > 0) & (sf['totemp15_den'] > 0.5)])
-onstreet_simple_res = onstreet_simple.fit()
-print(onstreet_simple_res.summary())
-
-onstreet_simple = smf.ols(formula = 'np.log(OnStreetParkingPerJobAndResident) ~ np.log(JobsAndResidents_den)', data = sf.loc[sf['AllParkingPerJobAndResident'] > 0])
-onstreet_simple_res = onstreet_simple.fit()
-print(onstreet_simple_res.summary())
-
-onstreet_simple = smf.ols(formula = 'oprkcst15 ~ np.log(totemp15_den) + np.log(totpop15_den)', data = sf.loc[sf['AllParkingPerJobAndResident'] > 0])
-onstreet_simple_res = onstreet_simple.fit()
-print(onstreet_simple_res.summary())
-
-onstreet_simple = smf.ols(formula = 'prkcst15 ~ np.log(totemp15_den) + np.log(totpop15_den)', data = sf.loc[sf['AllParkingPerJobAndResident'] > 0])
-onstreet_simple_res = onstreet_simple.fit()
-print(onstreet_simple_res.summary())
-
-
-onstreet_simple = smf.ols(formula = 'OnStreetParkingPerJobAndResident ~ np.log(totemp15_den+totpop15_den)', data = sf.loc[(sf['AllParkingPerJobAndResident'] > 0) & (sf['totemp15_den'] > 0.5)])
-onstreet_simple_res = onstreet_simple.fit()
-print(onstreet_simple_res.summary())
-
-
-onstreet_simple = smf.ols(formula = 'oprkcst15 ~ totemp15_den + totpop15_den', data = sf.loc[sf['AllParkingPerJobAndResident'] > 0])
-onstreet_simple_res = onstreet_simple.fit()
-print(onstreet_simple_res.summary())
-
-onstreet_simple = smf.ols(formula = 'prkcst15 ~ totemp15_den + totpop15_den', data = sf.loc[sf['AllParkingPerJobAndResident'] > 0])
-onstreet_simple_res = onstreet_simple.fit()
-print(onstreet_simple_res.summary())
-
-#%% Train On Steet Parking Model
-
-onstreet_simple = smf.ols(formula = 'OnStreetParking ~  -1 + length_OSM_primary + length_OSM_residential + length_OSM_secondary +length_OSM_trunk', data = sf)
-onstreet_simple_res = onstreet_simple.fit()
-print(onstreet_simple_res.summary())
-
-# TODO: Add back in motorway once there is internet
-onstreet_full = smf.ols(formula = 'OnStreetParking ~  -1 + length_OSM_tertiary+ length_OSM_primary + length_OSM_residential + length_OSM_secondary +length_OSM_trunk', data = sf)
-onstreet_full_res = onstreet_full.fit()
-print(onstreet_full_res.summary())
-
-#%% Train On Street Paid Parking Model
-
-metered_simple = smf.logit(formula = 'PortionOnStreetPaid ~ np.log(totemp15_den)', data = sf)
-metered_simple_res = metered_simple.fit()
-print(metered_simple_res.summary())
-
-metered_full = smf.logit(formula = 'PortionOnStreetPaid ~ np.log(totemp15_den):C(AreaType) + np.log(sfdu15_den) + np.log(mfdu15_den)', data = sf)
-metered_full_res = metered_full.fit()
-print(metered_full_res.summary())
-
-#%% Train Off Street Model
-
-def fun(params, inputs, output):
-    return np.sum(inputs[:,:-2]*params[:-3],axis=1)/(1 + np.exp(- params[-3]+ params[-2]*inputs[:,-2]  + params[-1]*inputs[:,-1] )) - output
-
-inputs = np.vstack([sf['retempn15_den'],sf['fpsempn15_den'],sf['herempn15_den'],sf['othempn15_den'], sf['mfdu15_den'], sf['sfdu15_den'], np.log(sf['totemp15_den']), np.log(sf['totpop15_den'])]).transpose()
-outputs = sf['OffStreetParking_den'].values
-x0 = np.ones(9)
-
-off_street_full = least_squares(fun, x0, loss='linear', f_scale=5, args=(inputs, outputs))
-print('Complex Model Params', off_street_full.x)
-print('Complex Model Cost', off_street_full.cost)
-
-def fun_simple(params, inputs, output):
-    return np.sum(inputs[:,:-2]*params[:-3],axis=1)/(1 + np.exp(- params[-3] + params[-2]*inputs[:,-2]  + params[-1]*inputs[:,-1] )) - output
-
-inputs = np.vstack([sf['totemp15_den'],np.log(sf['totemp15_den']), np.log(sf['totpop15_den'])]).transpose()
-outputs = sf['OffStreetParking_den'].values
-x0 = np.ones(4)
-
-off_street_simple = least_squares(fun_simple, x0, loss='linear', f_scale=5, args=(inputs, outputs))
-print('Simple Model Params', off_street_simple.x)
-print('Simple Model Cost', off_street_simple.cost)
-
-
-
-#%% Train Off Street Paid Model
-off_street_paid_full = smf.logit(formula = 'PortionOffStreetPaid ~ C(AreaType) + np.log(retempn15_den) + np.log(fpsempn15_den) + np.log(herempn15_den) + np.log(mwtempn15_den) + np.log(othempn15_den) + np.log(sfdu15_den):C(AreaType) + np.log(mfdu15_den)', data = sf)
-off_street_paid_full_res = off_street_paid_full.fit()
-print(off_street_paid_full_res.summary())
-
-
-off_street_paid_simple = smf.logit(formula = 'PortionOffStreetPaid ~ np.log(totemp15_den) + np.log(totpop15_den) ', data = sf)
-off_street_paid_res = off_street_paid_simple.fit()
-print(off_street_paid_res.summary())
-
-#%% Train Short Term Hourly Rate Model
-
-st_parking_cost = smf.ols(formula = 'oprkcst15 ~  np.log(totemp15_den) + np.log(totpop15_den)', data = sf)
-st_parking_cost_res = st_parking_cost.fit()
-print(st_parking_cost_res.summary())
-
-#%% Train Long Term Hourly Rate Model
-
-lt_parking_cost = smf.ols(formula = 'prkcst15 ~  np.log(totemp15_den) + np.log(totpop15_den)', data = sf)
-lt_parking_cost_res = lt_parking_cost.fit()
-print(lt_parking_cost_res.summary())
-
-#%% Fit Models for SFBAY
-
-taz_all = taz_all.loc[taz_all.index.drop_duplicates(keep=False),:]
-
-# On Street
-taz_all['PredictedOnStreetParking'] = onstreet_full_res.predict(taz_all)
-
-# On Street Paid
-taz_all['PredictedOnStreetPortionPaid'] = metered_full_res.predict(taz_all)
-taz_all['PredictedOnStreetPaidParking'] = np.ceil(taz_all['PredictedOnStreetParking'] * taz_all['PredictedOnStreetPortionPaid'])
-taz_all['PredictedOnStreetFreeParking'] = np.ceil(taz_all['PredictedOnStreetParking'] - taz_all['PredictedOnStreetPaidParking'])
-
-# Off Street
-def predict_off_street(params, inputs):
-    return np.sum(inputs[:,:-2]*params[:-3],axis=1)/(1 + np.exp(- params[-3]+ params[-2]*inputs[:,-2]  + params[-1]*inputs[:,-1] ))
-
-full_inputs = np.vstack([taz_all['retempn15_den'],taz_all['fpsempn15_den'],taz_all['herempn15_den'],taz_all['othempn15_den'], taz_all['mfdu15_den'], taz_all['sfdu15_den'], np.log(taz_all['totemp15_den']), np.log(taz_all['totpop15_den'])]).transpose()
-taz_all['PredictedOffStreetParking'] = predict_off_street(off_street_full.x,full_inputs) * taz_all['area']
-taz_all.loc[taz_all['PredictedOffStreetParking'] < 0,'PredictedOffStreetParking'] = 0
-taz_all['PredictedOffStreetParking_extra'] = taz_all['PredictedOffStreetParking'] + 0.5*taz_all['mwtempn15'] + 1.0*taz_all['agrempn15'] # Make sure manufacturing and ag jobs have places to park (not well represented in SF)
-
-# Off Street Paid
-taz_all['PredictedOffStreetPortionPaid'] = off_street_paid_full_res.predict(taz_all)
-taz_all['PredictedOffStreetPaidParking'] = np.ceil(taz_all['PredictedOffStreetParking_extra'] * taz_all['PredictedOffStreetPortionPaid'])
-taz_all['PredictedOffStreetFreeParking'] = np.ceil(taz_all['PredictedOffStreetParking_extra'] - taz_all['PredictedOffStreetPaidParking'])
-
-# =============================================================================
-# # Costs: To compare predictions from just SF to inputs from entire bay area
-# taz_all['ShortTermHourlyRate'] = st_parking_cost_res.predict(taz_all)
-# taz_all.loc[taz_all['ShortTermHourlyRate'] < 0, 'ShortTermHourlyRate'] = 0
-# 
-# taz_all['LongTermHourlyRate'] = lt_parking_cost_res.predict(taz_all)
-# taz_all.loc[taz_all['LongTermHourlyRate'] < 0, 'LongTermHourlyRate'] = 0
-#
-# sns.scatterplot(x='LongTermHourlyRate', y='prkcst15', hue='AreaType', data=taz_all)
-# =============================================================================
-taz_all.loc[taz_all['areatype15'] == 4,'AreaType'] = 'Suburbs' # None of these in SF so they screw up the model
-
-
-taz_all['MadeUpWorkSpaces'] = 0 # If no area type available, add when employment density is greater than 2?
-taz_all.loc[taz_all['AreaType'] == 'Suburbs','MadeUpWorkSpaces'] = taz_all['totemp15']
-taz_all.loc[taz_all['AreaType'] == 'Residential','MadeUpWorkSpaces'] = taz_all['totemp15']
-
-taz_all['MadeUpResidentialSpaces'] = 0
-taz_all.loc[taz_all['AreaType'] == 'Suburbs','MadeUpResidentialSpaces'] = np.ceil(3*(taz_all['sfdu15'] + taz_all['mfdu15']))
-taz_all.loc[taz_all['AreaType'] == 'Residential','MadeUpResidentialSpaces'] = np.ceil(1.5*taz_all['sfdu15'] + 0.75*taz_all['mfdu15'])
-taz_all.loc[taz_all['AreaType'] == 'Downtown','MadeUpResidentialSpaces'] = np.ceil(taz_all['sfdu15'] + 0.5*taz_all['mfdu15'])
-taz_all.loc[taz_all['AreaType'] == 'CBD','MadeUpResidentialSpaces'] = np.ceil(0.5*taz_all['sfdu15'] + 0.25*taz_all['mfdu15'])
-
-
-#%% Build scare parking:
-
-scarce_public = pd.read_csv('data/AFI/public-20190815.csv') 
-scarce_public = gpd.GeoDataFrame(scarce_public,geometry=gpd.points_from_xy(scarce_public['Longitude'],scarce_public['Latitude']))
-
-scarce_public.crs = {'init': 'epsg:4326'}
-scarce_with_taz = gpd.sjoin(taz,scarce_public[['Number of plugs / parking stalls','geometry']],how='inner',op='intersects')
-taz_with_scarce = scarce_with_taz.groupby(scarce_with_taz.index).agg({'Number of plugs / parking stalls':'sum'}).fillna(0)
-taz_with_scarce.rename(columns={'Number of plugs / parking stalls':'ScarcePublicPlugs'},inplace=True)
-
-taz_all = taz_all.merge(taz_with_scarce['ScarcePublicPlugs'], left_index=True, right_index = True, how='left').fillna(0)
-
-scarce_depot = pd.read_csv('data/AFI/depot-20190815.csv') 
-scarce_depot = gpd.GeoDataFrame(scarce_depot,geometry=gpd.points_from_xy(scarce_depot['Longitude'],scarce_depot['Latitude']))
-
-scarce_depot.crs = {'init': 'epsg:4326'}
-scarce_with_taz = gpd.sjoin(taz,scarce_depot[['Number of plugs / parking stalls','geometry']],how='inner',op='intersects')
-taz_with_scarce = scarce_with_taz.groupby(scarce_with_taz.index).agg({'Number of plugs / parking stalls':'sum'}).fillna(0)
-taz_with_scarce.rename(columns={'Number of plugs / parking stalls':'ScarceDepotPlugs'},inplace=True)
-
-
-taz_all = taz_all.merge(taz_with_scarce['ScarceDepotPlugs'], left_index=True, right_index = True, how='left').fillna(0)
-taz_all['PredictedOffStreetPaidParkingCorrected'] = taz_all['PredictedOffStreetPaidParking'] - taz_all['ScarcePublicPlugs']
-taz_all.loc[taz_all['PredictedOffStreetPaidParkingCorrected'] < 0,'PredictedOffStreetPaidParkingCorrected'] = 0
-
-#%% LOOK AT URBANSIM:
-scenarios = ['baseline','lowtech-a','hightech-a','lowtech-b','hightech-b','lowtech-c','hightech-c']
-retirement = [0.0, 0.45, 0.45, 0.68, 0.75, 0.15, 0.20]
-ev = [0.001, 0.041667, 0.072768, 0.116822, 0.301087, 0.168935, 0.397117]
-phev = [0.001000, 0.031246, 0.051985, 0.023726, 0.046324, 0.064920, 0.112313]
-eviPublic = ['300mi-150kw-fleet1-a-hightech.PUBLIC.STATIONS.csv','300mi-150kw-fleet1-a-hightech.PUBLIC.STATIONS.csv',
-           '300mi-150kw-fleet1-a-hightech.PUBLIC.STATIONS.csv','300mi-150kw-fleet3-b-lowtech.PUBLIC.STATIONS.csv',
-           '300mi-150kw-fleet3-b-lowtech.PUBLIC.STATIONS.csv','300mi-150kw-fleet3-b-lowtech.PUBLIC.STATIONS.csv',
-           '300mi-150kw-fleet3-b-lowtech.PUBLIC.STATIONS.csv']
-eviWork = ['300mi-150kw-fleet1-a-hightech.WORKPLACE.STATIONS.csv','300mi-150kw-fleet1-a-hightech.WORKPLACE.STATIONS.csv',
-           '300mi-150kw-fleet1-a-hightech.WORKPLACE.STATIONS.csv','300mi-150kw-fleet3-b-lowtech.WORKPLACE.STATIONS.csv',
-           '300mi-150kw-fleet3-b-lowtech.WORKPLACE.STATIONS.csv','300mi-150kw-fleet3-b-lowtech.WORKPLACE.STATIONS.csv',
-           '300mi-150kw-fleet3-b-lowtech.WORKPLACE.STATIONS.csv']
-scenario_data = pd.DataFrame({'retirement':retirement,'ev':ev,'phev':phev,'eviPublic':eviPublic, 'eviWork':eviWork}, index=scenarios)
-
-taz_all['sf_vehs'] = taz_all['sfdu15'] * taz_all['cars_per_sfhh']
-taz_all['mf_vehs'] = taz_all['mfdu15'] * taz_all['cars_per_mfhh']
 #%% Build output file
+
+for res in range(5):
+    parking_out = parking.copy()
+    public_out = evi_public.copy()
+    public_out['numStalls'] = draw_prob(public_out['numStalls'],public_sample)
+    residential_out = evi_residential.copy()
+    residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[res])
+    all_out = pd.concat([evi_public,evi_residential,parking]).sort_values(by='taz')
+    all_out['chargingType'] = all_out['chargingType'].str.replace('50','150')
+    all_out.to_csv('out/taz_parking_plugs_' + str(residential_sample[res]) + '_power_150.csv',index=False)
+    
+for pow in range(5):
+    parking_out = parking.copy()
+    public_out = evi_public.copy()
+    public_out['numStalls'] = draw_prob(public_out['numStalls'],public_sample)
+    residential_out = evi_residential.copy()
+    residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[2])
+    all_out = pd.concat([evi_public,evi_residential,parking]).sort_values(by='taz')
+    all_out['chargingType'] = all_out['chargingType'].str.replace('50',str(charging_power[pow]))
+    all_out.to_csv('out/taz_parking_plugs_1.0_power_' + str(int(charging_power[pow])) + '.csv',index=False)
+    
+    depot_out = depot.copy()
+    depot_out['chargingType'] = depot_out['chargingType'].str.replace('150',str(int(charging_power[pow])))
+    depot_out['numStalls'] = draw_prob(depot_out['numStalls'],depot_sample)
+    depot_out.to_csv('out/depot_parking_power_' + str(int(charging_power[pow])) + '.csv',index=False)
+
+
+#%%
 
 sample=1.0
 infrastructure_sample = 0.1
@@ -366,38 +73,6 @@ costPerkWh_DCfast = 2.
 costPerkWh_Public2 = 2.
 costPerkWh_Res2 = 0.25
 costPerkWh_Res1 = 0.25
-
-def process_evipro(prefix, filename):
-    output = []
-    evi_100 = pd.read_csv(prefix + '1' + filename[1:])
-    evi_300 = pd.read_csv(prefix + '3' + filename[1:])
-    for row in evi_100.itertuples():
-        chargerDict = yaml.safe_load(row.plug_summary)
-        newrow = {'Latitude':row.Latitude,'Longitude':row.Longitude}
-        if 'DCFC' in chargerDict:
-            newrow['numFastChargers'] = chargerDict['DCFC']/infrastructure_sample/2
-        else:
-            newrow['numFastChargers'] = 0
-        if 'L2' in chargerDict:
-            newrow['numSlowChargers'] = chargerDict['L2']/infrastructure_sample/2
-        else:
-            newrow['numSlowChargers'] = 0
-        output.append(newrow)
-    for row in evi_300.itertuples():
-        chargerDict = yaml.safe_load(row.plug_summary)
-        newrow = {'Latitude':row.Latitude,'Longitude':row.Longitude}
-        if 'DCFC' in chargerDict:
-            newrow['numFastChargers'] = chargerDict['DCFC']/infrastructure_sample/2
-        else:
-            newrow['numFastChargers'] = 0
-        if 'L2' in chargerDict:
-            newrow['numSlowChargers'] = chargerDict['L2']/infrastructure_sample/2
-        else:
-            newrow['numSlowChargers'] = 0
-        output.append(newrow)
-    df = pd.DataFrame(output)
-    return gpd.GeoDataFrame(df,geometry=gpd.points_from_xy(df['Longitude'],df['Latitude']))
-
 
 output = []
 
