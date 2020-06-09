@@ -20,8 +20,8 @@ evi_public = evi.loc[(evi['parkingType']=='Public') | (evi['parkingType']=='Work
 evi_residential = evi.loc[(evi['parkingType']=='Residential')]
 #%%
 
-residential_sample = [0.1,0.5,1.0,2.0,10.0]
-charging_power = [50,100,150,200,250]
+residential_sample = [0.3,0.6,0.9]
+charging_power = [150]
 depot_sample = 0.1
 public_sample = 0.1
 
@@ -36,7 +36,7 @@ def draw_prob(n,p):
 
 #%% Build output file
 
-for res in range(5):
+for res in range(3):
     parking_out = parking.copy()
     public_out = evi_public.copy()
     public_out['numStalls'] = draw_prob(public_out['numStalls'],public_sample)
@@ -46,7 +46,7 @@ for res in range(5):
     all_out['chargingType'] = all_out['chargingType'].str.replace('50','150')
     all_out.to_csv('out/taz_parking_plugs_' + str(residential_sample[res]) + '_power_150.csv',index=False)
     
-for pow in range(5):
+for pow in range(0):
     parking_out = parking.copy()
     public_out = evi_public.copy()
     public_out['numStalls'] = draw_prob(public_out['numStalls'],public_sample)
