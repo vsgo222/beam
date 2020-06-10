@@ -11,7 +11,7 @@ evi_public = evi.loc[(evi['parkingType']=='Public') | (evi['parkingType']=='Work
 evi_residential = evi.loc[(evi['parkingType']=='Residential')]
 #%%
 
-residential_sample = [0.3,0.6,0.9]
+residential_sample = [1.125, 0.28125, 2.53125, 0.75, 1.5]
 charging_power = [50,150,250]
 depot_sample = 0.1
 public_sample = 0.1
@@ -42,10 +42,10 @@ for pow in range(np.size(charging_power)):
     public_out = evi_public.copy()
     public_out['numStalls'] = draw_prob(public_out['numStalls'],public_sample)
     residential_out = evi_residential.copy()
-    residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[1])
+    residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[0])
     all_out = pd.concat([evi_public,evi_residential,parking]).sort_values(by='taz')
     all_out['chargingType'] = all_out['chargingType'].str.replace('50',str(charging_power[pow]))
-    all_out.to_csv('out/taz_parking_plugs_1.0_power_' + str(int(charging_power[pow])) + '.csv',index=False)
+    all_out.to_csv('out/taz_parking_plugs_' + str(residential_sample[0]) + '_power_' + str(int(charging_power[pow])) + '.csv',index=False)
     
     depot_out = depot.copy()
     depot_out['chargingType'] = depot_out['chargingType'].str.replace('150',str(int(charging_power[pow])))
