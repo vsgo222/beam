@@ -1,15 +1,6 @@
 
 import pandas as pd
-import geopandas as gpd
-import statsmodels.formula.api as smf
 import numpy as np
-#import osmnx as ox
-import pickle
-from scipy.optimize import least_squares
-from shapely.geometry import  Point
-import itertools
-import csv
-import yaml
 #%% Load TAZ data from MTC
 
 depot = pd.read_csv('data/depot-parking-rich-100-b-lt.csv')
