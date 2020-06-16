@@ -13,18 +13,13 @@ import org.scalatest.{FlatSpec, Matchers}
 
 class UrbanSimScenarioLoaderTest extends FlatSpec with Matchers with BeamHelper {
 
-  val config: Config = testConfig("test/input/detroit/detroit-test.conf").resolve()
-  val beamConfig: BeamConfig = BeamConfig(config)
-  val scenarioConfig: Exchange.Scenario = beamConfig.beam.exchange.scenario
-  val src: String = scenarioConfig.source.toLowerCase
-  val configBuilder = new MatSimBeamConfigBuilder(config)
-  val matsimConfig = configBuilder.buildMatSimConf()
-
-  it should "compare" in {
-    1 should be (3 - 2)
-  }
-
-  it should "initialize" ignore {
+  it should "initialize" in {
+    val config: Config = testConfig("test/input/detroit/detroit-test.conf").resolve()
+    val beamConfig: BeamConfig = BeamConfig(config)
+    val scenarioConfig: Exchange.Scenario = beamConfig.beam.exchange.scenario
+    val src: String = scenarioConfig.source.toLowerCase
+    val configBuilder = new MatSimBeamConfigBuilder(config)
+    val matsimConfig = configBuilder.buildMatSimConf()
     val beamScenario = loadScenario(beamConfig)
     val emptyScenario = ScenarioBuilder(matsimConfig, beamScenario.network).build
 
