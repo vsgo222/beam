@@ -94,7 +94,7 @@ class UrbanSimScenarioLoader(
           s"Filtered out $filteredCnt households. Total number of households: ${householdsInsideBoundingBox.size}"
         )
       }
-      householdsInsideBoundingBox
+      households
     }
     val plans = Await.result(plansF, 500.seconds)
     val persons = Await.result(personsF, 500.seconds)
