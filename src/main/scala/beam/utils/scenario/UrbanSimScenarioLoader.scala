@@ -59,6 +59,7 @@ class UrbanSimScenarioLoader(
     }
 
     ShapeFileWriter.writeGeometries(features.asJava, shapeFileOutputPath)
+    logger.error(s"Shape file $shapeFileOutputPath was written.")
   }
 
   def loadScenario(): Scenario = {
