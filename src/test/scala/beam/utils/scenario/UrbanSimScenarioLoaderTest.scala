@@ -14,7 +14,7 @@ import org.scalatest.{FlatSpec, Matchers}
 class UrbanSimScenarioLoaderTest extends FlatSpec with Matchers with BeamHelper {
 
   it should "initialize" in {
-    val config: Config = testConfig("test/input/detroit/detroit-test.conf").resolve()
+    val config: Config = testConfig("test/input/detroit/detroit-200k.conf").resolve()
     val beamConfig: BeamConfig = BeamConfig(config)
     val scenarioConfig: Exchange.Scenario = beamConfig.beam.exchange.scenario
     val src: String = scenarioConfig.source.toLowerCase
