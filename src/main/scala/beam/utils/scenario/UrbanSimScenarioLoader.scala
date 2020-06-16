@@ -120,8 +120,10 @@ class UrbanSimScenarioLoader(
         }
         .toSet
 
-      createShapeFile(goodCoords, "coords-good.shp", geo.localCRS)
-      createShapeFile(badCoords, "coords-bad.shp", geo.localCRS)
+      val crs = "EPSG:4326"
+
+      createShapeFile(goodCoords, "coords-good.shp", crs)
+      createShapeFile(badCoords, "coords-bad.shp", crs)
 
       val envelop: Envelope = beamScenario.transportNetwork.streetLayer.envelope
       val envelopCoords = Seq(
@@ -131,7 +133,7 @@ class UrbanSimScenarioLoader(
         new Coord(envelop.getMaxX, envelop.getMaxY)
       )
 
-      createShapeFile(envelopCoords, "coords-envelop.shp", geo.localCRS)
+      createShapeFile(envelopCoords, "coords-envelop.shp", crs)
 
       val householdsInsideBoundingBox =
         households.filter(household => householdIdsWithinBoundingBox.contains(household.householdId))
