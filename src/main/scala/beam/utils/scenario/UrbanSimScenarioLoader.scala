@@ -45,7 +45,7 @@ class UrbanSimScenarioLoader(
 
     val plansF = Future {
       val plans = scenarioSource.getPlans
-      logger.info(s"Read ${plans.size} plans")
+      logger.error(s"Read ${plans.size} plans")
       val activities = plans.view.filter { p =>
         p.activityType.exists(actType => actType.toLowerCase == "home")
       }
@@ -63,18 +63,18 @@ class UrbanSimScenarioLoader(
       val planWithinRange = plans.filter(p => personIdsWithinRange.contains(p.personId))
       val filteredCnt = plans.size - planWithinRange.size
       if (filteredCnt > 0) {
-        logger.info(s"Filtered out $filteredCnt plans. Total number of plans: ${planWithinRange.size}")
+        logger.error(s"Filtered out $filteredCnt plans. Total number of plans: ${planWithinRange.size}")
       }
       planWithinRange
     }
     val personsF = Future {
       val persons: Iterable[PersonInfo] = scenarioSource.getPersons
-      logger.info(s"Read ${persons.size} persons")
+      logger.error(s"Read ${persons.size} persons")
       persons
     }
     val householdsF = Future {
       val households = scenarioSource.getHousehold
-      logger.info(s"Read ${households.size} households")
+      logger.error(s"Read ${households.size} households")
       val householdIdsWithinBoundingBox = households.view
         .filter { hh =>
           val coord = new Coord(hh.locationX, hh.locationY)
@@ -90,7 +90,7 @@ class UrbanSimScenarioLoader(
         households.filter(household => householdIdsWithinBoundingBox.contains(household.householdId))
       val filteredCnt = households.size - householdsInsideBoundingBox.size
       if (filteredCnt > 0) {
-        logger.info(
+        logger.error(
           s"Filtered out $filteredCnt households. Total number of households: ${householdsInsideBoundingBox.size}"
         )
       }
@@ -100,26 +100,26 @@ class UrbanSimScenarioLoader(
     val persons = Await.result(personsF, 500.seconds)
 
     val personsWithPlans = getPersonsWithPlan(persons, plans)
-    logger.info(s"There are ${personsWithPlans.size} persons with plans")
+    logger.error(s"There are ${personsWithPlans.size} persons with plans")
 
     val householdIdToPersons: Map[HouseholdId, Iterable[PersonInfo]] = personsWithPlans.groupBy(_.householdId)
 
     val households = Await.result(householdsF, 500.seconds)
     val householdsWithMembers = households.filter(household => householdIdToPersons.contains(household.householdId))
-    logger.info(s"There are ${householdsWithMembers.size} non-empty households")
+    logger.error(s"There are ${householdsWithMembers.size} non-empty households")
 
-    logger.info("Applying households...")
+    logger.error("Applying households...")
     applyHousehold(householdsWithMembers, householdIdToPersons, plans)
     // beamServices.privateVehicles is properly populated here, after `applyHousehold` call
 
     // beamServices.personHouseholds is used later on in PopulationAdjustment.createAttributesOfIndividual when we
-    logger.info("Applying persons...")
+    logger.error("Applying persons...")
     applyPersons(personsWithPlans)
 
-    logger.info("Applying plans...")
+    logger.error("Applying plans...")
     applyPlans(plans)
 
-    logger.info("The scenario loading is completed..")
+    logger.error("The scenario loading is completed..")
     scenario
   }
 
@@ -293,7 +293,7 @@ class UrbanSimScenarioLoader(
         scenarioHouseholdAttributes.putAttribute(household.getId.toString, "homecoordy", coord.getY)
 
     }
-    logger.info(
+    logger.error(
       s"Created $totalCarCount vehicles, scaling initial value of $initialVehicleCounter by a factor of $scaleFactor"
     )
   }
@@ -331,7 +331,7 @@ class UrbanSimScenarioLoader(
             .map(_._1)
             .take(numberOfWorkVehiclesToBeRemoved) // Take the people with shortest commutes and remove their cars
             .toSet
-          logger.info(
+          logger.error(
             s"Identified $numberOfWorkVehiclesToBeRemoved household vehicles with short commutes and $numberOfExcessVehiclesToBeRemoved excess vehicles to be removed"
           )
           val householdIdToPersonToHaveVehicleRemoved = householdIdToPersons
@@ -348,11 +348,11 @@ class UrbanSimScenarioLoader(
               val (householdsWithExcessVehicles, householdsWithCorrectNumberOfVehicles) =
                 hh_car_count(key).partition(x => key > householdIdToPersons(x.householdId).size)
               val numberOfExcessVehicles = householdsWithExcessVehicles.size
-              logger.info(
+              logger.error(
                 s"Identified $numberOfExcessVehicles excess vehicles from the $numberOfHouseholdsWithThisManyVehicles households with $key vehicles"
               )
               if (currentTotalCars - numberOfExcessVehicles > goalCarTotal) {
-                logger.info(
+                logger.error(
                   s"Removing all $numberOfExcessVehicles excess vehicles"
                 )
                 currentTotalCars -= numberOfExcessVehicles
@@ -361,7 +361,7 @@ class UrbanSimScenarioLoader(
               } else {
                 val householdsInGroup = householdsWithExcessVehicles.size
                 val numberToRemain = householdsInGroup - (currentTotalCars - goalCarTotal)
-                logger.info(
+                logger.error(
                   s"Removing all but $numberToRemain of the $numberOfExcessVehicles excess vehicles"
                 )
                 val shuffled = rand.shuffle(householdsWithExcessVehicles)
@@ -371,7 +371,7 @@ class UrbanSimScenarioLoader(
               }
             }
           }
-          logger.info(
+          logger.error(
             s"Currently $currentTotalCars are left, $numberOfWorkVehiclesToBeRemoved work vehicles are yet to be removed"
           )
           hh_car_count.keys.toSeq.sorted.foreach { key =>
@@ -389,7 +389,7 @@ class UrbanSimScenarioLoader(
                 }
               )
               val nRemoved = initialNumberOfHouseholds - hh_car_count(key).size
-              logger.info(
+              logger.error(
                 s"Originally had $initialNumberOfHouseholds work vehicles from households with $key workers, removed vehicles from $nRemoved of them"
               )
             }
@@ -422,7 +422,7 @@ class UrbanSimScenarioLoader(
               }
             }
           }
-          logger.info(
+          logger.error(
             s"Originally had $numberOfWorkersWithVehicles work vehicles and now have $currentTotalCars of them, with a goal of making $numberOfWorkVehiclesToCreate"
           )
         }
@@ -435,7 +435,7 @@ class UrbanSimScenarioLoader(
             nVehiclesOut ++= ArrayBuffer.fill(householdIds.size)(nVehicles)
         }
         val totalVehiclesOut = nVehiclesOut.sum
-        logger.info(
+        logger.error(
           s"Ended up with $totalVehiclesOut vehicles"
         )
         householdsOut.zip(nVehiclesOut)
