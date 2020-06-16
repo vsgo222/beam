@@ -6,6 +6,7 @@ import beam.router.Modes.BeamMode
 import beam.sim.BeamScenario
 import beam.sim.common.GeoUtils
 import beam.sim.vehicles.VehiclesAdjustment
+import beam.utils.csv.CsvWriter
 import beam.utils.plan.sampling.AvailableModeUtils
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.math3.distribution.UniformRealDistribution
@@ -22,6 +23,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.Random
+import scala.util.control.NonFatal
 
 class UrbanSimScenarioLoader(
   var scenario: MutableScenario,
@@ -79,7 +81,13 @@ class UrbanSimScenarioLoader(
         .filter { hh =>
           val coord = new Coord(hh.locationX, hh.locationY)
           val wgsCoord = if (areCoordinatesInWGS) coord else geo.utm2Wgs(coord)
-          beamScenario.transportNetwork.streetLayer.envelope.contains(wgsCoord.getX, wgsCoord.getY)
+          val isInEnvelope = beamScenario.transportNetwork.streetLayer.envelope.contains(wgsCoord.getX, wgsCoord.getY)
+          if (!isInEnvelope) {
+            logger.error(
+              s"Household not in invelope: ${hh.householdId}, ${hh.locationX}, ${hh.locationY}, ${wgsCoord.getX}, ${wgsCoord.getY}"
+            )
+          }
+          isInEnvelope
         }
         .map { hh =>
           hh.householdId
