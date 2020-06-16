@@ -9,15 +9,19 @@ import beam.sim.vehicles.VehiclesAdjustment
 import beam.utils.csv.CsvWriter
 import beam.utils.plan.sampling.AvailableModeUtils
 import com.typesafe.scalalogging.LazyLogging
+import com.vividsolutions.jts.geom.Envelope
 import org.apache.commons.math3.distribution.UniformRealDistribution
 import org.matsim.api.core.v01.population.Population
 import org.matsim.api.core.v01.{Coord, Id, Scenario}
 import org.matsim.core.population.PopulationUtils
 import org.matsim.core.scenario.MutableScenario
+import org.matsim.core.utils.geometry.geotools.MGC
+import org.matsim.core.utils.gis.{PointFeatureFactory, ShapeFileWriter}
 import org.matsim.households._
 import org.matsim.vehicles.{Vehicle, VehicleType, VehicleUtils}
+import org.opengis.feature.simple.SimpleFeature
 
-import scala.collection.Iterable
+import scala.collection.{mutable, Iterable}
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -39,6 +43,23 @@ class UrbanSimScenarioLoader(
   val availableModes: String = BeamMode.allModes.map(_.value).mkString(",")
 
   val rand: Random = new Random(beamScenario.beamConfig.matsim.modules.global.randomSeed)
+
+  def createShapeFile(coords: Traversable[Coord], shapeFileOutputPath: String, crs: String): Unit = {
+    val features = ArrayBuffer[SimpleFeature]()
+
+    val pointf: PointFeatureFactory = new PointFeatureFactory.Builder()
+      .setCrs(MGC.getCRS(crs))
+      .setName("nodes")
+      .create()
+
+    coords.foreach { wsgCoord =>
+      val coord = new com.vividsolutions.jts.geom.Coordinate(wsgCoord.getX, wsgCoord.getY)
+      val feature = pointf.createPoint(coord)
+      features += feature
+    }
+
+    ShapeFileWriter.writeGeometries(features.asJava, shapeFileOutputPath)
+  }
 
   def loadScenario(): Scenario = {
     clear()
@@ -77,15 +98,19 @@ class UrbanSimScenarioLoader(
     val householdsF = Future {
       val households = scenarioSource.getHousehold
       logger.error(s"Read ${households.size} households")
+
+      val goodCoords = mutable.ListBuffer.empty[Coord]
+      val badCoords = mutable.ListBuffer.empty[Coord]
+
       val householdIdsWithinBoundingBox = households.view
         .filter { hh =>
           val coord = new Coord(hh.locationX, hh.locationY)
           val wgsCoord = if (areCoordinatesInWGS) coord else geo.utm2Wgs(coord)
           val isInEnvelope = beamScenario.transportNetwork.streetLayer.envelope.contains(wgsCoord.getX, wgsCoord.getY)
-          if (!isInEnvelope) {
-            logger.error(
-              s"Household not in invelope: ${hh.householdId}, ${hh.locationX}, ${hh.locationY}, ${wgsCoord.getX}, ${wgsCoord.getY}"
-            )
+          if (isInEnvelope) {
+            goodCoords += coord
+          } else {
+            badCoords += coord
           }
           isInEnvelope
         }
@@ -93,6 +118,19 @@ class UrbanSimScenarioLoader(
           hh.householdId
         }
         .toSet
+
+      createShapeFile(goodCoords, "coords-good.shp", geo.localCRS)
+      createShapeFile(badCoords, "coords-bad.shp", geo.localCRS)
+
+      val envelop: Envelope = beamScenario.transportNetwork.streetLayer.envelope
+      val envelopCoords = Seq(
+        new Coord(envelop.getMinX, envelop.getMinY),
+        new Coord(envelop.getMinX, envelop.getMaxY),
+        new Coord(envelop.getMaxX, envelop.getMinY),
+        new Coord(envelop.getMaxX, envelop.getMaxY)
+      )
+
+      createShapeFile(envelopCoords, "coords-envelop.shp", geo.localCRS)
 
       val householdsInsideBoundingBox =
         households.filter(household => householdIdsWithinBoundingBox.contains(household.householdId))
