@@ -64,17 +64,9 @@ class UrbanSimScenarioLoader(
     logger.error(s"Shape file $shapeFileOutputPath was written.")
   }
 
-  def isCoordValid(
-    lon: Double,
-    lat: Double,
-    maxRadius: Double = 1E5,
-    streetMode: StreetMode = StreetMode.WALK
-  ): Boolean = {
-    // beamScenario.transportNetwork.streetLayer.envelope.contains(lat, lon)
-    val split = Split.find(lat, lon, maxRadius, beamScenario.transportNetwork.streetLayer, streetMode)
-    if (split == null) {
-      logger.error(s"Coord lat:$lat lon:$lon is not in the BEAM network.")
-    }
+  def isCoordValid(coordWGS: Coord): Boolean = {
+    // beamScenario.transportNetwork.streetLayer.envelope.contains(x, y)
+    val split = geo.getR5Split(beamScenario.transportNetwork.streetLayer, coordWGS)
     split != null
   }
 
@@ -94,7 +86,7 @@ class UrbanSimScenarioLoader(
           .filter { act =>
             val actCoord = new Coord(act.activityLocationX.get, act.activityLocationY.get)
             val wgsCoord = if (areCoordinatesInWGS) actCoord else geo.utm2Wgs(actCoord)
-            isCoordValid(wgsCoord.getX, wgsCoord.getY)
+            isCoordValid(wgsCoord)
           }
           .map { act =>
             act.personId
@@ -123,14 +115,13 @@ class UrbanSimScenarioLoader(
         .filter { hh =>
           val coord = new Coord(hh.locationX, hh.locationY)
           val wgsCoord = if (areCoordinatesInWGS) coord else geo.utm2Wgs(coord)
-          val isInEnvelope = isCoordValid(wgsCoord.getX, wgsCoord.getY)
-          if (isInEnvelope) {
+          val isGood = isCoordValid(wgsCoord)
+          if (isGood) {
             goodCoords += coord
           } else {
             badCoords += coord
           }
-          isInEnvelope
-
+          isGood
         }
         .map { hh =>
           hh.householdId
