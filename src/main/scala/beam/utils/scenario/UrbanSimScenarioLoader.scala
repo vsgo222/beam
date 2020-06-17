@@ -65,14 +65,17 @@ class UrbanSimScenarioLoader(
   }
 
   def isCoordValid(
-    lat: Double,
     lon: Double,
+    lat: Double,
     maxRadius: Double = 1E5,
     streetMode: StreetMode = StreetMode.WALK
   ): Boolean = {
     // beamScenario.transportNetwork.streetLayer.envelope.contains(lat, lon)
-    logger.error(s"Checking for lat:$lat lon:$lon")
-    Split.find(lat, lon, maxRadius, beamScenario.transportNetwork.streetLayer, streetMode) != null
+    val split = Split.find(lat, lon, maxRadius, beamScenario.transportNetwork.streetLayer, streetMode)
+    if (split == null) {
+      logger.error(s"Coord lat:$lat lon:$lon is not in the BEAM network.")
+    }
+    split == null
   }
 
   def loadScenario(): Scenario = {
