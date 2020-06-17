@@ -70,8 +70,8 @@ class UrbanSimScenarioLoader(
     maxRadius: Double = 1E5,
     streetMode: StreetMode = StreetMode.WALK
   ): Boolean = {
-    beamScenario.transportNetwork.streetLayer.envelope.contains(lat, lon)
-    // Split.find(lat, lon, maxRadius, beamScenario.transportNetwork.streetLayer, streetMode) != null
+    // beamScenario.transportNetwork.streetLayer.envelope.contains(lat, lon)
+    Split.find(lat, lon, maxRadius, beamScenario.transportNetwork.streetLayer, streetMode) != null
   }
 
   def loadScenario(): Scenario = {
