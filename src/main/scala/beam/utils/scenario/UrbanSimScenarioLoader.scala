@@ -102,8 +102,16 @@ class UrbanSimScenarioLoader(
           }
           .toSet
 
-      createShapeFile(goodCoords, "coords-ps-good.shp", "EPSG:4326")
-      createShapeFile(badCoords, "coords-ps-bad.shp", "EPSG:4326")
+      if (goodCoords.nonEmpty) {
+        createShapeFile(goodCoords, "coords-ps-good.shp", "EPSG:4326")
+      } else {
+        logger.error("PS good coords is empty.")
+      }
+      if (badCoords.nonEmpty) {
+        createShapeFile(badCoords, "coords-ps-bad.shp", "EPSG:4326")
+      } else {
+        logger.error("PS bad coords is empty.")
+      }
 
       val planWithinRange = plans.filter(p => personIdsWithinRange.contains(p.personId))
       val filteredCnt = plans.size - planWithinRange.size
@@ -121,8 +129,8 @@ class UrbanSimScenarioLoader(
       val households = scenarioSource.getHousehold
       logger.error(s"Read ${households.size} households")
 
-      val goodCoords = mutable.ListBuffer.empty[Coord]
-      val badCoords = mutable.ListBuffer.empty[Coord]
+      val goodCoordsHH = mutable.ListBuffer.empty[Coord]
+      val badCoordsHH = mutable.ListBuffer.empty[Coord]
 
       val householdIdsWithinBoundingBox = households.view
         .filter { hh =>
@@ -130,9 +138,9 @@ class UrbanSimScenarioLoader(
           val wgsCoord = if (areCoordinatesInWGS) coord else geo.utm2Wgs(coord)
           val isGood = isCoordValid(wgsCoord)
           if (isGood) {
-            goodCoords += wgsCoord
+            goodCoordsHH += wgsCoord
           } else {
-            badCoords += wgsCoord
+            badCoordsHH += wgsCoord
           }
           isGood
         }
@@ -141,8 +149,16 @@ class UrbanSimScenarioLoader(
         }
         .toSet
 
-      createShapeFile(goodCoords, "coords-hh-good.shp", "EPSG:4326")
-      createShapeFile(badCoords, "coords-hh-bad.shp", "EPSG:4326")
+      if (goodCoordsHH.nonEmpty) {
+        createShapeFile(goodCoordsHH, "coords-hh-good.shp", "EPSG:4326")
+      } else {
+        logger.error("HH good coords is empty.")
+      }
+      if (badCoordsHH.nonEmpty) {
+        createShapeFile(badCoordsHH, "coords-hh-bad.shp", "EPSG:4326")
+      } else {
+        logger.error("HH bad coords is empty.")
+      }
 
       val envelop: Envelope = beamScenario.transportNetwork.streetLayer.envelope
       val envelopCoords = Seq(
