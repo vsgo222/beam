@@ -65,7 +65,7 @@ class UrbanSimScenarioLoader(
   }
 
   def isCoordValid(coordWGS: Coord): Boolean = {
-    // beamScenario.transportNetwork.streetLayer.envelope.contains(x, y)
+    // beamScenario.transportNetwork.streetLayer.envelope.contains(coordWGS.getX, coordWGS.getY)
     val split = geo.getR5Split(beamScenario.transportNetwork.streetLayer, coordWGS)
     split != null
   }
@@ -81,17 +81,30 @@ class UrbanSimScenarioLoader(
       val activities = plans.view.filter { p =>
         p.activityType.exists(actType => actType.toLowerCase == "home")
       }
+      val goodCoords = mutable.ListBuffer.empty[Coord]
+      val badCoords = mutable.ListBuffer.empty[Coord]
+
       val personIdsWithinRange =
         activities
           .filter { act =>
             val actCoord = new Coord(act.activityLocationX.get, act.activityLocationY.get)
             val wgsCoord = if (areCoordinatesInWGS) actCoord else geo.utm2Wgs(actCoord)
-            isCoordValid(wgsCoord)
+            val isGood = isCoordValid(wgsCoord)
+            if (isGood) {
+              goodCoords += wgsCoord
+            } else {
+              badCoords += wgsCoord
+            }
+            isGood
           }
           .map { act =>
             act.personId
           }
           .toSet
+
+      createShapeFile(goodCoords, "coords-ps-good.shp", "EPSG:4326")
+      createShapeFile(badCoords, "coords-ps-bad.shp", "EPSG:4326")
+
       val planWithinRange = plans.filter(p => personIdsWithinRange.contains(p.personId))
       val filteredCnt = plans.size - planWithinRange.size
       if (filteredCnt > 0) {
@@ -117,9 +130,9 @@ class UrbanSimScenarioLoader(
           val wgsCoord = if (areCoordinatesInWGS) coord else geo.utm2Wgs(coord)
           val isGood = isCoordValid(wgsCoord)
           if (isGood) {
-            goodCoords += coord
+            goodCoords += wgsCoord
           } else {
-            badCoords += coord
+            badCoords += wgsCoord
           }
           isGood
         }
@@ -128,10 +141,8 @@ class UrbanSimScenarioLoader(
         }
         .toSet
 
-      val crs = "EPSG:4326"
-
-      createShapeFile(goodCoords, "coords-good.shp", crs)
-      createShapeFile(badCoords, "coords-bad.shp", crs)
+      createShapeFile(goodCoords, "coords-hh-good.shp", "EPSG:4326")
+      createShapeFile(badCoords, "coords-hh-bad.shp", "EPSG:4326")
 
       val envelop: Envelope = beamScenario.transportNetwork.streetLayer.envelope
       val envelopCoords = Seq(
@@ -141,7 +152,7 @@ class UrbanSimScenarioLoader(
         new Coord(envelop.getMaxX, envelop.getMaxY)
       )
 
-      createShapeFile(envelopCoords, "coords-envelop.shp", crs)
+      createShapeFile(envelopCoords, "coords-envelop.shp", "EPSG:4326")
 
       val householdsInsideBoundingBox =
         households.filter(household => householdIdsWithinBoundingBox.contains(household.householdId))
@@ -153,15 +164,15 @@ class UrbanSimScenarioLoader(
       }
       households
     }
-    val plans = Await.result(plansF, 500.seconds)
-    val persons = Await.result(personsF, 500.seconds)
+    val plans = Await.result(plansF, 2000.seconds)
+    val persons = Await.result(personsF, 2000.seconds)
 
     val personsWithPlans = getPersonsWithPlan(persons, plans)
     logger.error(s"There are ${personsWithPlans.size} persons with plans")
 
     val householdIdToPersons: Map[HouseholdId, Iterable[PersonInfo]] = personsWithPlans.groupBy(_.householdId)
 
-    val households = Await.result(householdsF, 500.seconds)
+    val households = Await.result(householdsF, 2000.seconds)
     val householdsWithMembers = households.filter(household => householdIdToPersons.contains(household.householdId))
     logger.error(s"There are ${householdsWithMembers.size} non-empty households")
 
