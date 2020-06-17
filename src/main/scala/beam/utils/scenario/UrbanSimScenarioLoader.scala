@@ -75,7 +75,7 @@ class UrbanSimScenarioLoader(
     if (split == null) {
       logger.error(s"Coord lat:$lat lon:$lon is not in the BEAM network.")
     }
-    split == null
+    split != null
   }
 
   def loadScenario(): Scenario = {
