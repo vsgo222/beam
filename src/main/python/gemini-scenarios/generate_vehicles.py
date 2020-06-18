@@ -61,6 +61,8 @@ outFileNames = ['vehicletypes-baseline-'+ str(targetRange) +'.csv',
 
 automation_powertrain = pd.read_csv('data/automation-powertrain.csv',index_col=[0,1])
 automation_ridehail = pd.read_csv('data/automation-ridehail.csv',index_col=[0,1])
+ridehail_powertrain = pd.read_csv('data/ridehail-powertrain.csv',index_col=[0,1])
+
 
 kwh2j = 3.6e+6 / 0.8
 
@@ -206,17 +208,22 @@ def getLine(row, automationLevel, RH_prob, PV_prob):
     
 all_output = []
 idx = 0
+
+runtype = 'gemini'
+
 for fleet in fleets:
     output = []
     sub = energyFiles.loc[(energyFiles['scenario'] == fleet),:]
     #powertrain_income = sub.loc[sub['L1'],'fleet_perc'].values
     powertrain_income = pd.DataFrame(columns=powertrains, index=incomeBins)
     income_automation = pd.DataFrame(columns=automationLevels, index=incomeBins)
-    
+    powertrain_ridehail = pd.DataFrame(columns=automationLevels, index=incomeBins)
     
     
     a_r = automation_ridehail.iloc[:,idx].unstack().transpose()
     a_p = automation_powertrain.iloc[:,idx].unstack()
+    r_p = ridehail_powertrain.iloc[:,idx].unstack()
+
     
     portion_noncav_L1 = a_r.sum(axis=1)['L1']/(a_r.sum(axis=1)['L1'] + a_r.sum(axis=1)['L3'])
     
@@ -229,10 +236,7 @@ for fleet in fleets:
         income_total = vehicles.drop_duplicates('powertrain')['fleet_perc'].sum()
         vehicles['fleet_perc'] = vehicles['fleet_perc']/income_total
 
-        print(index, incomeBin)
-        print(vehicles)
         powertrain_perc = vehicles.drop_duplicates('powertrain')[['fleet_perc','powertrain']].set_index('powertrain')
-        print(powertrain_perc)
         powertrain_income.loc[incomeBin,:] = powertrain_perc.loc[powertrains].values[:,0]*incomeGroups.loc[incomeBin].values[0]
         income_automation.loc[incomeBin,:] = a_r.sum(axis=1)*incomeGroups.loc[incomeBin].values[0]
     
@@ -250,9 +254,15 @@ for fleet in fleets:
     diesel_frac = totalFleet['diesel']/totalFleet['conv']
     a_p.loc['diesel',:] = diesel_frac*a_p.loc['conv',:]
     a_p.loc['conv',:] = (1.0-diesel_frac)*a_p.loc['conv',:]
+    
+    r_p.loc['diesel',:] = diesel_frac*r_p.loc['conv',:]
+    r_p.loc['conv',:] = (1.0-diesel_frac)*r_p.loc['conv',:]
 
     percs = np.zeros((6,5,3,2))+(1./180.)
-    IPF = ipfn.ipfn(percs, [powertrain_income.values,a_p.values,a_r.values,income_automation.values],[[0,1],[1,2],[2,3],[0,2]])
+    if runtype == 'gemini':
+        IPF = ipfn.ipfn(percs, [powertrain_income.values,a_p.values,r_p.values,a_r.values,income_automation.values],[[0,1],[1,2],[1,3],[2,3],[0,2]])
+    else:
+        IPF = ipfn.ipfn(percs, [powertrain_income.values,a_p.values,a_r.values,income_automation.values],[[0,1],[1,2],[2,3],[0,2]])
     fit = IPF.iteration()
     #PV = pd.Panel((fit[:,:,:,0]),items=incomeGroups.index,major_axis = a_p.index, minor_axis = a_p.columns).to_frame()
     PV = pd.DataFrame(
@@ -288,8 +298,6 @@ for fleet in fleets:
 #        fit = IPF.iteration()
 #        probs = pd.Panel(fit, items = a_p.index, major_axis = a_p.columns, minor_axis = a_r.columns).to_frame()
 #        print(probs.sum(level=0))
-        print(incomeBin,fleet)
-        print(PV.loc[:,incomeBin].unstack().sum(axis=1)/PV.loc[:,incomeBin].sum().sum())
         for powertrain in powertrains:
             for automationLevel in automationLevels:
                 #RH_prob = probs.loc[(automationLevel,'RH'),powertrain]
@@ -313,7 +321,7 @@ for fleet in fleets:
        'rechargeLevel3RateLimitInWatts', 'vehicleCategory',
        'sampleProbabilityWithinCategory', 'sampleProbabilityString'])
     final = output.append(otherVehicles)
-    final.to_csv('out/'+outFileNames[idx], index=False)
+    final.to_csv('out/'+runtype+'_'+outFileNames[idx], index=False)
     idx += 1
 all_output = pd.DataFrame(all_output, columns = ['vehicleTypeId', 'seatingCapacity', 'standingRoomCapacity',
        'lengthInMeter', 'primaryFuelType',
