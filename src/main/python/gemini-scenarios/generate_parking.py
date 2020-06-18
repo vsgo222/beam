@@ -12,7 +12,7 @@ evi_residential = evi.loc[(evi['parkingType']=='Residential')]
 #%%
 
 residential_sample = [1.125, 0.28125, 2.53125, 0.75, 1.5]
-charging_power = [50,150,250]
+
 depot_sample = 0.1
 public_sample = 0.1
 
@@ -27,6 +27,8 @@ def draw_prob(n,p):
 
 #%% Build output file
 
+charging_power = [50,150,250]
+
 for res in range(np.size(residential_sample)):
     parking_out = parking.copy()
     public_out = evi_public.copy()
@@ -37,24 +39,49 @@ for res in range(np.size(residential_sample)):
     all_out['chargingType'] = all_out['chargingType'].str.replace('50','150')
     all_out.to_csv('out/taz_parking_plugs_' + str(residential_sample[res]) + '_power_150.csv',index=False)
     
-for pow in range(np.size(charging_power)):
+
+for ind in range(np.size(charging_power)):
     parking_out = parking.copy()
     public_out = evi_public.copy()
     public_out['numStalls'] = draw_prob(public_out['numStalls'],public_sample)
     residential_out = evi_residential.copy()
     residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[0])
-    all_out = pd.concat([evi_public,evi_residential,parking]).sort_values(by='taz')
-    all_out['chargingType'] = all_out['chargingType'].str.replace('50',str(charging_power[pow]))
-    all_out.to_csv('out/taz_parking_plugs_' + str(residential_sample[0]) + '_power_' + str(int(charging_power[pow])) + '.csv',index=False)
+    all_out = pd.concat([evi_public,evi_residential,parking]).sort_values(by='taz')    
+    all_out['chargingType'] = all_out['chargingType'].str.replace('50',str(charging_power[ind]))
+    all_out.to_csv('out/taz_parking_plugs_' + str(residential_sample[0]) + '_power_' + str(int(charging_power[ind])) + '.csv',index=False)
+
+charging_power = [{50:1.0},{150:0.9,250:0.1},{250:1.0}]
+scenario_names = ['noXFC','baseline','allXFC']
+
+for ind in range(np.size(charging_power)):
+    parking_out = parking.copy()
+    public_out = evi_public.copy()
+    public_out['numStalls'] = draw_prob(public_out['numStalls'],public_sample)
+    residential_out = evi_residential.copy()
+    residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[0])
     
-    depot_out = depot.copy()
-    depot_out['chargingType'] = depot_out['chargingType'].str.replace('150',str(int(charging_power[pow])))
-    depot_out['numStalls'] = draw_prob(depot_out['numStalls'],depot_sample)
-    depot_out.to_csv('out/depot_parking_power_' + str(int(charging_power[pow])) + '.csv',index=False)
+    val = charging_power[ind]
+    
+    if isinstance(val,dict):
+        powers = val.keys()
+        probs = val.values()
+    else:
+        powers = [val]
+        probs = [1.0]
+    
+    depot_out = []
+    for power, prob in zip(powers, probs):
+        depot_temp = depot.copy()
+        depot_temp['chargingType'] = depot_temp['chargingType'].str.replace('150',str(int(power)))
+        depot_temp['numStalls'] = draw_prob(depot_temp['numStalls'],depot_sample * prob)
+        depot_out.append(depot_temp)
+    depot_out = pd.concat(depot_out).sort_values(by='taz')
+    depot_out = depot_out.loc[depot_out.numStalls > 0]
+    depot_out.to_csv('out/depot_parking_power_' + str(scenario_names[ind]) + '.csv',index=False)
 
 
 #%%
-
+"""
 sample=1.0
 infrastructure_sample = 0.1
 
@@ -873,3 +900,4 @@ output = pd.DataFrame(output, columns = ['taz','parkingType','pricingModel','cha
 output = output.loc[output['numStalls'] > 0, :]
 output['numStalls'] = output['numStalls'].astype('int')
 output.to_csv('output/sf-depot-parking-rich-50.csv',index=False)
+"""
