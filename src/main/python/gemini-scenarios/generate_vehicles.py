@@ -43,12 +43,12 @@ energyFiles['secondaryFileName'] = None
 otherVehicles = pd.read_csv('data/vehicleTypes_others.csv')
 incomeGroups = pd.read_csv('data/incomeGroups.csv',index_col=0)
 
-targetRange = 100
+targetRange = 300
 
 #%%
 
-fleets = ['LowTech_2019','LowTech_2045','HighTech_2045','LowTech_2045','HighTech_2045']
-scenarios = ['base','b','b','recharge','recharge']
+fleets = ['LowTech_2019','LowTech_2045','HighTech_2045','LowTech_2045','HighTech_2045','LowTech_2045']
+scenarios = ['base','b','b','recharge','recharge','recharge2040']
 incomeBins = ['10000_to_25000','25000_to_50000','50000_to_75000','75000_to_100000','100000_to_200000','200000_to_100000000']
 powertrains = ['conv','ev','hev','phev','diesel']
 automationLevels = ['L1','L3','L5']
@@ -57,7 +57,8 @@ outFileNames = ['vehicletypes-baseline-'+ str(targetRange) +'.csv',
                 'vehicletypes-b-lowtech-'+ str(targetRange) +'.csv',
                 'vehicletypes-b-hightech-'+ str(targetRange) +'.csv',
                 'vehicletypes-recharge-lowtech-'+ str(targetRange) +'.csv',
-                'vehicletypes-recharge-hightech-'+ str(targetRange) +'.csv']
+                'vehicletypes-recharge-hightech-'+ str(targetRange) +'.csv',
+                'vehicletypes-recharge2040-'+ str(targetRange) +'.csv']
 
 automation_powertrain = pd.read_csv('data/automation-powertrain.csv',index_col=[0,1])
 automation_ridehail = pd.read_csv('data/automation-ridehail.csv',index_col=[0,1])

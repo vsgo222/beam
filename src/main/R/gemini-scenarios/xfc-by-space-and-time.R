@@ -1,4 +1,8 @@
-source("helpers.R")
+# Title     : TOD
+# Objective : TODO
+# Created by: haitam
+# Created on: 6/19/20
+
 library(stringr)
 library(tidyverse)
 library(urbnmapr)
@@ -10,24 +14,25 @@ library(data.table)
 #library(cepp)
 library(ggplot2)
 library(dplyr)
-library(sf) 
+library(sf)
 library(proj4)
 setwd("/Users/haitam/workspace/scripts")
+source("helpers.R")
 
 #26910
 #4326
 tazsss <- readCsv("common-data/sfbay-tazs/taz-centers.csv")
 tazs <- st_as_sf(tazsss, coords = c("coord-x", "coord-y"), crs = 26910)
 tazs_wgs84 <- sf::st_transform(tazs, 4326)
-depots <- readCsv("gemini-quarterly-deliverables-2020-04/depot_parking_power_150.csv")[,vehicle:="cav"]
+depots <- readCsv("gemini-quarterly-deliverables-2020-04/depot_parking_power_baseline.csv")[,vehicle:="cav"]
 stations_temp0 <- rbind(depots) %>%
   rowwise() %>%
   mutate(capacity=as.numeric(unlist(strsplit(unlist(strsplit(chargingType, "\\("))[2], "\\|"))[1]),
          current=unlist(strsplit(unlist(strsplit(unlist(strsplit(chargingType, "\\("))[2], "\\|"))[2], "\\)"))) %>%
-  filter(!is.na(capacity)) %>% 
+  filter(!is.na(capacity)) %>%
   mutate(totCapacity = numStalls*capacity)
 stations <- merge(stations_temp0, tazsss, by = "taz")
-events <- readCsv("gemini-quarterly-deliverables-2020-04/7.events.csv.gz")
+events <- readCsv("gemini-quarterly-deliverables-2020-04/baseline-exp1-2040-2.events.csv.gz")
 events_charging <- events[type %in% c("RefuelSessionEvent")]
 ev <- events_charging[
   ,c("vehicle", "time", "type", "parkingTaz", "chargingType", "parkingType", "locationY", "locationX",
@@ -45,7 +50,7 @@ bev <- length(unique(ev[substr(vehicleType,0,3)=='ev-']$vehicle))
 rh <- length(unique(ev[substr(vehicleType,0,3)=='ev-' & substr(vehicle,0,5)=='rideH']$vehicle))
 cavrh <- length(unique(ev[substr(vehicleType,0,5)=='ev-L5' & substr(vehicle,0,5)=='rideH']$vehicle))
 nonev <- length(unique(ev[grepl('ev-', vehicleType)]$vehicle))
-(phev+bev)/(phev+bev+nonev)
+#(phev+bev)/(phev+bev+nonev)
 
 bev <- length(unique(ev$vehicle)) - length(unique(ev[substr(vehicleType,0,5)=='phev-']$vehicle))
 
@@ -75,35 +80,35 @@ counties <- data.table(urbnmapr::counties)[county_name%in%c('Alameda County','Co
 setkey(toplot,xfc)
 toplot[,extreme.lab:=ifelse(xfc,'>=1MW','<1MW')]
 
-p <- ggplot() + 
-  geom_polygon(data = counties, mapping = aes(x = long, y = lat, group = group), fill="white", size=.2) + 
+p <- ggplot() +
+  geom_polygon(data = counties, mapping = aes(x = long, y = lat, group = group), fill="white", size=.2) +
   coord_map(projection = 'albers', lat0 = 39, lat1 = 45,xlim=c(-122.78,-121.86),ylim=c(37.37,38.17))+
   geom_point(dat=toplot,aes(x=x2,y=y2,size=kw,stroke=0.5,group=grp,colour= extreme.lab),alpha=.3)+
   scale_colour_manual(values=c('darkgrey','red'))+
   scale_size_continuous(range=c(0.5,35),breaks=c(500,1000,2000,4000))+
   labs(title="Hour: {round(frame_time,1)}",colour='Load Severity',size='Charging Site Power (kW)')+
   theme(panel.background = element_rect(fill = "#d4e6f2"))+
-  transition_states(grp,transition_length = 1.5,state_length = 1) + 
+  transition_states(grp,transition_length = 1.5,state_length = 1) +
   transition_time(hour.bin)+enter_fade() + exit_fade()
 anim <- animate(p,nframes=18*4*5, fps=10, renderer =gifski_renderer("gemini-quarterly-deliverables-2020-04/xfc.blue.gif"),width=700,height=500,end_pause=10)
 
 ggplot(toplot[,.(kw=sum(kw)),by=c('xfc','hour.bin')],aes(x=hour.bin,y=kw,fill=xfc))+geom_area()+theme_bw()
 
-toplot %>% 
-  group_by(extreme) %>% 
+toplot %>%
+  group_by(extreme) %>%
   summarise(fuel = sum(fuel))
 
-toplot %>% 
-  group_by(kw) %>% 
-  summarise(fuel = sum(fuel)) %>% 
-  ungroup() %>% 
-  ggplot(aes(as.character(kw), fuel)) + 
+toplot %>%
+  group_by(kw) %>%
+  summarise(fuel = sum(fuel)) %>%
+  ungroup() %>%
+  ggplot(aes(as.character(kw), fuel)) +
   geom_bar(stat = "identity")
 
-toplot %>% 
-  group_by(extreme.lab, hour.bin) %>% 
-  summarise(fuel = sum(fuel)) %>% 
-  ungroup() %>% 
+toplot %>%
+  group_by(extreme.lab, hour.bin) %>%
+  summarise(fuel = sum(fuel)) %>%
+  ungroup() %>%
   ggplot(aes(hour.bin, fuel/1000, colour=extreme.lab)) +
   geom_line() +
   theme_classic() +
