@@ -1,8 +1,10 @@
-# Title     : TOD
-# Objective : TODO
+# Title     : XFC Space-Time
+# Objective : Plotting XFC events
 # Created by: haitam
-# Created on: 6/19/20
+# Created on: 6/20/20
 
+setwd("/Users/haitam/workspace/scripts/gemini-quarterly-deliverables-2020-04")
+source("../helpers.R")
 library(stringr)
 library(tidyverse)
 library(urbnmapr)
@@ -16,54 +18,11 @@ library(ggplot2)
 library(dplyr)
 library(sf)
 library(proj4)
-setwd("/Users/haitam/workspace/scripts")
-source("helpers.R")
+library(scales)
 
-#26910
-#4326
-tazsss <- readCsv("common-data/sfbay-tazs/taz-centers.csv")
-tazs <- st_as_sf(tazsss, coords = c("coord-x", "coord-y"), crs = 26910)
-tazs_wgs84 <- sf::st_transform(tazs, 4326)
-depots <- readCsv("gemini-quarterly-deliverables-2020-04/depot_parking_power_baseline.csv")[,vehicle:="cav"]
-stations_temp0 <- rbind(depots) %>%
-  rowwise() %>%
-  mutate(capacity=as.numeric(unlist(strsplit(unlist(strsplit(chargingType, "\\("))[2], "\\|"))[1]),
-         current=unlist(strsplit(unlist(strsplit(unlist(strsplit(chargingType, "\\("))[2], "\\|"))[2], "\\)"))) %>%
-  filter(!is.na(capacity)) %>%
-  mutate(totCapacity = numStalls*capacity)
-stations <- merge(stations_temp0, tazsss, by = "taz")
-events <- readCsv("gemini-quarterly-deliverables-2020-04/baseline-exp1-2040-2.events.csv.gz")
-events_charging <- events[type %in% c("RefuelSessionEvent")]
-ev <- events_charging[
-  ,c("vehicle", "time", "type", "parkingTaz", "chargingType", "parkingType", "locationY", "locationX",
-     "primaryFuelLevel", "secondaryFuelLevel", "fuel", "duration", "vehicleType")]
+sessions <- readCsv("sim.xfc.events.csv")
 #
-ev[type=='RefuelSessionEvent',kw:=unlist(lapply(str_split(as.character(chargingType),'\\('),function(ll){ as.numeric(str_split(ll[2],'\\|')[[1]][1])}))]
-ev[,depot:=(substr(vehicle,0,5)=='rideH' & substr(vehicleType,0,5)=='ev-L5')]
-ev[,plug.xfc:=(kw>=250)]
-#ev[substr(vehicle,0,5)=='rideH' & substr(vehicleType,0,5)=='ev-L5']
-#length(unique(ev[substr(vehicleType,0,3)=='ev-' & substr(vehicle,0,5)=='rideH']$vehicle))
-#length(unique(ev[grepl("ev-L1",vehicleType) & substr(vehicle,0,5)=='rideH']$vehicle))
-
-phev <- length(unique(ev[substr(vehicleType,0,5)=='phev-']$vehicle))
-bev <- length(unique(ev[substr(vehicleType,0,3)=='ev-']$vehicle))
-rh <- length(unique(ev[substr(vehicleType,0,3)=='ev-' & substr(vehicle,0,5)=='rideH']$vehicle))
-cavrh <- length(unique(ev[substr(vehicleType,0,5)=='ev-L5' & substr(vehicle,0,5)=='rideH']$vehicle))
-nonev <- length(unique(ev[grepl('ev-', vehicleType)]$vehicle))
-#(phev+bev)/(phev+bev+nonev)
-
-bev <- length(unique(ev$vehicle)) - length(unique(ev[substr(vehicleType,0,5)=='phev-']$vehicle))
-
-# focus in on just the important columns
-time.bins <- data.table(time=seq(0,40,by=0.25)*3600,quarter.hour=seq(0,40,by=0.25))
-
-sessions <- ev[type=='RefuelSessionEvent' & chargingType!='None' & time/3600>=4 & time/3600<=22,.(depot,plug.xfc,taz=parkingTaz,kw,x=locationX,y=locationY,duration=duration/60,start.time=time-duration)]
-sessions[,row:=1:.N]
-start.time.dt <- data.table(time=sessions$start.time)
-sessions[,start.time.bin:=time.bins[start.time.dt,on=c(time="time"),roll='nearest']$quarter.hour]
-sessions[,taz:=as.numeric(as.character(taz))]
-
-sessions[(depot),taz:=-kmeans(sessions[(depot)][,.(x,y)],20)$cluster]
+#sessions[(depot),taz:=-kmeans(sessions[(depot)][,.(x,y)],20)$cluster]
 
 # here we expand each session into the appropriate number of 15-minute bins, so each row here is 1 15-minute slice of a session
 toplot <- sessions[,.(depot,plug.xfc,taz,kw=c(rep(kw,length(seq(0,duration/60,by=.25))-1),kw*(duration/60-max(seq(0,duration/60,by=.25)))/.25),x,y,duration,hour.bin=start.time.bin + seq(0,duration/60,by=.25)),by='row']
@@ -90,9 +49,14 @@ p <- ggplot() +
   theme(panel.background = element_rect(fill = "#d4e6f2"))+
   transition_states(grp,transition_length = 1.5,state_length = 1) +
   transition_time(hour.bin)+enter_fade() + exit_fade()
-anim <- animate(p,nframes=18*4*5, fps=10, renderer =gifski_renderer("gemini-quarterly-deliverables-2020-04/xfc.blue.gif"),width=700,height=500,end_pause=10)
+anim <- animate(p,nframes=18*4*5, fps=10, renderer =gifski_renderer("xfc.blue.gif"),width=700,height=500,end_pause=10)
 
-ggplot(toplot[,.(kw=sum(kw)),by=c('xfc','hour.bin')],aes(x=hour.bin,y=kw,fill=xfc))+geom_area()+theme_bw()
+toplot[,.(kw=sum(kw)),by=c('extreme.lab','hour.bin')] %>%
+  ggplot(aes(x=hour.bin,y=kw/1000,fill=extreme.lab))+
+  theme_classic() +
+  geom_area()+
+  scale_fill_manual(breaks = c(">=1MW","<1MW"), values=c(hue_pal()(4)[1], hue_pal()(4)[3])) +
+  labs(x = "hour", y = "MW", fill="load severity")
 
 toplot %>%
   group_by(extreme) %>%
@@ -109,7 +73,7 @@ toplot %>%
   group_by(extreme.lab, hour.bin) %>%
   summarise(fuel = sum(fuel)) %>%
   ungroup() %>%
-  ggplot(aes(hour.bin, fuel/1000, colour=extreme.lab)) +
+  ggplot(aes(hour.bin, fuel*3.6e6/1000, colour=extreme.lab)) +
   geom_line() +
   theme_classic() +
   scale_colour_manual(values=c('darkgrey','red'))+
