@@ -43,7 +43,7 @@ energyFiles['secondaryFileName'] = None
 otherVehicles = pd.read_csv('data/vehicleTypes_others.csv')
 incomeGroups = pd.read_csv('data/incomeGroups.csv',index_col=0)
 
-targetRange = 300
+targetRange = 100
 
 #%%
 
