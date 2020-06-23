@@ -29,6 +29,7 @@ def draw_prob(n,p):
 
 charging_power = [50,150,250]
 
+
 for res in range(np.size(residential_sample)):
     parking_out = parking.copy()
     public_out = evi_public.copy()
@@ -37,8 +38,15 @@ for res in range(np.size(residential_sample)):
     residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[res])
     all_out = pd.concat([evi_public,evi_residential,parking]).sort_values(by='taz')
     all_out['chargingType'] = all_out['chargingType'].str.replace('50','150')
-    all_out.to_csv('out/taz_parking_plugs_' + str(residential_sample[res]) + '_power_150.csv',index=False)
-    
+
+    all_out.loc[all_out['chargingType'].str.contains('1.8'), 'feeInCents'] = 50
+    all_out.loc[all_out['chargingType'].str.contains('7.2'), 'feeInCents'] = 200
+    all_out.loc[all_out['chargingType'].str.contains('50'), 'feeInCents'] = 2500
+    all_out.loc[all_out['chargingType'].str.contains('150'), 'feeInCents'] = 7500
+    all_out.loc[all_out['chargingType'].str.contains('250'), 'feeInCents'] = 12500
+
+    all_out.to_csv('out/gemini_taz_parking_plugs_' + str(residential_sample[res]) + '_power_150.csv',index=False)
+
 
 for ind in range(np.size(charging_power)):
     parking_out = parking.copy()
@@ -46,9 +54,15 @@ for ind in range(np.size(charging_power)):
     public_out['numStalls'] = draw_prob(public_out['numStalls'],public_sample)
     residential_out = evi_residential.copy()
     residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[0])
-    all_out = pd.concat([evi_public,evi_residential,parking]).sort_values(by='taz')    
+    all_out = pd.concat([evi_public,evi_residential,parking]).sort_values(by='taz')
     all_out['chargingType'] = all_out['chargingType'].str.replace('50',str(charging_power[ind]))
-    all_out.to_csv('out/taz_parking_plugs_' + str(residential_sample[0]) + '_power_' + str(int(charging_power[ind])) + '.csv',index=False)
+    all_out.loc[all_out['chargingType'].str.contains('1.8'), 'feeInCents'] = 50
+    all_out.loc[all_out['chargingType'].str.contains('7.2'), 'feeInCents'] = 200
+    all_out.loc[all_out['chargingType'].str.contains('50'), 'feeInCents'] = 2500
+    all_out.loc[all_out['chargingType'].str.contains('150'), 'feeInCents'] = 7500
+    all_out.loc[all_out['chargingType'].str.contains('250'), 'feeInCents'] = 12500
+    all_out.to_csv('out/gemini_taz_parking_plugs_' + str(residential_sample[0]) + '_power_' + str(int(charging_power[ind])) + '.csv',index=False)
+
 
 charging_power = [{50:1.0},{150:0.9,250:0.1},{250:1.0}]
 scenario_names = ['noXFC','baseline','allXFC']
@@ -77,8 +91,29 @@ for ind in range(np.size(charging_power)):
         depot_out.append(depot_temp)
     depot_out = pd.concat(depot_out).sort_values(by='taz')
     depot_out = depot_out.loc[depot_out.numStalls > 0]
-    depot_out.to_csv('out/depot_parking_power_' + str(scenario_names[ind]) + '.csv',index=False)
+    depot_out.to_csv('out/gemini_depot_parking_power_' + str(scenario_names[ind]) + '.csv',index=False)
 
+
+# for res in range(np.size(residential_sample)):
+#     parking_out = parking.copy()
+#     public_out = evi_public.copy()
+#     public_out['numStalls'] = draw_prob(public_out['numStalls'],public_sample)
+#     residential_out = evi_residential.copy()
+#     residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[res])
+#     all_out = pd.concat([evi_public,evi_residential,parking]).sort_values(by='taz')
+#     all_out['chargingType'] = all_out['chargingType'].str.replace('50','150')
+#     all_out.to_csv('out/taz_parking_plugs_' + str(residential_sample[res]) + '_power_150.csv',index=False)
+#
+#
+# for ind in range(np.size(charging_power)):
+#     parking_out = parking.copy()
+#     public_out = evi_public.copy()
+#     public_out['numStalls'] = draw_prob(public_out['numStalls'],public_sample)
+#     residential_out = evi_residential.copy()
+#     residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[0])
+#     all_out = pd.concat([evi_public,evi_residential,parking]).sort_values(by='taz')
+#     all_out['chargingType'] = all_out['chargingType'].str.replace('50',str(charging_power[ind]))
+#     all_out.to_csv('out/taz_parking_plugs_' + str(residential_sample[0]) + '_power_' + str(int(charging_power[ind])) + '.csv',index=False)
 
 #%%
 """
