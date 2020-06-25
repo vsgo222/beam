@@ -45,6 +45,8 @@ for res in range(np.size(residential_sample)):
     all_out.loc[all_out['chargingType'].str.contains('150'), 'feeInCents'] = 7500
     all_out.loc[all_out['chargingType'].str.contains('250'), 'feeInCents'] = 12500
 
+    all_out.loc[all_out['chargingType'].str.contains('NoCharger'), 'numStalls'] = 999999
+
     all_out.to_csv('out/gemini_taz_parking_plugs_' + str(residential_sample[res]) + '_power_150.csv',index=False)
 
 
@@ -61,6 +63,9 @@ for ind in range(np.size(charging_power)):
     all_out.loc[all_out['chargingType'].str.contains('50'), 'feeInCents'] = 2500
     all_out.loc[all_out['chargingType'].str.contains('150'), 'feeInCents'] = 7500
     all_out.loc[all_out['chargingType'].str.contains('250'), 'feeInCents'] = 12500
+
+    all_out.loc[all_out['chargingType'].str.contains('NoCharger'), 'numStalls'] = 999999
+
     all_out.to_csv('out/gemini_taz_parking_plugs_' + str(residential_sample[0]) + '_power_' + str(int(charging_power[ind])) + '.csv',index=False)
 
 
