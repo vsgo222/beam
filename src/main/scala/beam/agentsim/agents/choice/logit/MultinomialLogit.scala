@@ -113,33 +113,33 @@ class MultinomialLogit[A, T](
           // we discard while the probability's draw threshold is below or equal the random draw
           // and will leave us with a list who's first element is the largest just below or equal the draw value
           val chosen = asProbabilitySpread.dropWhile { _.drawThreshold <= randomDraw }.headOption
-          asProbabilitySpread.foreach { alternative =>
-            traceAlternatives(alternative, random.nextInt(Int.MaxValue), alternative == chosen.get)
-          }
+//          asProbabilitySpread.foreach { alternative =>
+//            traceAlternatives(alternative, random.nextInt(Int.MaxValue), alternative == chosen.get)
+//          }
           chosen
         }
     }
   }
 
-  def traceAlternatives(x: MultinomialLogit.MNLSample[A], problemId: Int, isChosen: Boolean): Unit = {
-    x.alternativeType match {
-      case pa: ParkingAlternative => // Parking Alternatives
-        if (pa.parkingType.toString == "Public") {
-          MultinomialLogit.writeString(
-            problemId + "," +
-            isChosen + "," +
-            pa.parkingZone.tazId + "," +
-            pa.parkingType.toString + "," +
-            pa.parkingZone.toString + "," +
-            pa.parkingZone.maxStalls + "," +
-            pa.costInDollars + "," +
-            x.realProbability + "," +
-            x.utility + "\n"
-          )
-        }
-      case _ =>
-    }
-  }
+//  def traceAlternatives(x: MultinomialLogit.MNLSample[A], problemId: Int, isChosen: Boolean): Unit = {
+//    x.alternativeType match {
+//      case pa: ParkingAlternative => // Parking Alternatives
+//        if (pa.parkingType.toString == "Public") {
+//          MultinomialLogit.writeString(
+//            problemId + "," +
+//            isChosen + "," +
+//            pa.parkingZone.tazId + "," +
+//            pa.parkingType.toString + "," +
+//            pa.parkingZone.toString + "," +
+//            pa.parkingZone.maxStalls + "," +
+//            pa.costInDollars + "," +
+//            x.realProbability + "," +
+//            x.utility + "\n"
+//          )
+//        }
+//      case _ =>
+//    }
+//  }
 
   /**
     * Get the expected maximum utility over a set of types A
@@ -236,17 +236,17 @@ object MultinomialLogit {
     new MultinomialLogit(utilityFunctions, commonUtilityFunction, scale_factor)
   }
 
-  val fw = new FileWriter("MultinomialLogitTrace.csv", true)
-  val header: String =
-    "problem, chosen, taz, parkingType, parkingZoneId, numStalls, chargeString, pricingString, maxStalls, costInDollars, realProbability, utility"
-  writeString(header + "\n")
-
-  def writeString(str: String): Unit = {
-    try {
-      fw.append(str)
-    } catch {
-      case _: Throwable =>
-    }
-  }
+//  val fw = new FileWriter("MultinomialLogitTrace.csv", true)
+//  val header: String =
+//    "problem, chosen, taz, parkingType, parkingZoneId, numStalls, chargeString, pricingString, maxStalls, costInDollars, realProbability, utility"
+//  writeString(header + "\n")
+//
+//  def writeString(str: String): Unit = {
+//    try {
+//      fw.append(str)
+//    } catch {
+//      case _: Throwable =>
+//    }
+//  }
 
 }
