@@ -11,8 +11,8 @@ evi_public = evi.loc[(evi['parkingType']=='Public') | (evi['parkingType']=='Work
 evi_residential = evi.loc[(evi['parkingType']=='Residential')]
 #%%
 
-residential_sample = [1.125, 0.28125, 2.53125, 0.75, 1.5]
-
+evs_baseline = 1.595649
+residential_sample = [0.6, 0.3, 0.9]
 depot_sample = 0.1
 public_sample = 0.1
 
@@ -29,14 +29,16 @@ def draw_prob(n,p):
 
 charging_power = [50,150,250]
 
+gemini_baseline_residential_chargers = 70625
 
 for res in range(np.size(residential_sample)):
     parking_out = parking.copy()
     public_out = evi_public.copy()
     public_out['numStalls'] = draw_prob(public_out['numStalls'],public_sample)
     residential_out = evi_residential.copy()
-    residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[res])
-    all_out = pd.concat([evi_public,evi_residential,parking]).sort_values(by='taz')
+    residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[res]/evs_baseline)
+
+    all_out = pd.concat([public_out,residential_out,parking_out]).sort_values(by='taz')
     all_out['chargingType'] = all_out['chargingType'].str.replace('50','150')
 
     all_out.loc[all_out['chargingType'].str.contains('1.8'), 'feeInCents'] = 50
@@ -55,8 +57,9 @@ for ind in range(np.size(charging_power)):
     public_out = evi_public.copy()
     public_out['numStalls'] = draw_prob(public_out['numStalls'],public_sample)
     residential_out = evi_residential.copy()
-    residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[0])
-    all_out = pd.concat([evi_public,evi_residential,parking]).sort_values(by='taz')
+    residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[0]/evs_baseline)
+
+    all_out = pd.concat([public_out,residential_out,public_out]).sort_values(by='taz')
     all_out['chargingType'] = all_out['chargingType'].str.replace('50',str(charging_power[ind]))
     all_out.loc[all_out['chargingType'].str.contains('1.8'), 'feeInCents'] = 50
     all_out.loc[all_out['chargingType'].str.contains('7.2'), 'feeInCents'] = 200
@@ -73,12 +76,6 @@ charging_power = [{50:1.0},{150:0.9,250:0.1},{250:1.0}]
 scenario_names = ['noXFC','baseline','allXFC']
 
 for ind in range(np.size(charging_power)):
-    parking_out = parking.copy()
-    public_out = evi_public.copy()
-    public_out['numStalls'] = draw_prob(public_out['numStalls'],public_sample)
-    residential_out = evi_residential.copy()
-    residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[0])
-    
     val = charging_power[ind]
     
     if isinstance(val,dict):
