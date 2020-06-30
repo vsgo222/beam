@@ -59,7 +59,7 @@ for ind in range(np.size(charging_power)):
     residential_out = evi_residential.copy()
     residential_out['numStalls'] = draw_prob(residential_out['numStalls'],residential_sample[0]/evs_baseline)
 
-    all_out = pd.concat([public_out,residential_out,public_out]).sort_values(by='taz')
+    all_out = pd.concat([public_out,residential_out,parking_out]).sort_values(by='taz')
     all_out['chargingType'] = all_out['chargingType'].str.replace('50',str(charging_power[ind]))
     all_out.loc[all_out['chargingType'].str.contains('1.8'), 'feeInCents'] = 50
     all_out.loc[all_out['chargingType'].str.contains('7.2'), 'feeInCents'] = 200
