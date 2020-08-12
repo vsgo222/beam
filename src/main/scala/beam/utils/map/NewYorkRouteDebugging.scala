@@ -36,7 +36,7 @@ object NewYorkRouteDebugging {
   def main(args: Array[String]): Unit = {
     val onlyWalkResponseRecords = {
       val (it, toClose) = ParquetReader.read(
-        "C:/repos/beam/output/newyork/NYC-20k__2020-08-11_23-10-55_djq/ITERS/it.0/0.routingResponse.parquet"
+        "test/input/newyork/only_walk_routes/0.routingResponse.parquet"
       )
       try {
         it.filter(walkWithOneItinerary).toArray
@@ -50,7 +50,7 @@ object NewYorkRouteDebugging {
     }.toSet
     val requestRecords = {
       val (it, toClose) = ParquetReader.read(
-        "C:/repos/beam/output/newyork/NYC-20k__2020-08-11_23-10-55_djq/ITERS/it.0/0.routingRequest.parquet"
+        "test/input/newyork/only_walk_routes/0.routingRequest.parquet"
       )
       try {
         it.filter(
@@ -81,12 +81,15 @@ object NewYorkRouteDebugging {
     val ppQuery = new PointToPointQuery(workerParams.transportNetwork)
 
     var totalWalkTransitsByPointToPointQuery: Int = 0
+    // Just take first 100
     requests.take(100).foreach { req =>
+      // Try to route it with our wrapper
       val resp = r5Wrapper.calcRoute(req)
       if (!resp.itineraries.exists(x => x.tripClassifier == WALK_TRANSIT)) {
         val startWgs = geoUtils.utm2Wgs(req.originUTM)
         val endWgs = geoUtils.utm2Wgs(req.destinationUTM)
 
+        // Try to route using `PointToPointQuery`
         val r5Req = r5Wrapper.createProfileRequest
         r5Req.fromLon = startWgs.getX
         r5Req.fromLat = startWgs.getY
