@@ -3266,6 +3266,7 @@ object BeamConfig {
 
     case class Routing(
       baseDate: java.lang.String,
+      carRouter: java.lang.String,
       r5: BeamConfig.Beam.Routing.R5,
       startingIterationForTravelTimesMSA: scala.Int,
       transitOnStreetNetwork: scala.Boolean
@@ -3273,6 +3274,8 @@ object BeamConfig {
 
     object Routing {
       case class R5(
+        bikeLaneLinkIdsFilePath: java.lang.String,
+        bikeLaneScaleFactor: scala.Double,
         departureWindow: scala.Double,
         directory: java.lang.String,
         mNetBuilder: BeamConfig.Beam.Routing.R5.MNetBuilder,
@@ -3314,6 +3317,10 @@ object BeamConfig {
 
         def apply(c: com.typesafe.config.Config): BeamConfig.Beam.Routing.R5 = {
           BeamConfig.Beam.Routing.R5(
+            bikeLaneLinkIdsFilePath =
+              if (c.hasPathOrNull("bikeLaneLinkIdsFilePath")) c.getString("bikeLaneLinkIdsFilePath") else "",
+            bikeLaneScaleFactor =
+              if (c.hasPathOrNull("bikeLaneScaleFactor")) c.getDouble("bikeLaneScaleFactor") else 1.0,
             departureWindow = if (c.hasPathOrNull("departureWindow")) c.getDouble("departureWindow") else 15.0,
             directory = if (c.hasPathOrNull("directory")) c.getString("directory") else "/test/input/beamville/r5",
             mNetBuilder = BeamConfig.Beam.Routing.R5.MNetBuilder(
@@ -3339,6 +3346,7 @@ object BeamConfig {
       def apply(c: com.typesafe.config.Config): BeamConfig.Beam.Routing = {
         BeamConfig.Beam.Routing(
           baseDate = if (c.hasPathOrNull("baseDate")) c.getString("baseDate") else "2016-10-17T00:00:00-07:00",
+          carRouter = if (c.hasPathOrNull("carRouter")) c.getString("carRouter") else "R5",
           r5 = BeamConfig.Beam.Routing.R5(
             if (c.hasPathOrNull("r5")) c.getConfig("r5") else com.typesafe.config.ConfigFactory.parseString("r5{}")
           ),
