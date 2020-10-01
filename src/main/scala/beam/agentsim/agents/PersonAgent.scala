@@ -31,9 +31,11 @@ import beam.router.Modes.BeamMode.{CAR, CAV, RIDE_HAIL, RIDE_HAIL_POOLED, RIDE_H
 import beam.router.RouteHistory
 import beam.router.model.{EmbodiedBeamLeg, EmbodiedBeamTrip}
 import beam.router.osm.TollCalculator
-import beam.router.skim.{DriveTimeSkimmerEvent, ODSkimmerEvent, ODSkims, Skims}
+import beam.router.skim.{DriveTimeSkimmerEvent, ODSkimmerEvent}
+import beam.sim.common.GeoUtils
 import beam.sim.population.AttributesOfIndividual
 import beam.sim.{BeamScenario, BeamServices, Geofence}
+import beam.utils.NetworkHelper
 import beam.utils.logging.ExponentialLazyLogging
 import com.conveyal.r5.transit.TransportNetwork
 import com.vividsolutions.jts.geom.Envelope
@@ -41,12 +43,9 @@ import org.matsim.api.core.v01.Id
 import org.matsim.api.core.v01.events._
 import org.matsim.api.core.v01.population._
 import org.matsim.core.api.experimental.events.{EventsManager, TeleportationArrivalEvent}
-import org.matsim.core.utils.misc.Time
+
 import scala.annotation.tailrec
 import scala.concurrent.duration._
-
-import beam.sim.common.GeoUtils
-import beam.utils.NetworkHelper
 
 /**
   */
@@ -64,6 +63,7 @@ object PersonAgent {
     router: ActorRef,
     rideHailManager: ActorRef,
     parkingManager: ActorRef,
+    chargingNetworkManager: ActorRef,
     eventsManager: EventsManager,
     personId: Id[PersonAgent],
     householdRef: ActorRef,
@@ -85,6 +85,7 @@ object PersonAgent {
         personId,
         plan,
         parkingManager,
+        chargingNetworkManager,
         tollCalculator,
         householdRef,
         sharedVehicleFleets,
@@ -158,8 +159,8 @@ object PersonAgent {
       copy(passengerSchedule = newPassengerSchedule)
 
     override def withCurrentLegPassengerScheduleIndex(
-      currentLegPassengerScheduleIndex: Int
-    ): DrivingData = copy(currentLegPassengerScheduleIndex = currentLegPassengerScheduleIndex)
+      newLegPassengerScheduleIndex: Int
+    ): DrivingData = copy(currentLegPassengerScheduleIndex = newLegPassengerScheduleIndex)
 
     override def hasParkingBehaviors: Boolean = true
 
@@ -242,6 +243,7 @@ class PersonAgent(
   override val id: Id[PersonAgent],
   val matsimPlan: Plan,
   val parkingManager: ActorRef,
+  val chargingNetworkManager: ActorRef,
   val tollCalculator: TollCalculator,
   val householdRef: ActorRef,
   val vehicleFleets: Seq[ActorRef] = Vector(),
@@ -342,7 +344,7 @@ class PersonAgent(
             .foldLeft(tomorrowFirstLegDistance) { (sum, pair) =>
               sum + Math
                 .ceil(
-                  Skims.od_skimmer
+                  beamServices.skims.od_skimmer
                     .getTimeDistanceAndCost(
                       pair.head.activity.getCoord,
                       pair.last.activity.getCoord,
@@ -435,19 +437,7 @@ class PersonAgent(
     case Event(TriggerWithId(ActivityEndTrigger(tick), triggerId), data: BasePersonData) =>
       nextActivity(data) match {
         case None =>
-          logger.warn(s"didn't get nextActivity, PersonAgent:438")
-
-          // if we still have a BEV/PHEV that is connected to a charging point,
-          // we assume that they will charge until the end of the simulation and throwing events accordingly
-          (beamVehicles ++ potentiallyChargingBeamVehicles).foreach(idVehicleOrTokenTuple => {
-            beamScenario.privateVehicles
-              .get(idVehicleOrTokenTuple._1)
-              .foreach(beamvehicle => {
-                if ((beamvehicle.isPHEV | beamvehicle.isBEV) & beamvehicle.isConnectedToChargingPoint()) {
-                  handleEndCharging(Time.parseTime(beamScenario.beamConfig.beam.agentsim.endTime).toInt, beamvehicle)
-                }
-              })
-          })
+          logger.warn(s"didn't get nextActivity, PersonAgent:$id")
           stay replying CompletionNotice(triggerId)
         case Some(nextAct) =>
           logDebug(s"wants to go to ${nextAct.getType} @ $tick")
@@ -1079,12 +1069,13 @@ class PersonAgent(
       )
     case Event(Finish, _) =>
       if (stateName == Moving) {
-        log.warning("Still travelling at end of simulation.")
-        log.warning(s"Events leading up to this point:\n\t${getLog.mkString("\n\t")}")
+        log.warning(s"$id is still travelling at end of simulation.")
+        log.warning(s"$id events leading up to this point:\n\t${getLog.mkString("\n\t")}")
       } else if (stateName == PerformingActivity) {
-        logger.warn(s"Performing Activity at end of simulation")
+        logger.debug(s"$id is performing Activity at end of simulation")
+        logger.warn("Performing Activity at end of simulation")
       } else {
-        logger.warn(s"Received Finish while in state: ${stateName}")
+        logger.warn(s"$id has received Finish while in state: ${stateName}")
       }
       stop
     case Event(
@@ -1161,9 +1152,12 @@ class PersonAgent(
       stay()
     case Event(TriggerWithId(RideHailResponseTrigger(_, _), triggerId), _) =>
       stay() replying CompletionNotice(triggerId)
-    case Event(TriggerWithId(EndRefuelSessionTrigger(tick, _, _, vehicle), triggerId), _) =>
+    case Event(
+        TriggerWithId(EndRefuelSessionTrigger(tick, sessionStart, fuelAddedInJoule, vehicle), triggerId),
+        _
+        ) =>
       if (vehicle.isConnectedToChargingPoint()) {
-        handleEndCharging(tick, vehicle)
+        handleEndCharging(tick, vehicle, (tick - sessionStart), fuelAddedInJoule)
       }
       stay() replying CompletionNotice(triggerId)
     case ev @ Event(RideHailResponse(_, _, _, _), _) =>

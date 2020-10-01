@@ -7,6 +7,7 @@ import beam.agentsim.agents.household.HouseholdActor
 import beam.agentsim.agents.vehicles.BeamVehicle
 import beam.agentsim.scheduler.BeamAgentScheduler.{CompletionNotice, ScheduleTrigger}
 import beam.agentsim.scheduler.Trigger.TriggerWithId
+import beam.replanning.AddSupplementaryTrips
 import beam.router.RouteHistory
 import beam.router.osm.TollCalculator
 import beam.sim.{BeamScenario, BeamServices}
@@ -29,6 +30,7 @@ class Population(
   val router: ActorRef,
   val rideHailManager: ActorRef,
   val parkingManager: ActorRef,
+  val chargingNetworkManager: ActorRef,
   val sharedVehicleFleets: Seq[ActorRef],
   val eventsManager: EventsManager,
   val routeHistory: RouteHistory,
@@ -43,7 +45,6 @@ class Population(
       case _: Exception      => Stop
       case _: AssertionError => Stop
     }
-
   initHouseholds()
 
   override def receive: PartialFunction[Any, Unit] = {
@@ -110,6 +111,7 @@ class Population(
           router,
           rideHailManager,
           parkingManager,
+          chargingNetworkManager,
           eventsManager,
           scenario.getPopulation,
           household,
@@ -158,6 +160,7 @@ object Population {
     router: ActorRef,
     rideHailManager: ActorRef,
     parkingManager: ActorRef,
+    chargingNetworkManager: ActorRef,
     sharedVehicleFleets: Seq[ActorRef],
     eventsManager: EventsManager,
     routeHistory: RouteHistory,
@@ -174,6 +177,7 @@ object Population {
         router,
         rideHailManager,
         parkingManager,
+        chargingNetworkManager,
         sharedVehicleFleets,
         eventsManager,
         routeHistory,

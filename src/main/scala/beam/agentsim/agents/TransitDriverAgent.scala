@@ -33,6 +33,7 @@ object TransitDriverAgent {
     tollCalculator: TollCalculator,
     eventsManager: EventsManager,
     parkingManager: ActorRef,
+    chargingNetworkManager: ActorRef,
     transitDriverId: Id[TransitDriverAgent],
     vehicle: BeamVehicle,
     legs: Seq[BeamLeg],
@@ -47,6 +48,7 @@ object TransitDriverAgent {
         tollCalculator,
         eventsManager,
         parkingManager,
+        chargingNetworkManager,
         transitDriverId,
         vehicle,
         legs,
@@ -79,8 +81,8 @@ object TransitDriverAgent {
       copy(passengerSchedule = newPassengerSchedule)
 
     override def withCurrentLegPassengerScheduleIndex(
-      currentLegPassengerScheduleIndex: Int
-    ): DrivingData = copy(currentLegPassengerScheduleIndex = currentLegPassengerScheduleIndex)
+      newLegPassengerScheduleIndex: Int
+    ): DrivingData = copy(currentLegPassengerScheduleIndex = newLegPassengerScheduleIndex)
 
     override def hasParkingBehaviors: Boolean = false
 
@@ -96,6 +98,7 @@ class TransitDriverAgent(
   val tollCalculator: TollCalculator,
   val eventsManager: EventsManager,
   val parkingManager: ActorRef,
+  val chargingNetworkManager: ActorRef,
   val transitDriverId: Id[TransitDriverAgent],
   val vehicle: BeamVehicle,
   val legs: Seq[BeamLeg],

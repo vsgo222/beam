@@ -19,7 +19,7 @@ import beam.agentsim.agents.modalbehaviors.DrivesVehicle.{ActualVehicle, Token}
 import beam.agentsim.agents.vehicles.EnergyEconomyAttributes.Powertrain
 import beam.agentsim.agents.vehicles.{BeamVehicle, _}
 import beam.agentsim.events._
-import beam.agentsim.infrastructure.{ParkingInquiry, ParkingInquiryResponse, TrivialParkingManager}
+import beam.agentsim.infrastructure._
 import beam.agentsim.scheduler.BeamAgentScheduler
 import beam.agentsim.scheduler.BeamAgentScheduler.{CompletionNotice, ScheduleTrigger, SchedulerProps, StartSchedule}
 import beam.router.BeamRouter._
@@ -115,6 +115,7 @@ class PersonWithVehicleSharingSpec
         )
       )
       val parkingManager = system.actorOf(Props(new TrivialParkingManager))
+      //val chargingNetworkManager = system.actorOf(Props(new ChargingNetworkManager(services, beamScenario, scheduler)))
 
       val mockRouter = TestProbe()
       val mockSharedVehicleFleet = TestProbe()
@@ -131,6 +132,7 @@ class PersonWithVehicleSharingSpec
             mockRouter.ref,
             mockRideHailingManager.ref,
             parkingManager,
+            self,
             eventsManager,
             population,
             household,
@@ -262,6 +264,7 @@ class PersonWithVehicleSharingSpec
         )
       )
       val parkingManager = system.actorOf(Props(new TrivialParkingManager))
+      //val chargingNetworkManager = system.actorOf(Props(new ChargingNetworkManager(services, beamScenario, scheduler)))
 
       val mockRouter = TestProbe()
       val mockSharedVehicleFleet = TestProbe()
@@ -278,6 +281,7 @@ class PersonWithVehicleSharingSpec
             mockRouter.ref,
             mockRideHailingManager.ref,
             parkingManager,
+            self,
             eventsManager,
             population,
             household,
@@ -346,8 +350,8 @@ class PersonWithVehicleSharingSpec
                     linkIds = Vector(3, 4),
                     linkTravelTime = Vector(50, 50),
                     transitStops = None,
-                    startPoint = SpaceTime(0.01, 0.0, 28950),
-                    endPoint = SpaceTime(0.01, 0.01, 29000),
+                    startPoint = SpaceTime(-1.4887439, 0.0, 28950),
+                    endPoint = SpaceTime(-1.4887438, 0.01, 29000),
                     distanceInM = 1000D
                   )
                 ),
@@ -431,8 +435,8 @@ class PersonWithVehicleSharingSpec
                     linkIds = Vector(4, 3, 2, 1),
                     linkTravelTime = Vector(10, 10, 10, 10),
                     transitStops = None,
-                    startPoint = SpaceTime(0.01, 0.01, 61200),
-                    endPoint = SpaceTime(0.0, 0.0, 61230),
+                    startPoint = SpaceTime(-1.4887438, 0.0, 61200),
+                    endPoint = SpaceTime(-1.4887439, 0.0, 61230),
                     distanceInM = 1000D
                   )
                 ),
@@ -504,6 +508,7 @@ class PersonWithVehicleSharingSpec
         )
       )
       val parkingManager = system.actorOf(Props(new TrivialParkingManager))
+      //val chargingNetworkManager = system.actorOf(Props(new ChargingNetworkManager(services, beamScenario, scheduler)))
 
       val mockRouter = TestProbe()
       val mockRideHailingManager = TestProbe()
@@ -519,6 +524,7 @@ class PersonWithVehicleSharingSpec
           mockRouter.ref,
           mockRideHailingManager.ref,
           parkingManager,
+          self,
           eventsManager,
           population,
           household,
@@ -623,7 +629,7 @@ class PersonWithVehicleSharingSpec
 
       // agent has no car available, so will ask for new route
       mockRouter.expectMsgPF() {
-        case RoutingRequest(_, _, _, _, streetVehicles, _, _, _) =>
+        case RoutingRequest(_, _, _, _, _, streetVehicles, _, _, _) =>
           val body = streetVehicles.find(_.mode == WALK).get
           val embodiedLeg = EmbodiedBeamLeg(
             beamLeg = BeamLeg(

@@ -10,7 +10,7 @@ import beam.agentsim.agents.modalbehaviors.DrivesVehicle.{AlightVehicleTrigger, 
 import beam.agentsim.agents.ridehail.{RideHailRequest, RideHailResponse}
 import beam.agentsim.agents.vehicles.{ReservationResponse, ReserveConfirmInfo, _}
 import beam.agentsim.events._
-import beam.agentsim.infrastructure.{TrivialParkingManager, ZonalParkingManager}
+import beam.agentsim.infrastructure.{ChargingNetworkManager, TrivialParkingManager, ZonalParkingManager}
 import beam.agentsim.scheduler.BeamAgentScheduler
 import beam.agentsim.scheduler.BeamAgentScheduler.{CompletionNotice, ScheduleTrigger, SchedulerProps, StartSchedule}
 import beam.router.BeamRouter._
@@ -34,7 +34,7 @@ import org.matsim.core.events.handler.BasicEventHandler
 import org.matsim.core.population.PopulationUtils
 import org.matsim.core.population.routes.RouteUtils
 import org.matsim.households.{Household, HouseholdsFactoryImpl}
-import org.scalatest.{BeforeAndAfterEach, FunSpecLike}
+import org.scalatest.{BeforeAndAfter, FunSpecLike}
 import org.scalatestplus.mockito.MockitoSugar
 
 import scala.collection.{mutable, JavaConverters}
@@ -43,7 +43,7 @@ class PersonAgentSpec
     extends FunSpecLike
     with TestKitBase
     with SimRunnerForTest
-    with BeforeAndAfterEach
+    with BeforeAndAfter
     with MockitoSugar
     with ImplicitSender
     with BeamvilleFixtures {
@@ -71,6 +71,7 @@ class PersonAgentSpec
   private lazy val transitDriverProps = Props(new ForwardActor(self))
 
   private var maybeIteration: Option[ActorRef] = None
+  private val terminationProbe = TestProbe()
 
   describe("A PersonAgent") {
 
@@ -98,6 +99,7 @@ class PersonAgentSpec
           )
         )
       val parkingManager = system.actorOf(Props(new TrivialParkingManager))
+      //val chargingNetworkManager = system.actorOf(Props(new ChargingNetworkManager(services, beamScenario, scheduler)))
       val household = householdsFactory.createHousehold(hoseHoldDummyId)
       val person = PopulationUtils.getFactory.createPerson(Id.createPersonId("dummyAgent"))
       putDefaultBeamAttributes(person, Vector(WALK))
@@ -120,6 +122,7 @@ class PersonAgentSpec
           Id.create("dummyAgent", classOf[PersonAgent]),
           plan,
           parkingManager,
+          self,
           services.tollCalculator,
           self,
           routeHistory = new RouteHistory(beamConfig),
@@ -169,6 +172,7 @@ class PersonAgentSpec
         )
       )
       val parkingManager = system.actorOf(Props(new TrivialParkingManager))
+      //val chargingNetworkManager = system.actorOf(Props(new ChargingNetworkManager(services, beamScenario, scheduler)))
 
       val householdActor = TestActorRef[HouseholdActor](
         new HouseholdActor(
@@ -181,6 +185,7 @@ class PersonAgentSpec
           self,
           self,
           parkingManager,
+          self,
           eventsManager,
           population,
           household,
@@ -286,6 +291,7 @@ class PersonAgentSpec
           "BeamMobsim.iteration"
         )
       )
+      terminationProbe.watch(maybeIteration.get)
 
       // In this tests, it's not easy to chronologically sort Events vs. Triggers/Messages
       // that we are expecting. And also not necessary in real life.
@@ -376,6 +382,7 @@ class PersonAgentSpec
         )
       )
       val parkingManager = system.actorOf(Props(new TrivialParkingManager))
+      //val chargingNetworkManager = system.actorOf(Props(new ChargingNetworkManager(services, beamScenario, scheduler)))
       val householdActor = TestActorRef[HouseholdActor](
         new HouseholdActor(
           beamServices = services,
@@ -387,6 +394,7 @@ class PersonAgentSpec
           router = self,
           rideHailManager = self,
           parkingManager = parkingManager,
+          chargingNetworkManager = self,
           eventsManager = eventsManager,
           population = population,
           household = household,
@@ -560,6 +568,7 @@ class PersonAgentSpec
           "BeamMobsim.iteration"
         )
       )
+      terminationProbe.watch(maybeIteration.get)
 
       val busPassengerLeg = EmbodiedBeamLeg(
         BeamLeg(
@@ -657,6 +666,7 @@ class PersonAgentSpec
         ZonalParkingManager.props(beamConfig, beamScenario.tazTreeMap, services.geo, services.beamRouter, boundingBox),
         "ParkingManager"
       )
+      //val chargingNetworkManager = system.actorOf(Props(new ChargingNetworkManager(services, beamScenario, scheduler)))
 
       val householdActor = TestActorRef[HouseholdActor](
         new HouseholdActor(
@@ -669,6 +679,7 @@ class PersonAgentSpec
           self,
           self,
           parkingManager,
+          self,
           eventsManager,
           population,
           household,
@@ -861,14 +872,18 @@ class PersonAgentSpec
     super.afterAll()
   }
 
-  override def afterEach(): Unit = {
+  after {
+    import scala.concurrent.duration._
     import scala.language.postfixOps
     maybeIteration.foreach { iteration =>
-      watch(iteration)
       iteration ! PoisonPill
-      expectTerminated(iteration)
+      terminationProbe.expectTerminated(iteration, 60 seconds)
     }
     maybeIteration = None
+    //we need to prevent getting this CompletionNotice from the Scheduler in the next test
+    receiveWhile(1000 millis) {
+      case _: CompletionNotice =>
+    }
   }
 
 }

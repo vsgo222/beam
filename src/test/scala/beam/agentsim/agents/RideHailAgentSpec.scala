@@ -2,7 +2,7 @@ package beam.agentsim.agents
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestActorRef, TestFSMRef, TestKitBase}
 import akka.util.Timeout
 import beam.agentsim.Resource.NotifyVehicleIdle
@@ -14,7 +14,7 @@ import beam.agentsim.agents.ridehail.RideHailAgent._
 import beam.agentsim.agents.vehicles.EnergyEconomyAttributes.Powertrain
 import beam.agentsim.agents.vehicles._
 import beam.agentsim.events.{PathTraversalEvent, SpaceTime}
-import beam.agentsim.infrastructure.ZonalParkingManager
+import beam.agentsim.infrastructure.{ChargingNetworkManager, ZonalParkingManager}
 import beam.agentsim.scheduler.BeamAgentScheduler.{CompletionNotice, ScheduleTrigger, SchedulerProps, StartSchedule}
 import beam.agentsim.scheduler.Trigger.TriggerWithId
 import beam.agentsim.scheduler.{BeamAgentScheduler, Trigger}
@@ -28,7 +28,7 @@ import org.matsim.api.core.v01.events._
 import org.matsim.api.core.v01.{Coord, Id}
 import org.matsim.core.events.EventsManagerImpl
 import org.matsim.core.events.handler.BasicEventHandler
-import org.scalatest.FunSpecLike
+import org.scalatest.{BeforeAndAfter, FunSpecLike}
 import org.scalatestplus.mockito.MockitoSugar
 
 class RideHailAgentSpec
@@ -37,6 +37,7 @@ class RideHailAgentSpec
     with SimRunnerForTest
     with MockitoSugar
     with ImplicitSender
+    with BeforeAndAfter
     with BeamvilleFixtures {
 
   private implicit val timeout: Timeout = Timeout(60, TimeUnit.SECONDS)
@@ -63,6 +64,9 @@ class RideHailAgentSpec
     ZonalParkingManager.props(beamConfig, beamScenario.tazTreeMap, services.geo, services.beamRouter, boundingBox),
     "ParkingManager"
   )
+
+  /*private lazy val chargingNetworkManager = (scheduler: ActorRef) =>
+    system.actorOf(Props(new ChargingNetworkManager(services, beamScenario, scheduler)))*/
 
   case class TestTrigger(tick: Int) extends Trigger
 
@@ -170,6 +174,7 @@ class RideHailAgentSpec
           None,
           eventMgr,
           zonalParkingManager,
+          self,
           services,
           beamScenario,
           beamScenario.transportNetwork,
@@ -246,6 +251,7 @@ class RideHailAgentSpec
           None,
           eventMgr,
           zonalParkingManager,
+          self,
           services,
           beamScenario,
           beamScenario.transportNetwork,
@@ -316,6 +322,7 @@ class RideHailAgentSpec
           None,
           eventMgr,
           zonalParkingManager,
+          self,
           services,
           beamScenario,
           beamScenario.transportNetwork,
@@ -378,6 +385,15 @@ class RideHailAgentSpec
         self ! event
       }
     })
+  }
+
+  after {
+    import scala.concurrent.duration._
+    import scala.language.postfixOps
+    //we need to prevent getting this CompletionNotice from the Scheduler in the next test
+    receiveWhile(1000 millis) {
+      case _: CompletionNotice =>
+    }
   }
 
   override def afterAll(): Unit = {

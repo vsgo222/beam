@@ -1,4 +1,4 @@
-package helics
+package beam.cosim.helics
 
 import beam.agentsim.events.{ChargingPlugInEvent, ChargingPlugOutEvent, RefuelSessionEvent}
 import beam.agentsim.scheduler.Trigger
@@ -11,27 +11,50 @@ import org.matsim.api.core.v01.Coord
 import org.matsim.api.core.v01.events.Event
 
 import scala.collection.mutable
+import scala.util.parsing.json._
+import spray.json._
+import DefaultJsonProtocol._
+
+import scala.reflect.ClassTag
 
 object BeamFederate {
+  // Lazy makes sure that it is initialized only once
+  lazy val loadHelics: Unit = {
+    HelicsLoader.load()
+  }
+
   case class BeamFederateTrigger(tick: Int) extends Trigger
+
   var beamFed = Option.empty[BeamFederate]
 
-  def getInstance(beamServices: BeamServices): BeamFederate = {
+  def getInstance(beamServices: BeamServices, fedName: String, fedTimeStep: Int): BeamFederate = this.synchronized {
     if (beamFed.isEmpty) {
-      HelicsLoader.load()
-      beamFed = Some(BeamFederate(beamServices))
+      loadHelics
+      beamFed = Some(BeamFederate(beamServices, fedName, fedTimeStep))
     }
     beamFed.get
   }
+
+  def destroyInstance(): Unit = this.synchronized {
+    helics.helicsCleanupLibrary()
+    helics.helicsCloseLibrary()
+    beamFed = None
+  }
+
+//  import scala.reflect.ClassTag
+//  import scala.reflect.runtime.universe._
+//  abstract class BeamFederateMessage() {
+//    def classAccessors[T: TypeTag]: String = typeOf[T].members.collect {
+//      case m: MethodSymbol if m.isCaseAccessor => m.name
+//    }.mkString("\t")
+//  }
 }
 
-case class BeamFederate(beamServices: BeamServices) extends StrictLogging {
-  import BeamFederate._
+case class BeamFederate(beamServices: BeamServices, fedName: String, fedTimeStep: Int) extends StrictLogging {
   private val beamConfig = beamServices.beamScenario.beamConfig
   private val tazTreeMap = beamServices.beamScenario.tazTreeMap
   private val registeredEvents = mutable.HashMap.empty[String, SWIGTYPE_p_void]
-  private val fedTimeStep = beamConfig.beam.cosim.helics.timeStep
-  private val fedName = beamConfig.beam.cosim.helics.federateName
+  private val registeredSubscriptions = mutable.HashMap.empty[String, SWIGTYPE_p_void]
   private val fedInfo = helics.helicsCreateFederateInfo()
   helics.helicsFederateInfoSetCoreName(fedInfo, fedName)
   helics.helicsFederateInfoSetCoreTypeFromString(fedInfo, "zmq")
@@ -41,11 +64,18 @@ case class BeamFederate(beamServices: BeamServices) extends StrictLogging {
   logger.debug(s"FederateInfo created")
   private val fedComb = helics.helicsCreateCombinationFederate(fedName, fedInfo)
   logger.debug(s"CombinationFederate created")
+  // Constants
+  private val PowerOverNextInterval = "PowerOverNextInterval"
+  private val PowerFlow = "PowerFlow"
   // ******
   // register new BEAM events here
-  registerEvent(ChargingPlugInEvent.EVENT_TYPE, "chargingPlugIn")
-  registerEvent(ChargingPlugOutEvent.EVENT_TYPE, "chargingPlugOut")
-  registerEvent(RefuelSessionEvent.EVENT_TYPE, "refuelSession")
+  registerEvent[String](ChargingPlugInEvent.EVENT_TYPE, "chargingPlugIn")
+  registerEvent[String](ChargingPlugOutEvent.EVENT_TYPE, "chargingPlugOut")
+  registerEvent[String](RefuelSessionEvent.EVENT_TYPE, "refuelSession")
+  registerEvent[Double](PowerOverNextInterval, "powerOverNextInterval")
+  // ******
+  // register new BEAM subscriptions here
+  registerSubscription(PowerFlow, "GridFederate/powerFlow")
   // ******
 
   helics.helicsFederateEnterInitializingMode(fedComb)
@@ -67,6 +97,20 @@ case class BeamFederate(beamServices: BeamServices) extends StrictLogging {
     } else {
       logger.error(s"the event '${event.getEventType}' was not registered")
     }
+  }
+
+  def publishPowerOverPlanningHorizon(value: JsValue): Unit = {
+    helics.helicsFederatePublishJSON(registeredEvents(PowerOverNextInterval), value.compactPrint)
+    logger.debug("Sent load over next interval to the grid")
+  }
+
+  def obtainPowerFlowValue: JsValue = {
+    val buffer = new Array[Byte](1000)
+    val bufferInt = new Array[Int](1)
+    helics.helicsInputGetString(registeredSubscriptions(PowerFlow), buffer, bufferInt)
+    val value = buffer.take(bufferInt(0)).map(_.toChar).mkString.parseJson
+    logger.debug("Received physical bounds from the grid")
+    value
   }
 
   def syncAndMoveToNextTimeStep(time: Int): Int = {
@@ -101,11 +145,31 @@ case class BeamFederate(beamServices: BeamServices) extends StrictLogging {
     logger.debug(s"publishing at $currentTime the value $pubVar")
   }
 
-  private def registerEvent(eventType: String, pubName: String): Unit = {
+  private def registerEvent[A](eventType: String, pubName: String)(implicit tag: ClassTag[A]): Unit = {
     registeredEvents.put(
       eventType,
-      helics.helicsFederateRegisterPublication(fedComb, pubName, helics_data_type.helics_data_type_string, "")
+      helics.helicsFederateRegisterPublication(fedComb, pubName, eventClassMapper[A], "")
     )
     logger.debug(s"registering $pubName to CombinationFederate")
+  }
+
+  private def registerSubscription(eventType: String, pubName: String): Unit = {
+    registeredSubscriptions.put(
+      eventType,
+      helics.helicsFederateRegisterSubscription(fedComb, pubName, "")
+    )
+    logger.debug(s"registering $pubName to CombinationFederate")
+  }
+
+  private def eventClassMapper[A](implicit tag: ClassTag[A]): helics_data_type = {
+    val stringClass = classOf[String]
+    tag match {
+      case ClassTag(`stringClass`) => helics_data_type.helics_data_type_string
+      case ClassTag.Double         => helics_data_type.helics_data_type_double
+      case ClassTag.Int            => helics_data_type.helics_data_type_int
+      case ClassTag.Boolean        => helics_data_type.helics_data_type_boolean
+      case ClassTag.Object         => helics_data_type.helics_data_type_complex
+      case ClassTag.Any            => helics_data_type.helics_data_type_any
+    }
   }
 }
