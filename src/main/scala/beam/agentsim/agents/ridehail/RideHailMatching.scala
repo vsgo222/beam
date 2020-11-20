@@ -120,6 +120,8 @@ object RideHailMatching {
         )
       case _ => demand
     }
+
+    // TODO: add option for polygon geofence
   }
 
   def getTimeDistanceAndCost(src: MobilityRequest, dst: MobilityRequest, beamServices: BeamServices): ODSkimmer.Skim = {
