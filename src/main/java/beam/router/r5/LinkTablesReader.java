@@ -124,13 +124,14 @@ public class LinkTablesReader {
      * @param linksFile A csv file containing the following fields:
      *                  - link_id,
      *                  - Oneway,
+     *                  - Speed (free flow),
      *                  - DriveTime (minutes)
-     *                  - Length (miles)
-     *                  - RoadClass
+     *                  - Length_Miles (miles)
+     *                  - RoadClass (text)
      *                  - AADT (count)
      *                  - start_node
      *                  - end_node
-     *                  - ft
+     *                  - ft (hcm definition)
      *                  - lanes
      *                  - sl (miles per hour)
      *                  - med median treatment
