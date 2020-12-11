@@ -280,16 +280,14 @@ public class LinkTablesReader {
 
 
     public static void main(String[] args) {
-        File nodesFile = new File("/Users/gregmacfarlane/projects/wav_microtransit_scenario/scenarios/provo_orem/nodes.csv");
-        File linksFile = new File("/Users/gregmacfarlane/projects/wav_microtransit_scenario/scenarios/provo_orem/links.csv");
-        //File outDir = new File(args[2]);
-        //String crs = args[3];
-        //File gtfsFolder = null;
+        File nodesFile = new File(args[0]);
+        File linksFile = new File(args[1]);
+        File outDir = new File(args[2]);
+        String crs = args[3];
 
         Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
-        scenario.getConfig().global().setCoordinateSystem("EPSG:26912");
+        scenario.getConfig().global().setCoordinateSystem(crs);
         LinkTablesReader reader = new LinkTablesReader(scenario, nodesFile, linksFile, new File("."));
-
 
         try {
             reader.makeNetwork();
