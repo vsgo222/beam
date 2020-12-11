@@ -17,19 +17,22 @@ library(Hmisc)
 
 ```{r}
 # events file
-# comes from agentsim, more with agents
+# comes from agentsim, more to do with agents
 # the physsimevents.xml is more about the vehilces (used in Via)
-events <- read_csv("output/wc_mini/run_proc/ITERS/it.0/0.events.csv.gz") # procedural
-#events <- read_csv("output/wc_mini/run_file/ITERS/it.0/0.events.csv.gz") # file
+events <- read_csv("output/wc_mini/wav_1/ITERS/it.0/0.events.csv.gz") # FILE
+
 # wc person ids
 wc_ids <- read_csv("R/data/persons_wc_mini.csv") %>%
   mutate(wc_var = "TRUE")
+
 # wav vehicle ids test/input/sf-light/rideHailFleet_wav.csv # input (FILE)
 # output/wc_mini/run_1/ITERS/it.0/0.rideHailFleet.csv.gz # output (PROCEDURAL)
-wavs <- read_csv("output/wc_mini/run_proc/ITERS/it.0/0.rideHailFleet.csv.gz") %>%
+wavs <- read_csv("test/input/sf-light/rideHailFleet_wav.csv") %>%
   filter(vehicleType == "WAV-rh-only")
 
-non_wavs <- read_csv("output/wc_mini/run_proc/ITERS/it.0/0.rideHailFleet.csv.gz") %>%
+# write_csv(wavs, "R/data/wav_ids.csv")
+
+non_wavs <- read_csv("test/input/sf-light/rideHailFleet_wav.csv") %>%
   filter(vehicleType != "WAV-rh-only")
 ```
 
@@ -129,7 +132,7 @@ rh_events %>%
             mean_tt = mean(travel_time, na.rm = T),
             sd_tt = sd(travel_time, na.rm = T),
             max_tt = max(travel_time, na.rm = T)) %>%
-  mutate(wc_var = ifelse(person %in% wc_ids$ids, T, F))  %>% View(title = "new")
+  mutate(wc_var = ifelse(person %in% wc_ids$ids, T, F)) 
 # sort by WC to make things easier?
 # arrange(wc_var)?
 ```
