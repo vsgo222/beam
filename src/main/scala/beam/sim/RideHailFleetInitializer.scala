@@ -27,6 +27,7 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
     val geofenceX = Option(rec.get("geofenceX")).map(_.toDouble)
     val geofenceY = Option(rec.get("geofenceY")).map(_.toDouble)
     val geofenceRadius = Option(rec.get("geofenceRadius")).map(_.toDouble)
+    val geofencePolygon = Option(rec.get("geofencePolygon"))
     RideHailAgentInputData(
       id = id,
       rideHailManagerId = rideHailManagerId,
@@ -36,7 +37,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
       shifts = shifts,
       geofenceX = geofenceX,
       geofenceY = geofenceY,
-      geofenceRadius = geofenceRadius
+      geofenceRadius = geofenceRadius,
+      geofencePolygon = geofencePolygon
     )
   }
 
@@ -70,7 +72,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
       "shifts",
       "geofenceX",
       "geofenceY",
-      "geofenceRadius"
+      "geofenceRadius",
+      "geofencePolygon"
     )
     if (Files.exists(Paths.get(filePath).getParent)) {
       val csvWriter = new CsvWriter(filePath, fileHeader)
@@ -85,7 +88,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
             fleetData.shifts.getOrElse(""),
             fleetData.geofenceX.getOrElse(""),
             fleetData.geofenceY.getOrElse(""),
-            fleetData.geofenceRadius.getOrElse("")
+            fleetData.geofenceRadius.getOrElse(""),
+            fleetData.geofencePolygon.getOrElse("")
           )
         }
       }
@@ -145,7 +149,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
     attr_shifts,
     attr_geofenceX,
     attr_geofenceY,
-    attr_geofenceRadius
+    attr_geofenceRadius,
+    attr_geofencePolygon
   ) = (
     "id",
     "rideHailManagerId",
@@ -155,7 +160,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
     "shifts",
     "geofenceX",
     "geofenceY",
-    "geofenceRadius"
+    "geofenceRadius",
+    "geofencePolygon"
   )
 
   /**
@@ -170,6 +176,7 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
     * @param geofenceX geo fence values
     * @param geofenceY geo fence values
     * @param geofenceRadius geo fence values
+    * @param geofencePolygon geo fence polygon value
     */
   case class RideHailAgentInputData(
     id: String,
@@ -180,15 +187,16 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
     shifts: Option[String],
     geofenceX: Option[Double],
     geofenceY: Option[Double],
-    geofenceRadius: Option[Double]
+    geofenceRadius: Option[Double],
+    geofencePolygon: Option[String]
   ) {
 
     def toGeofence: Option[Geofence] = {
       if (geofenceX.isDefined && geofenceY.isDefined && geofenceRadius.isDefined) {
-        Some(Geofence(geofenceX.get, geofenceY.get, geofenceRadius.get))
-      } else {
-        None
-      }
+        Some(Geofence(geofenceX.get, geofenceY.get, geofenceRadius.get, ""))
+      } else if (geofencePolygon.isDefined){
+        Some(Geofence(0.0,0.0,0.0,geofencePolygon.get))
+      } else{None}
     }
 
   }
@@ -287,6 +295,15 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
         )
       )
     list
+      .add(
+        OutputDataDescription(
+          getClass.getSimpleName.dropRight(1),
+          relativePath,
+          "geoFencePolygon",
+          "Polygon border of the geo fence"
+        )
+      )
+    list
   }
 
 }
@@ -294,7 +311,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
 final case class Geofence(
   geofenceX: Double,
   geofenceY: Double,
-  geofenceRadius: Double
+  geofenceRadius: Double,
+  geofencePolygon: String
 ) {
 
   /**
@@ -302,8 +320,13 @@ final case class Geofence(
     *
     */
   def contains(x: Double, y: Double): Boolean = {
-    val dist = GeoUtils.distFormula(geofenceX, geofenceY, x, y)
-    dist <= geofenceRadius
+    if (geofencePolygon == ""){
+        val dist = GeoUtils.distFormula(geofenceX, geofenceY, x, y)
+        dist <= geofenceRadius
+    } else {
+        val gfPolygon = GeoUtils.wkt2geom(geofencePolygon)
+        GeoUtils.polyContains(gfPolygon,x,y)
+    }
   }
 
   def contains(coord: Coord): Boolean = contains(coord.getX, coord.getY)
