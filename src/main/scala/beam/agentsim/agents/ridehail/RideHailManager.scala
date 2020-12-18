@@ -1582,7 +1582,8 @@ class RideHailManager(
       shifts = shifts,
       geofenceX = geofence.map(fence => fence.geofenceX),
       geofenceY = geofence.map(fence => fence.geofenceY),
-      geofenceRadius = geofence.map(fence => fence.geofenceRadius)
+      geofenceRadius = geofence.map(fence => fence.geofenceRadius),
+      geofencePolygon = geofence.map(fence => fence.geofencePolygon)
     )
   }
 
