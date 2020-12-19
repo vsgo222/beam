@@ -1,5 +1,6 @@
 package beam.utils
 
+import java.security.cert.PKIXRevocationChecker
 import java.util
 
 import beam.agentsim.agents.vehicles.EnergyEconomyAttributes.Powertrain
@@ -59,6 +60,7 @@ object BeamVehicleUtils {
       case (line: util.Map[String, String], z) =>
         val vIdString = line.get("vehicleTypeId")
         val vehicleTypeId = Id.create(line.get("vehicleTypeId"), classOf[BeamVehicleType])
+        val isAccessible: String = line.get("accessibility")
         val seatingCapacity = line.get("seatingCapacity").trim.toInt
         val standingRoomCapacity = line.get("standingRoomCapacity").trim.toInt
         val lengthInMeter = line.get("lengthInMeter").trim.toDouble
@@ -87,6 +89,7 @@ object BeamVehicleUtils {
 
         val bvt = BeamVehicleType(
           vehicleTypeId,
+          isAccessible,
           seatingCapacity,
           standingRoomCapacity,
           lengthInMeter,

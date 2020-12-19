@@ -6,6 +6,7 @@ import org.matsim.api.core.v01.Id
 
 case class BeamVehicleType(
   id: Id[BeamVehicleType],
+  isAccessible: String,
   seatingCapacity: Int,
   standingRoomCapacity: Int,
   lengthInMeter: Double,

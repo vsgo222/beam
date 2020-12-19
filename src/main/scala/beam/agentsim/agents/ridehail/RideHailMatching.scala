@@ -136,6 +136,16 @@ object RideHailMatching {
     )
   }
 
+  def getRequestsWithAccessibilityType(v: VehicleAndSchedule, demand: List[CustomerRequest])(
+    implicit services: BeamServices
+  ): List[CustomerRequest] = {
+    // get the vehicle type or ID
+    val vehicleIsAccessible = v.vehicle.beamVehicleType.isAccessible
+    // if request is from wc person then assign wav
+    demand
+    // else assign anything else
+  }
+
   def getNearbyRequestsHeadingSameDirection(v: VehicleAndSchedule, demand: List[CustomerRequest], searchSpace: Int)(
     implicit services: BeamServices
   ): List[CustomerRequest] = {

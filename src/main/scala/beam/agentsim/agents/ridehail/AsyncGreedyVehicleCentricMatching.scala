@@ -37,14 +37,19 @@ class AsyncGreedyVehicleCentricMatching(
   private def vehicleCentricMatching(
     v: VehicleAndSchedule
   ): List[(RideHailTrip, Double)] = {
+
     val requestWithCurrentVehiclePosition = v.getRequestWithCurrentVehiclePosition
     val center = requestWithCurrentVehiclePosition.activity.getCoord
+    logger.error("THIS IS THE ASYNC DEFAULT")
 
     // get all customer requests located at a proximity to the vehicle
     var customers = RideHailMatching.getRequestsWithinGeofence(
       v,
       demand.getDisk(center.getX, center.getY, searchRadius).asScala.toList
     )
+
+    // check accessibility, remove wheelchair users if non-WAV.
+    customers = RideHailMatching.getRequestsWithAccessibilityType(v, customers)
 
     // heading same direction
     customers = RideHailMatching.getNearbyRequestsHeadingSameDirection(v, customers, solutionSpaceSizePerVehicle)
