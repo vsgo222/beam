@@ -40,8 +40,8 @@ object GeoFenceVerifier extends LazyLogging {
 
     val fleetData = RideHailFleetInitializer.readFleetFromCSV(pathToRideHailFleetData)
     val vehIdToGeofence = fleetData.map { rhaInput =>
-      val maybeGeofence = (rhaInput.geofenceX, rhaInput.geofenceY, rhaInput.geofenceRadius) match {
-        case (Some(x), Some(y), Some(r)) => Some(Geofence(x, y, r))
+      val maybeGeofence = (rhaInput.geofenceX, rhaInput.geofenceY, rhaInput.geofenceRadius, rhaInput.geofencePolygon) match {
+        case (Some(x), Some(y), Some(r), Some(p)) => Some(Geofence(x, y, r, p))
         case _                           => None
       }
       rhaInput.id -> maybeGeofence

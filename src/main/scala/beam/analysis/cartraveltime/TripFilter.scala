@@ -34,7 +34,7 @@ class StudyAreaTripFilter(val studyArea: StudyArea, val geoUtils: GeoUtils) exte
   private val wgsCoord = new Coord(studyArea.lon, studyArea.lat)
   require(!GeoUtils.isInvalidWgsCoordinate(wgsCoord), s"Provided WGS coordinate ${wgsCoord} is not valid")
   private val utmCoord = geoUtils.wgs2Utm(new Coord(studyArea.lon, studyArea.lat))
-  private val geoFence: Geofence = Geofence(utmCoord.getX, utmCoord.getY, studyArea.radius)
+  private val geoFence: Geofence = Geofence(utmCoord.getX, utmCoord.getY, studyArea.radius, "")
 
   override def considerPathTraversal(pte: PathTraversalEvent): Boolean = {
     val startUTMCoord = geoUtils.wgs2Utm(new Coord(pte.startX, pte.startY))
