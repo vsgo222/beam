@@ -49,7 +49,8 @@ class AsyncGreedyVehicleCentricMatching(
     )
 
     // check accessibility, remove wheelchair users if non-WAV.
-    customers = RideHailMatching.getRequestsWithAccessibilityType(v, customers)
+    // \\ is this adding customers to variable customers?
+    // customers = RideHailMatching.getRequestsWithAccessibilityType(v, customers)
 
     // heading same direction
     customers = RideHailMatching.getNearbyRequestsHeadingSameDirection(v, customers, solutionSpaceSizePerVehicle)
