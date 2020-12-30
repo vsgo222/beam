@@ -26,8 +26,8 @@ class GeofenceAnalyzer(beamSvc: BeamServices) extends BasicEventHandler with Ite
       RideHailFleetInitializer
         .readFleetFromCSV(beamSvc.beamConfig.beam.agentsim.agents.rideHail.initialization.filePath)
         .flatMap { fd =>
-          val maybeGeofence = (fd.geofenceX, fd.geofenceY, fd.geofenceRadius, fd.geofencePolygon) match {
-            case (Some(x), Some(y), Some(r), Some(p)) => Some(Geofence(x, y, r, p))
+          val maybeGeofence = (fd.geofenceX, fd.geofenceY, fd.geofenceRadius) match {
+            case (Some(x), Some(y), Some(r)) => Some(Geofence(x, y, r))
             case _                           => None
           }
           maybeGeofence.map(g => fd.id -> g)

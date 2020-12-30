@@ -331,3 +331,14 @@ final case class Geofence(
 
   def contains(coord: Coord): Boolean = contains(coord.getX, coord.getY)
 }
+
+ object Geofence{
+    def apply(
+         geofenceX: Double,
+         geofenceY: Double,
+         geofenceRadius: Double
+      ): Geofence = { Geofence(geofenceX, geofenceY, geofenceRadius, "")}
+    def apply(
+         geofencePolygon: String
+      ): Geofence = {Geofence(0, 0, 0, geofencePolygon)}
+  }
