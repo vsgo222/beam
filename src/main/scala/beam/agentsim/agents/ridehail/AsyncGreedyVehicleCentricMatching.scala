@@ -40,7 +40,7 @@ class AsyncGreedyVehicleCentricMatching(
 
     val requestWithCurrentVehiclePosition = v.getRequestWithCurrentVehiclePosition
     val center = requestWithCurrentVehiclePosition.activity.getCoord
-    logger.error("THIS IS THE ASYNC DEFAULT")
+    logger.info("THIS IS THE ASYNC DEFAULT")
 
     // get all customer requests located at a proximity to the vehicle
     var customers = RideHailMatching.getRequestsWithinGeofence(
@@ -50,7 +50,7 @@ class AsyncGreedyVehicleCentricMatching(
 
     // check accessibility, remove wheelchair users if non-WAV.
     // \\ is this adding customers to variable customers?
-    // customers = RideHailMatching.getRequestsWithAccessibilityType(v, customers)
+    customers = RideHailMatching.getRequestsWithAccessibilityType(v, customers)
 
     // heading same direction
     customers = RideHailMatching.getNearbyRequestsHeadingSameDirection(v, customers, solutionSpaceSizePerVehicle)
