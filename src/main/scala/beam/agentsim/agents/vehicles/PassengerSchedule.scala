@@ -127,3 +127,8 @@ object PassengerSchedule {
 }
 
 case class PersonIdWithActorRef(personId: Id[Person], personRef: ActorRef)
+
+/**
+  * A secondary constructor.
+  */
+// def this(personId: Id[Person], personRef: ActorRef)

@@ -17,6 +17,7 @@ case object Init extends MobilityRequestType { override def toString: String = "
 case class  MobilityRequest(
   person: Option[PersonIdWithActorRef],
   activity: Activity,
+  //isWheelchair: Option[String] = None,
   baselineNonPooledTime: Int,
   trip: Trip,
   defaultMode: BeamMode,

@@ -144,43 +144,17 @@ object RideHailMatching {
   def getRequestsWithAccessibilityType(v: VehicleAndSchedule, demand: List[CustomerRequest])(
     implicit services: BeamServices
   ) : List[CustomerRequest] = {
-    // get the vehicle type or ID
+
     val vehicleIsAccessible = v.vehicle.beamVehicleType.isAccessible
     val population = services.matsimServices.getScenario.getPopulation
     val abledDemand = demand.filter(_.needsWC == false)
     val wcDemand = demand.filter(_.needsWC == true)
-    //val needsWC = if (getId.substring(0, 2).equals("wc")) true else false
 
-    // if rh is not accessible, then deny WC users
-    //demand
    if (vehicleIsAccessible == "F") {
-//      logger.error("THIS IS THE ACCESSIBILITY TEST")
-//      logger.info(s"DEMAND LIST ${demand}")
-     // filter gets what is in the condition i.e. !needsWC
-     // filterNot gets what isn't in the condition. This is what excludes wc users
-//      demand.filterNot(
-//        // looking for boolean, if false skip
-//        // what does the list of customer requests look like?
-//        r => {
-//          if (r._needsWC) {
-//            r.person.wc_var === "FALSE"
-//          } else {
-//            return true
-//          }
-//        }
-//      )
-
-      //demand.filterNot(_.needsWC == true)
-
-      //demand.filter(_.needsWC == false)
-     // demand.filter(r => r.needsWC.equals(false))
      abledDemand
-     //wcDemand
-
    } else {
-     demand  // is there a way to see the list of demand at the end of the simulation?
+     demand  
    }
-
   }
 
 

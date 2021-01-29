@@ -27,6 +27,7 @@ class AlonsoMoraMatchingWithMIPAssignment(
 ) extends RideHailMatching(beamServices) {
 
   AlonsoMoraMatchingWithMIPAssignment.initialize
+  logger.error("THIS IS THE MIP ASSIGNMENT")
 
   private implicit val services: BeamServices = beamServices
 
