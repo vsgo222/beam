@@ -40,7 +40,8 @@ abstract class RideHailResourceAllocationManager(private val rideHailManager: Ri
       inquiry.pickUpLocationUTM,
       inquiry.destinationUTM,
       rideHailManager.radiusInMeters,
-      inquiry.departAt
+      inquiry.departAt,
+      wheelchair = inquiry.customer.personId.toString().contains("wc-")
     ) match {
       case Some(agentETA) =>
         SingleOccupantQuoteAndPoolingInfo(agentETA.agentLocation, None)
@@ -135,7 +136,8 @@ abstract class RideHailResourceAllocationManager(private val rideHailManager: Ri
             requestWithUpdatedLoc.pickUpLocationUTM,
             requestWithUpdatedLoc.destinationUTM,
             rideHailManager.radiusInMeters,
-            tick
+            tick,
+            requestWithUpdatedLoc.customer.personId.toString().contains("wc-")
           ) match {
           case Some(agentETA) =>
             val routeRequired = RoutingRequiredToAllocateVehicle(
@@ -161,6 +163,7 @@ abstract class RideHailResourceAllocationManager(private val rideHailManager: Ri
             requestUpdated.destinationUTM,
             rideHailManager.radiusInMeters,
             tick,
+            wheelchair = requestUpdated.customer.personId.toString().contains("wc-"),
             excludeRideHailVehicles = alreadyAllocated
           ) match {
           case Some(agentETA) =>

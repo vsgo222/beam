@@ -24,7 +24,8 @@ class Pooling(val rideHailManager: RideHailManager) extends RideHailResourceAllo
         inquiry.pickUpLocationUTM,
         inquiry.destinationUTM,
         rideHailManager.radiusInMeters,
-        inquiry.departAt
+        inquiry.departAt,
+        wheelchair = inquiry.customer.personId.toString().contains("wc-")
       ) match {
       case Some(agentETA) =>
         SingleOccupantQuoteAndPoolingInfo(agentETA.agentLocation, Some(PoolingInfo(1.1, 0.6)))
@@ -104,7 +105,8 @@ class Pooling(val rideHailManager: RideHailManager) extends RideHailResourceAllo
               request1Updated.destinationUTM,
               rideHailManager.radiusInMeters,
               tick,
-              excludeRideHailVehicles = alreadyAllocated
+              excludeRideHailVehicles = alreadyAllocated,
+              wheelchair = request1.customer.personId.toString().contains("wc-")
             ) match {
             case Some(agentETA) =>
               alreadyAllocated = alreadyAllocated + agentETA.agentLocation.vehicleId
@@ -213,13 +215,20 @@ object Pooling {
     beamServices: BeamServices
   ): VehicleAllocation = {
     val requestUpdated = RideHailRequest.handleImpression(request, beamServices)
+    val customerID = RideHailRequest.getCustomerID()
+    var wheelchair = false
+    if (customerID.contains("wc-")){
+      wheelchair = true
+    }
     rideHailManager.vehicleManager
       .getClosestIdleVehiclesWithinRadiusByETA(
         requestUpdated.pickUpLocationUTM,
         requestUpdated.destinationUTM,
         rideHailManager.radiusInMeters,
         pickUpTime,
+        wheelchair,
         excludeRideHailVehicles = alreadyAllocated
+
       ) match {
       case Some(agentETA) =>
         RoutingRequiredToAllocateVehicle(

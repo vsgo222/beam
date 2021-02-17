@@ -128,8 +128,10 @@ class RideHailVehicleManager(val rideHailManager: RideHailManager, boundingBox: 
     dropoffLocation: Coord,
     radius: Double,
     customerRequestTime: Long,
+    wheelchair:Boolean,
     excludeRideHailVehicles: Set[Id[BeamVehicle]] = Set(),
     secondsPerEuclideanMeterFactor: Double = 0.1 // (~13.4m/s)^-1 * 1.4
+
   ): Option[RideHailAgentETA] = {
     var start = System.currentTimeMillis()
     val nearbyAvailableRideHailAgents = idleRideHailAgentSpatialIndex
@@ -137,12 +139,13 @@ class RideHailVehicleManager(val rideHailManager: RideHailManager, boundingBox: 
       .asScala
       .view
       .filter { x =>
-        idleRideHailVehicles.contains(x.vehicleId) && !excludeRideHailVehicles.contains(x.vehicleId) &&
+        (!wheelchair || x.vehicleType.isAccessible.equals("T")) && idleRideHailVehicles.contains(x.vehicleId) && !excludeRideHailVehicles.contains(x.vehicleId) &&
         (x.geofence.isEmpty || ((x.geofence.isDefined && x.geofence.get.contains(pickupLocation)) &&
         (x.geofence.isDefined && x.geofence.get
           .contains(dropoffLocation))))
       }
 
+    logger.info("THIS IS THE ride hail manager")
     var end = System.currentTimeMillis()
     val diff1 = end - start
 
