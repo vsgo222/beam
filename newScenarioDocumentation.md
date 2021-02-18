@@ -63,6 +63,7 @@ The output files (which become the input into the Beam run):
 This process will improve the osm.pbf file... I think.
 
 After downloading from wikipedia, open a command line window.
+Go to your beam working directory.
 Start with the file path to the osmosis file.
 ```
 C:\Users\nlant.EB232-21\osmosis-0.48.3\bin\osmosis.bat
@@ -79,7 +80,7 @@ C:\Users\nlant.EB232-21\osmosis-0.48.3\bin\osmosis.bat --read-pbf file=test/inpu
 
 Update the config file. This will include some files to be copied from the
 sf-light or the siouxfalls scenarios including `benchmark.csv` and `ptFares.csv`,
-but these can be commented out. 
+but these can be commented out.
 
 Go to `vehicleTypes.csv` and in the vehicle category column put something like
 "Car" in for each row. I also had to add CAR and Car and Body-Type-Default as

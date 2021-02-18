@@ -215,18 +215,19 @@ object Pooling {
     beamServices: BeamServices
   ): VehicleAllocation = {
     val requestUpdated = RideHailRequest.handleImpression(request, beamServices)
-    val customerID = RideHailRequest.getCustomerID()
-    var wheelchair = false
-    if (customerID.contains("wc-")){
-      wheelchair = true
-    }
+//    val customerID = RideHailRequest.getCustomerID()
+//    var wheelchair = false
+//    if (customerID.contains("wc-")){
+//      wheelchair = true
+//    }
     rideHailManager.vehicleManager
       .getClosestIdleVehiclesWithinRadiusByETA(
         requestUpdated.pickUpLocationUTM,
         requestUpdated.destinationUTM,
         rideHailManager.radiusInMeters,
         pickUpTime,
-        wheelchair,
+        // requestUpdated.customer...
+        wheelchair = request.customer.personId.toString().contains("wc-"),
         excludeRideHailVehicles = alreadyAllocated
 
       ) match {

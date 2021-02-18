@@ -139,7 +139,8 @@ class RideHailVehicleManager(val rideHailManager: RideHailManager, boundingBox: 
       .asScala
       .view
       .filter { x =>
-        (!wheelchair || x.vehicleType.isAccessible.equals("T")) && idleRideHailVehicles.contains(x.vehicleId) && !excludeRideHailVehicles.contains(x.vehicleId) &&
+        (!wheelchair || x.vehicleType.isAccessible.equals("T")) &&
+          idleRideHailVehicles.contains(x.vehicleId) && !excludeRideHailVehicles.contains(x.vehicleId) &&
         (x.geofence.isEmpty || ((x.geofence.isDefined && x.geofence.get.contains(pickupLocation)) &&
         (x.geofence.isDefined && x.geofence.get
           .contains(dropoffLocation))))
