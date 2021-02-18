@@ -20,6 +20,7 @@ class AsyncGreedyVehicleCentricMatching(
 ) extends RideHailMatching(services) {
 
   private implicit val beamServices: BeamServices = services
+  private var counter = 0
 
   override def matchAndAssign(tick: Int): Future[List[RideHailTrip]] = {
     Future
@@ -41,6 +42,9 @@ class AsyncGreedyVehicleCentricMatching(
     val requestWithCurrentVehiclePosition = v.getRequestWithCurrentVehiclePosition
     val center = requestWithCurrentVehiclePosition.activity.getCoord
     logger.info("THIS IS THE ASYNC DEFAULT")
+    logger.info(counter.toString())
+    counter = counter + 1
+
 
     // get all customer requests located at a proximity to the vehicle
     var customers = RideHailMatching.getRequestsWithinGeofence(
@@ -57,6 +61,7 @@ class AsyncGreedyVehicleCentricMatching(
     // solution size resizing
     customers = customers.take(solutionSpaceSizePerVehicle)
 
+    logger.info("THIS IS THE ASYNC DEFAULT later on....")
     val potentialTrips = mutable.ListBuffer.empty[(RideHailTrip, Double)]
     // consider solo rides as initial potential trips
     customers

@@ -148,7 +148,7 @@ object RideHailMatching {
     val vehicleIsAccessible = v.vehicle.beamVehicleType.isAccessible
     //val population = services.matsimServices.getScenario.getPopulation
     val abledDemand = demand.filter(_.needsWC == false)
-    //val wcDemand = demand.filter(_.needsWC == true)
+    val wcDemand = demand.filter(_.needsWC == true)
     val allDemand = demand
 
    if (vehicleIsAccessible == "F") {
