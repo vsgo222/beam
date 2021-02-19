@@ -9,10 +9,12 @@ This document will describe how to create the salt lake scenario in Beam.
 Instructions are found in the [BEAM documentation](https://beam.readthedocs.io/en/latest/users.html#converting-a-matsim-scenario-to-run-with-beam).
 
 Input files needed:
+(Conversion input)
 - network.xml
 - utah-latest.osm.pbf
 - tz49_d00_shp.zip
 - population.xml
+(r5 folder)
 - SLC.zip
 
 We used a wc plans population
