@@ -1,0 +1,38 @@
+---
+title: "BEAM Analysis"
+author: "Nate Lant"
+date: "2/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+We are interetsed in know how many wc users are taking nonWAVs.
+
+```{r}
+# first make sure you ran the XML killer to get a csv output and bring it into the output_beam folder
+data <- read_csv("output_beam/2_18.csv", col_types = cols(.default = col_character(), time = col_double()))
+
+# I think I need to create two data tables, a persons file and a vehicle file.
+# for example the persons file does not have vehicle type connected to the vehicle ID
+# get vehicle type and join to persons by vehicle id
+vehicles <- data %>% filter(!is.na(VehicleType)) %>% 
+  distinct(VehicleID, .keep_all = T) %>%
+  select(VehicleID, VehicleType)
+
+joined_data <- left_join(data, vehicles, by = "VehicleID")
+```
+
+Look at the persons with wheelchairs
+
+```{r}
+joined_data %>% 
+  mutate(wc = ifelse(str_detect(PersonID, "wc-"), 1, 0),
+         car = ifelse(str_detect(VehicleType.y, "Car"), 1, 0),
+         wav = ifelse(str_detect(VehicleType.y, "WAV"), 1, 0)) %>% 
+  filter(wc == T, car == T) %>% View()
+```
+
