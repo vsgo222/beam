@@ -32,9 +32,19 @@ public class WavHandlersRunner {
         new MatsimEventsReader(em).readFile(eventsFile);
 
        // print into log file
-       log.info("People in Wavs: " + wrdc.getPeopleInWavs());
+       // log.info("Total number of WAVs: " + wrds.get );
+       log.info("All people in WAVs: " + wrdc.getPeopleInWavs());
+       // log.info("Total number of WC users: " + );
+       // log.info("WC users in WAVs: " + );
+       // log.info("Number of trips of WC users: " + );
+       // log.info("Average wait time for WAVs: " + + " minutes.");
+       // log.info("Average wait time for WC users for WAV: " + );
+
+       // log.info("Total number of ridehail vehicles: " +
+       // log.info("Average wait time for ridehail vehilces: " +
+
        log.info("Total wait time: " + wrdc.getTotalWaitTimeForAllPeople());
-       log.info("Total number of trips: " + wrdc.getNumberOfTrips());
+       log.info("Total number of ride hail trips: " + wrdc.getNumberOfTrips());
        // write into text file
     }
 }
