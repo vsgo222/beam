@@ -14,7 +14,7 @@ We are interetsed in know how many wc users are taking nonWAVs.
 
 ```{r}
 # first make sure you ran the XML killer to get a csv output and bring it into the output_beam folder
-data <- read_csv("output_beam/2_18.csv", col_types = cols(.default = col_character(), time = col_double()))
+data <- read_csv("./output/WAV/wav_250/xml.csv", col_types = cols(.default = col_character(), time = col_double()))
 
 # I think I need to create two data tables, a persons file and a vehicle file.
 # for example the persons file does not have vehicle type connected to the vehicle ID
@@ -29,10 +29,19 @@ joined_data <- left_join(data, vehicles, by = "VehicleID")
 Look at the persons with wheelchairs
 
 ```{r}
+# wheelchair user in WAV wc-016900-2015001293998-0-7176369
+# non wheelchair user in rh Car 061100-2013000363105-0-2086038
+# personal vehicle CAR 
+
 joined_data %>% 
+  group_by(PersonID) %>%
   mutate(wc = ifelse(str_detect(PersonID, "wc-"), 1, 0),
          car = ifelse(str_detect(VehicleType.y, "Car"), 1, 0),
-         wav = ifelse(str_detect(VehicleType.y, "WAV"), 1, 0)) %>% 
-  filter(wc == T, car == T) %>% View()
+         wav = ifelse(str_detect(VehicleType.y, "WAV"), 1, 0),
+         v_type = ifelse(is.na(VehicleType.y), "_na", VehicleType.y),
+         mode_count = ifelse(!is.na(Mode), 1, 0)) %>% 
+  filter(PersonID == "wc-016900-2015001293998-0-7176369") %>%
+  filter(EventType %in% c("ReserveRideHail", "PersonEntersVehicle", "PersonLeavesVehicle", "ModeChoice")) %>%
+  filter(!v_type == "BODY-TYPE-DEFAULT")
 ```
 

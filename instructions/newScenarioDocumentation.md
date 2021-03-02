@@ -77,6 +77,23 @@ with the script above.
 C:\Users\nlant.EB232-21\osmosis-0.48.3\bin\osmosis.bat --read-pbf file=test/input/tiny/conversion-input/sflight_muni.osm.pbf --bounding-box top=37.96318345943006 left=-122.65944836338394 bottom=37.52697151338729 right=-122.13675232013519 completeWays=yes completeRelations=yes clipIncompleteEntities=true --write-pbf file=test/input/tiny/r5/sf-light-tiny.osm.pbf
 ```
 
+#### In the case of cleaning an Osmosis
+
+```
+file\to\path>
+osmfilter new-utah.osm --keep="highway=primary =secondary">utah_highway_filter_v1.osm
+osmfilter new-utah.osm --keep="highway=primary =secondary" >utah_highway_filter_v2.osm.pbf
+osmfilter utah.o5m --keep="highway=primary =secondary" >utah_highway_filter_v3.osm.pbf
+osmfilter new-utah.osm --keep="highway=" >utah_highway_filter_v4.osm.pbf
+osmfilter utah.o5m --keep="highway=motorway =trunk =primary =secondary =tertiary =unclassified =residential =motorway_link =trunk_link =primary_link =secondary_link =tertiary_link" >utah_highway_filter_v5.osm
+
+at this point the filter is working... but it is missing something. For example
+these do not run through osmosis (fixing bounding box is later and unessential step)
+What is inside the utah-bouding-box?
+
+osmosis --read-xml city.osm --tf accept-ways highway=* --used-node --write-xml highways.osm
+```
+
 
 ## Running Beam
 
