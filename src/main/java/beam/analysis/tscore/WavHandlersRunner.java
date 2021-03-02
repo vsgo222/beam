@@ -17,9 +17,9 @@ public class WavHandlersRunner {
 
 
     public static void main(String[] args){
-        String eventsFile = "output_events.xml.gz";
-        String networkFile = "output_network.xml.gz";
-        String outputFile = "route_ridership.csv";
+        String eventsFile = "output/WAV/wav_250/trial/outputEvents.xml.gz";
+        String networkFile = "output/WAV/wav_250/trial/output_network.xml.gz";
+        //String outputFile = "output/WAV/wav_250/route_ridership.csv";
 
         Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
@@ -31,7 +31,10 @@ public class WavHandlersRunner {
         em.addHandler(wrdc);
         new MatsimEventsReader(em).readFile(eventsFile);
 
-
+       // print into log file
        log.info("People in Wavs: " + wrdc.getPeopleInWavs());
+       log.info("Total wait time: " + wrdc.getTotalWaitTimeForAllPeople());
+       log.info("Total number of trips: " + wrdc.getNumberOfTrips());
+       // write into text file
     }
 }
