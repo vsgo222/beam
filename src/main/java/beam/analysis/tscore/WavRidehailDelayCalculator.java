@@ -22,30 +22,21 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
     Scenario sc;
     Integer peopleInVehicles = 0;
     Integer peopleInWavs = 0;
-    Map<String, Double> totalWaitTimeMap = new HashMap<>();
+    Map<String, Double> totalWaitTimeWcMap = new HashMap<>();
+    Map<String, Double> totalWaitTimeOtherMap = new HashMap<>();
     Map<String, Double> reserveTimeMap = new HashMap<>();
     Double totalWaitTimeForAllPeople = 0.0;
+    Double totalWaitTimeForWcPeople = 0.0;
+    // non wc users will be "other"
+    Double totalWaitTimeForOtherPeople = 0.0;
     int numberOfTrips = 0;
+    int numberOfWcTrips = 0;
+    int numberOfOtherTrips = 0;
 
     public WavRidehailDelayCalculator(Scenario sc){
         this.sc = sc;
     }
-    // total number of wavs
-    // total number of ride hail vehicles
-    // We want to know:
-    // How many total people took a WAV?
-    // How many wc users took a WAV?
-    // Average wait time for WAVs? (total wait time of wc users / # of wc users
-    // Can we get number of cancelled requests? (Total and WC)
-    // Average wait time for all ride hail
-    // Write this into a text file
 
-
-    @Override
-    public void handleEvent(PersonDepartureEvent event) {
-
-
-    }
 
     @Override
     public void handleEvent(PersonEntersVehicleEvent event) {
@@ -61,19 +52,42 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
 
         // store the time each person enters vehicle
         // use a hashmap
-        if (reserveTimeMap.containsKey(thisPerson)){
-            Double waitTime = event.getTime() - reserveTimeMap.get(thisPerson);
-            totalWaitTimeForAllPeople += waitTime;
-            //If the total waittime map already contains a waittime for a previous trip, then add them together.
-            if (totalWaitTimeMap.containsKey(thisPerson)){
-                Double currentTotalWaittime = totalWaitTimeMap.get(thisPerson);
-                totalWaitTimeMap.replace(thisPerson, currentTotalWaittime + waitTime);
+        // if person has wheelchair
+        if (thisPerson.contains("wc")) {
+            if (reserveTimeMap.containsKey(thisPerson)) {
+                Double waitTime = event.getTime() - reserveTimeMap.get(thisPerson);
+                totalWaitTimeForWcPeople += waitTime;
+                //add to total wait time also
+                totalWaitTimeForAllPeople += waitTime;
+                //If the total waittime map already contains a waittime for a previous trip, then add them together.
+                if (totalWaitTimeWcMap.containsKey(thisPerson)) {
+                    Double currentTotalWaittime = totalWaitTimeWcMap.get(thisPerson);
+                    totalWaitTimeWcMap.replace(thisPerson, currentTotalWaittime + waitTime);
+                } else {
+                    totalWaitTimeWcMap.put(thisPerson, waitTime);
+                }
+                reserveTimeMap.remove(thisPerson);
+                numberOfTrips++;
+                numberOfWcTrips++;
             }
-            else {
-                totalWaitTimeMap.put(thisPerson, waitTime);
+        } else { // if they don't have a wheelchair
+            if (reserveTimeMap.containsKey(thisPerson)) {
+                Double waitTime = event.getTime() - reserveTimeMap.get(thisPerson);
+                totalWaitTimeForOtherPeople += waitTime;
+                //add to total wait time also
+                totalWaitTimeForAllPeople += waitTime;
+                //If the total waittime map already contains a waittime for a previous trip, then add them together.
+                if (totalWaitTimeOtherMap.containsKey(thisPerson)) {
+                    Double currentTotalWaittime = totalWaitTimeOtherMap.get(thisPerson);
+                    totalWaitTimeOtherMap.replace(thisPerson, currentTotalWaittime + waitTime);
+                } else {
+                    totalWaitTimeOtherMap.put(thisPerson, waitTime);
+                }
+                reserveTimeMap.remove(thisPerson);
+                numberOfTrips++;
+                numberOfOtherTrips++;
             }
-            reserveTimeMap.remove(thisPerson);
-            numberOfTrips++;
+
         }
 
 
@@ -101,6 +115,12 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
 
     }
 
+    @Override
+    public void handleEvent(PersonDepartureEvent event) {
+
+
+    }
+
     public int getNumberOfTrips() {
         return numberOfTrips;
     }
@@ -111,6 +131,32 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
 
     public Integer getPeopleInWavs(){
         return this.peopleInWavs;
+    }
+
+    public Double getTotalWaitTimeForWcPeople() {
+        return totalWaitTimeForWcPeople;
+    }
+
+    public int getNumberOfWcTrips() {
+        return numberOfWcTrips;
+    }
+
+    public double getAverageWcWaitTime() {
+        // also convert to minutes
+        return (totalWaitTimeForWcPeople / numberOfWcTrips) / 60 ;
+    }
+
+    public Double getTotalWaitTimeForOtherPeople() {
+        return totalWaitTimeForOtherPeople;
+    }
+
+    public int getNumberOfOtherTrips() {
+        return numberOfOtherTrips;
+    }
+
+    public double getAverageOtherWaitTime() {
+        // also convert to minutes
+        return (totalWaitTimeForOtherPeople / numberOfOtherTrips) / 60;
     }
 }
 

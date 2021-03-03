@@ -37,13 +37,17 @@ public class WavHandlersRunner {
        // log.info("Total number of WC users: " + );
        // log.info("WC users in WAVs: " + );
        // log.info("Number of trips of WC users: " + );
-       // log.info("Average wait time for WAVs: " + + " minutes.");
-       // log.info("Average wait time for WC users for WAV: " + );
+       log.info("total wait time for WC users: " + wrdc.getTotalWaitTimeForWcPeople());
+       log.info("total wc trips: " + wrdc.getNumberOfWcTrips());
+        // log.info("Average wait time for WAVs: " + + " minutes.");
+       log.info("Average wait time for for WC users for WAV: " + wrdc.getAverageWcWaitTime() + " minutes.");
        // log.info("Average travel time for WC users on WAV: " +
 
        // log.info("Total number of ridehail vehicles: " +
-       // log.info("Average wait time for ridehail vehilces: " +
-       // log.info("Averge travel time for ridehail users: " +  
+       log.info("total wait time for other users: " + wrdc.getTotalWaitTimeForOtherPeople());
+       log.info("total other trips: " + wrdc.getNumberOfOtherTrips());
+       log.info("Average wait time for ridehail vehilces: " + wrdc.getAverageOtherWaitTime() + " minutes.");
+       // log.info("Averge travel time for ridehail users: " +
 
        log.info("Total wait time: " + wrdc.getTotalWaitTimeForAllPeople());
        log.info("Total number of ride hail trips: " + wrdc.getNumberOfTrips());
