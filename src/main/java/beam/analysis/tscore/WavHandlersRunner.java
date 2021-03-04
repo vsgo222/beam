@@ -28,11 +28,15 @@ public class WavHandlersRunner {
 
         EventsManager em = EventsUtils.createEventsManager();
         WavRidehailDelayCalculator wrdc = new WavRidehailDelayCalculator(scenario);
+        AllEventsCounter aec = new AllEventsCounter(scenario);
         em.addHandler(wrdc);
+        em.addHandler(aec);
+
         new MatsimEventsReader(em).readFile(eventsFile);
 
        // print into log file
        // log.info("Total number of WAVs: " + wrds.get );
+        aec.printEventCounts();
        log.info("All people in WAVs: " + wrdc.getPeopleInWavs());
        // log.info("Total number of WC users: " + );
        // log.info("WC users in WAVs: " + );
