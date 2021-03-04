@@ -17,8 +17,8 @@ public class WavHandlersRunner {
 
 
     public static void main(String[] args){
-        String eventsFile = "output/WAV/wav_250/trial/outputEvents.xml.gz";
-        String networkFile = "output/WAV/wav_250/trial/output_network.xml.gz";
+        String eventsFile = "output/WAV/wav_250/trial_01/outputEvents.xml.gz";
+        String networkFile = "output/WAV/wav_250/trial_01/output_network.xml.gz";
         //String outputFile = "output/WAV/wav_250/route_ridership.csv";
 
         Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());

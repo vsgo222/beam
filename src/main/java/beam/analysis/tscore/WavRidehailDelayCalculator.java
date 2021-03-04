@@ -107,40 +107,11 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
 
     @Override
     public void handleEvent(GenericEvent genericEvent) {
-        // so far, I understand that generic events include ModeChoice, ReserveRideHail
-        // it does not include actstart, actend, PersonEntersVehicle, PersonLeavesVehicle, PathTraversal,
         String thisPerson = genericEvent.getAttributes().get("person");
 
-        // how do we get the time that they request
-        // for person abc get request time
-        // for person abc get enterVehicle time
-        // enterVehicle time - reserve time = wait time
-        // store wait time in total wait time
-        // average wait time = total wait time / # of wc users
         if (genericEvent.getEventType().contains("Reserve")){
             Double requestTime = genericEvent.getTime();
             reserveTimeMap.put(thisPerson, requestTime);
-        }
-
-        // PersonDepartureEvent is not an event in Beam
-        // instead use actend and act start
-        // then travel time = actstart - actend
-        if (genericEvent.getEventType().contains("Activity")) {
-            // store the departure time from actend
-            this.departureTimes.put(thisPerson, genericEvent.getTime());
-        }
-        if (genericEvent.getEventType().contains("actstart")) {
-            // subtract departtime from arrival time to get travel time
-            double departureTime = departureTimes.get(thisPerson);
-            double travelTime = genericEvent.getTime() - departureTime;
-
-            if (thisPerson.contains("wc")) {
-                this.travelTimeWcSum += travelTime;
-                this.travelTimeWcCount++;
-            } else {
-                this.travelTimeOtherSum += travelTime;
-                this.travelTimeOtherCount++;
-            }
         }
 
     }
