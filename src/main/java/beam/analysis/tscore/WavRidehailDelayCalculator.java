@@ -1,6 +1,7 @@
 package beam.analysis.tscore;
 
 import beam.agentsim.agents.ridehail.RideHailRequest;
+import beam.sim.RideHailFleetInitializer;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandler,
         GenericEventHandler, PersonDepartureEventHandler, PersonArrivalEventHandler {
     private static final Logger log = Logger.getLogger(WavRidehailDelayCalculator.class);
+    private final Map<String, RideHailFleetInitializer.RideHailAgentInputData> rhm;
 
     Scenario sc;
     Integer peopleInVehicles = 0;
@@ -28,6 +30,7 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
     Map<String, Double> totalWaitTimeWcMap = new HashMap<>();
     Map<String, Double> totalWaitTimeOtherMap = new HashMap<>();
     Map<String, Double> reserveTimeMap = new HashMap<>();
+
     Double totalWaitTimeForAllPeople = 0.0;
     Double totalWaitTimeForWcPeople = 0.0;
     // non wc users will be "other"
@@ -43,8 +46,9 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
     int travelTimeWcCount = 0;
     int travelTimeOtherCount = 0;
 
-    public WavRidehailDelayCalculator(Scenario sc){
+    public WavRidehailDelayCalculator(Scenario sc, Map<String, RideHailFleetInitializer.RideHailAgentInputData> rhm){
         this.sc = sc;
+        this.rhm = rhm;
     }
 
 
@@ -54,9 +58,10 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
         String thisPerson = event.getPersonId().toString();
         peopleInVehicles++;
         Id<Vehicle> thisVehicle = event.getVehicleId();
+        String thisVehicleType = rhm.get(thisVehicle).vehicleType();
 
         // this is an example. Change to say sc.getWavs or something
-        if(sc.getTransitVehicles().getVehicles().containsKey(thisVehicle)) {
+        if(thisVehicleType.equals("WAV")) {
             peopleInWavs++;
         }
 

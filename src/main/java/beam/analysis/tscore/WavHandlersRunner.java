@@ -1,5 +1,7 @@
 package beam.analysis.tscore;
 
+import beam.sim.RideHailFleetInitializer;
+import beam.sim.RideHailFleetInitializer.RideHailAgentInputData;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.core.api.experimental.events.EventsManager;
@@ -8,8 +10,11 @@ import org.matsim.core.events.EventsUtils;
 import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.network.io.MatsimNetworkReader;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.pt.transitSchedule.TransitScheduleReaderV1;
-import org.matsim.vehicles.VehicleReaderV1;
+import scala.collection.Iterator;
+import scala.collection.immutable.List;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class WavHandlersRunner {
 
@@ -20,14 +25,17 @@ public class WavHandlersRunner {
         String eventsFile = "output/WAV/wav_250/trial_01/outputEvents.xml.gz";
         String networkFile = "output/WAV/wav_250/trial_01/output_network.xml.gz";
         //String outputFile = "output/WAV/wav_250/route_ridership.csv";
+        String ridehailFleetFile = "test/input/WAV/rideHailFleet_wav.csv";
 
         Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
         MatsimNetworkReader networkReader = new MatsimNetworkReader(scenario.getNetwork());
         networkReader.readFile(networkFile);
 
+        Map<String, RideHailAgentInputData> rhm = createRideHailVehicleMap(ridehailFleetFile);
+
         EventsManager em = EventsUtils.createEventsManager();
-        WavRidehailDelayCalculator wrdc = new WavRidehailDelayCalculator(scenario);
+        WavRidehailDelayCalculator wrdc = new WavRidehailDelayCalculator(scenario, rhm);
         em.addHandler(wrdc);
         new MatsimEventsReader(em).readFile(eventsFile);
 
@@ -51,5 +59,22 @@ public class WavHandlersRunner {
        log.info("Total wait time: " + wrdc.getTotalWaitTimeForAllPeople());
        log.info("Total number of ride hail trips: " + wrdc.getNumberOfTrips());
        // write into text file
+    }
+
+
+    public static Map<String, RideHailAgentInputData> createRideHailVehicleMap(String ridehailFile){
+        List<RideHailAgentInputData> rideHailList;
+        rideHailList = RideHailFleetInitializer.readFleetFromCSV(ridehailFile);
+
+        Map<String, RideHailAgentInputData> rhMap = new HashMap<>();
+
+        Iterator<RideHailAgentInputData> agentListIterator = rideHailList.iterator();
+
+        while(agentListIterator.hasNext()){ ;
+            rhMap.put(agentListIterator.next().id(), agentListIterator.next());
+        }
+
+        return rhMap;
+
     }
 }
