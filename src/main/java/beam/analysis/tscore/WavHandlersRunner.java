@@ -14,6 +14,7 @@ import scala.collection.Iterator;
 import scala.collection.immutable.List;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class WavHandlersRunner {
@@ -41,7 +42,10 @@ public class WavHandlersRunner {
 
        // print into log file
        // log.info("Total number of WAVs: " + wrds.get );
-       log.info("All people in WAVs: " + wrdc.getPeopleInWavs());
+       log.info("All Wc people in WAVs: " + wrdc.getWcPeopleInWavs());
+        log.info("All other people in WAVs: " + wrdc.getOtherPeopleInWavs());
+       log.info("Total of other people enter a ride hail: " + wrdc.getRideHailCount());
+       log.info("Number of wc incorrectly placed into RH: " + wrdc.getWrongPlace());
        // log.info("Total number of WC users: " + );
        // log.info("WC users in WAVs: " + );
        log.info("total wait time for WC users: " + wrdc.getTotalWaitTimeForWcPeople());
@@ -66,12 +70,13 @@ public class WavHandlersRunner {
         List<RideHailAgentInputData> rideHailList;
         rideHailList = RideHailFleetInitializer.readFleetFromCSV(ridehailFile);
 
-        Map<String, RideHailAgentInputData> rhMap = new HashMap<>();
+        Map<String, RideHailAgentInputData> rhMap = new LinkedHashMap<>();
 
         Iterator<RideHailAgentInputData> agentListIterator = rideHailList.iterator();
-
+        RideHailAgentInputData placeholder;
         while(agentListIterator.hasNext()){ ;
-            rhMap.put(agentListIterator.next().id(), agentListIterator.next());
+            placeholder = agentListIterator.next();
+            rhMap.put(placeholder.id(), placeholder);
         }
 
         return rhMap;

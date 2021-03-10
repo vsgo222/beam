@@ -26,7 +26,10 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
 
     Scenario sc;
     Integer peopleInVehicles = 0;
-    Integer peopleInWavs = 0;
+    Integer wcPeopleInWavs = 0;
+    Integer otherPeopleInWavs = 0;
+    Integer rideHailCount = 0;
+    Integer wrongPlace = 0;
     Map<String, Double> totalWaitTimeWcMap = new HashMap<>();
     Map<String, Double> totalWaitTimeOtherMap = new HashMap<>();
     Map<String, Double> reserveTimeMap = new HashMap<>();
@@ -57,13 +60,26 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
         // counts the number of people in vehicles
         String thisPerson = event.getPersonId().toString();
         peopleInVehicles++;
-        Id<Vehicle> thisVehicle = event.getVehicleId();
-        String thisVehicleType = rhm.get(thisVehicle).vehicleType();
+        String thisVehicle = event.getVehicleId().toString();
+        // if rideHail, get the vehicle type
+        if (thisVehicle.contains("rideHail")) {
+            String thisVehicleType = rhm.get(thisVehicle).vehicleType();
 
-        // this is an example. Change to say sc.getWavs or something
-        if(thisVehicleType.equals("WAV")) {
-            peopleInWavs++;
+            if(thisVehicleType.equals("WAV")) {
+                if(thisPerson.contains("wc")) {
+                    wcPeopleInWavs++;
+                } else {
+                    otherPeopleInWavs++;
+                }
+            } else {
+                rideHailCount++;
+                // verify that no wc users get into a ride hail
+                if (thisPerson.contains("wc")) {
+                    wrongPlace++;
+                }
+            }
         }
+
 
         // store the time each person enters vehicle
         // use a hashmap
@@ -154,8 +170,12 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
         return totalWaitTimeForAllPeople;
     }
 
-    public Integer getPeopleInWavs(){
-        return this.peopleInWavs;
+    public Integer getWcPeopleInWavs(){
+        return this.wcPeopleInWavs;
+    }
+
+    public Integer getOtherPeopleInWavs(){
+        return this.otherPeopleInWavs;
     }
 
     public Double getTotalWaitTimeForWcPeople() {
@@ -193,5 +213,13 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
     }
 
 
+    public Integer getRideHailCount() {
+        // Total of other people enter a ride hail
+        return rideHailCount;
+    }
 
+    public Integer getWrongPlace() {
+        // verify that no wc user gets into a ride hail vehicle. should be 0
+        return wrongPlace;
+    }
 }
