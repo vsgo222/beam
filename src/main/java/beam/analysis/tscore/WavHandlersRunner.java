@@ -41,27 +41,35 @@ public class WavHandlersRunner {
         new MatsimEventsReader(em).readFile(eventsFile);
 
        // print into log file
-       // log.info("Total number of WAVs: " + wrds.get );
-       log.info("All Wc people in WAVs: " + wrdc.getWcPeopleInWavs());
-        log.info("All other people in WAVs: " + wrdc.getOtherPeopleInWavs());
-       log.info("Total of other people enter a ride hail: " + wrdc.getRideHailCount());
-       log.info("Number of wc incorrectly placed into RH: " + wrdc.getWrongPlace());
-       // log.info("Total number of WC users: " + );
-       // log.info("WC users in WAVs: " + );
-       log.info("total wait time for WC users: " + wrdc.getTotalWaitTimeForWcPeople());
-       log.info("Number of trips of WC users: " + wrdc.getNumberOfWcTrips());
-        // log.info("Average wait time for WAVs: " + + " minutes.");
-       log.info("Average wait time for for WC users for WAV: " + wrdc.getAverageWcWaitTime() + " minutes.");
-       log.info("Average travel time for WC users on WAV: " + wrdc.getAverageWcTravelTime() + " minutes.");
 
-       // log.info("Total number of ridehail vehicles: " +
-       log.info("total wait time for other users: " + wrdc.getTotalWaitTimeForOtherPeople());
-       log.info("total other trips: " + wrdc.getNumberOfOtherTrips());
-       log.info("Average wait time for Other users: " + wrdc.getAverageOtherWaitTime() + " minutes.");
-       log.info("Averge travel time for other users: " + wrdc.getAverageOtherTravelTime() + " minutes.");
+        log.info("Total number of people entering a vehicle: " + wrdc.getTotalPersonEntersVehicle());
+        log.info("Number of people entering a 'ride hail' vehicle: " + wrdc.getTotalRideHailCount());
+        log.info("Total wait time: " + wrdc.getTotalWaitTimeForAllPeople() + " seconds.");
+        log.info("Total trips count: " + wrdc.getNumberOfTrips());
 
-       log.info("Total wait time: " + wrdc.getTotalWaitTimeForAllPeople());
-       log.info("Total number of ride hail trips: " + wrdc.getNumberOfTrips());
+        log.info("------ WAV information ---------");
+        log.info("Number of all people entering WAVs: " + wrdc.getTotalWavCount());
+        log.info("Total number of wc users in Wavs: " + wrdc.getWcPeopleInWavs());
+        log.info("total wait time for WC users: " + wrdc.getTotalWaitTimeForWcPeople());
+        log.info("Number of trips of WC users: " + wrdc.getNumberOfWcTrips());
+        log.info("Average wait time for for WC users for WAV: " + wrdc.getAverageWcWaitTime() + " minutes.");
+        log.info("Number of other people entering a WAV: " + wrdc.getOtherPeopleInWavs());
+        log.info("Total wait time for others in wavs: " + wrdc.getTotalWaitTimeforOtherInWavs());
+        log.info("Total trips for others in wavs: " + wrdc.getTotalTripsOthersInWavs());
+        log.info("Average wait time for others in wavs: " + wrdc.getAverageOtherInWavWaitTime() + " minutes.");
+        log.info("Percent of Wc people using WAVs: " + wrdc.getPercentWcInWavs() + " %");
+
+        log.info("------- General non-wav ride hail information -----------");
+        log.info("Total number of other people enter a ride hail: " + wrdc.getRideHailCount());
+        log.info("Number of wc incorrectly placed into RH: " + wrdc.getWrongPlace());
+        log.info("total wait time for other users: " + wrdc.getTotalWaitTimeForOtherPeople());
+        log.info("Total count of other (non-wav) trips: " + wrdc.getNumberOfOtherTrips());
+        log.info("Average wait time for Other users: " + wrdc.getAverageOtherWaitTime() + " minutes.");
+
+        log.info("-------- General Travel Time information -------------");
+        log.info("Average travel time for WC users on WAV: " + wrdc.getAverageWcTravelTime() + " minutes.");
+        log.info("Averge travel time for other users: " + wrdc.getAverageOtherTravelTime() + " minutes.");
+
        // write into text file
     }
 
