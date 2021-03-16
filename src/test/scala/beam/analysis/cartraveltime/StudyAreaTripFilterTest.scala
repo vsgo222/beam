@@ -25,7 +25,8 @@ class StudyAreaTripFilterTest extends FunSuite with Matchers {
     primaryFuelType = FuelType.Gasoline,
     primaryFuelConsumptionInJoulePerMeter = 0.1,
     primaryFuelCapacityInJoule = 0.1,
-    vehicleCategory = VehicleCategory.Car
+    vehicleCategory = VehicleCategory.Car,
+    isAccessible = "F"
   )
   private val beamLeg = BeamLeg(
     startTime = 0,

@@ -21,6 +21,7 @@ class SpatialIndexForRideHailAgentLocationTest extends FunSuite with Matchers {
       Id.createVehicleId("1"),
       BeamVehicleType(
         Id.create("car", classOf[BeamVehicleType]),
+        "F",
         1,
         1,
         3,
@@ -50,6 +51,7 @@ class SpatialIndexForRideHailAgentLocationTest extends FunSuite with Matchers {
       Id.createVehicleId("1"),
       BeamVehicleType(
         Id.create("car", classOf[BeamVehicleType]),
+        "F",
         1,
         1,
         3,
