@@ -47,7 +47,7 @@ public class WavHandlersRunner {
         log.info("Total wait time: " + wrdc.getTotalWaitTimeForAllPeople() + " seconds.");
         log.info("Total trips count: " + wrdc.getNumberOfTrips());
 
-        log.info("------ WAV information ---------");
+        log.info("------ WAV ridership information ---------");
         log.info("Number of all people entering WAVs: " + wrdc.getTotalWavCount());
         log.info("Total number of wc users in Wavs: " + wrdc.getWcPeopleInWavs());
         log.info("total wait time for WC users: " + wrdc.getTotalWaitTimeForWcPeople());
@@ -69,6 +69,8 @@ public class WavHandlersRunner {
         log.info("-------- General Travel Time information -------------");
         log.info("Average travel time for WC users on WAV: " + wrdc.getAverageWcTravelTime() + " minutes.");
         log.info("Averge travel time for other users: " + wrdc.getAverageOtherTravelTime() + " minutes.");
+
+        log.info("----- General WAV utilization statistics ----------");
 
        // write into text file
     }
