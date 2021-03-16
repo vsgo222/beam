@@ -41,9 +41,9 @@ class AsyncGreedyVehicleCentricMatching(
 
     val requestWithCurrentVehiclePosition = v.getRequestWithCurrentVehiclePosition
     val center = requestWithCurrentVehiclePosition.activity.getCoord
-    logger.info("THIS IS THE ASYNC DEFAULT")
-    logger.info(counter.toString())
-    counter = counter + 1
+    // logger.info("THIS IS THE ASYNC DEFAULT")
+    /*logger.info(counter.toString())
+    counter = counter + 1*/
 
 
     // get all customer requests located at a proximity to the vehicle
@@ -61,7 +61,7 @@ class AsyncGreedyVehicleCentricMatching(
     // solution size resizing
     customers = customers.take(solutionSpaceSizePerVehicle)
 
-    logger.info("THIS IS THE ASYNC DEFAULT later on....")
+    // logger.info("THIS IS THE ASYNC DEFAULT later on....")
     val potentialTrips = mutable.ListBuffer.empty[(RideHailTrip, Double)]
     // consider solo rides as initial potential trips
     customers
