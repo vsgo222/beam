@@ -56,7 +56,7 @@ public class LinkTablesReader {
         this.scenario = scenario;
         this.network = this.scenario.getNetwork();
         this.networkFactory = network.getFactory();
-        this.ct = TransformationFactory.getCoordinateTransformation("EPSG:4326",
+        this.ct = TransformationFactory.getCoordinateTransformation("EPSG:26912",
                 this.scenario.getConfig().global().getCoordinateSystem());
         this.outDir = outDir;
         this.nodesFile = nodesFile;
@@ -66,7 +66,7 @@ public class LinkTablesReader {
     public void makeNetwork() throws IOException {
         readNodes(nodesFile);
         readLinks(linksFile);
-        //addTurnaroundLinks();
+        addTurnaroundLinks();
         //new NetworkCleaner().run(network);
     }
 
@@ -91,8 +91,8 @@ public class LinkTablesReader {
                 Double lon = (Double) nodesMap.get("x");
                 Double lat = (Double) nodesMap.get("y");
                 Coord coordLatLon = CoordUtils.createCoord(lon, lat);
-                Coord coord = ct.transform(coordLatLon);
-                Node node = networkFactory.createNode(nodeId, coord);
+                //Coord coord = ct.transform(coordLatLon);
+                Node node = networkFactory.createNode(nodeId, coordLatLon);
                 network.addNode(node);
 
             }
@@ -135,8 +135,10 @@ public class LinkTablesReader {
      *                  - lanes
      *                  - sl (miles per hour)
      *                  - med median treatment
+     *                  - area type
      *                  - terrain
      *                  - capacity (vehicles / hr)
+     *                  - FF_SPD (mph)
      */
     private void readLinks(File linksFile) throws IOException {
         ICsvMapReader mapReader = null;
@@ -162,9 +164,10 @@ public class LinkTablesReader {
                 Double capacity    = (Double) linkMap.get("capacity");
                 Integer lanes      = (Integer) linkMap.get("lanes");
                 Integer oneWay     = (Integer) linkMap.get("Oneway");
+                Double freeSpeed   = (Double) linkMap.get("FF_SPD") * 1609.34 / 3600;
 
                 Double length = lengthMiles * 1609.34; // convert miles to meters
-                Double freeSpeed = length / (driveTime * 60); // convert meters per minute to meters per second
+                //Double freeSpeed = length / (driveTime * 60); // convert meters per minute to meters per second
 
                 // put link attributes on link
                 l.setLength(length);
@@ -217,7 +220,8 @@ public class LinkTablesReader {
                     new NotNull(),        //median treatment
                     new NotNull(),        // area type
                     new NotNull(),        // terrain
-                    new ParseDouble()     // capacity
+                    new ParseDouble(),     // capacity
+                    new ParseDouble()     // ff_spd
             };
     }
 
@@ -288,7 +292,7 @@ public class LinkTablesReader {
 
         Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
         scenario.getConfig().global().setCoordinateSystem(crs);
-        LinkTablesReader reader = new LinkTablesReader(scenario, nodesFile, linksFile, new File("."));
+        LinkTablesReader reader = new LinkTablesReader(scenario, nodesFile, linksFile, outDir);
 
         try {
             reader.makeNetwork();
