@@ -79,3 +79,14 @@ test/input/sf-light/rideHailFleet.csv
 About BEAM — beam 0.7.0 documentation.html
 
 .Rhistory
+
+test/input/slc_beam/wheelchair
+test/input/slc_beam/*.xml
+test/input/slc_beam/r5/*.zip
+test/input/slc_beam/r5/*.dat
+test/input/slc_beam/r5/*osm*
+test/input/slc_beam/*.conf
+test/input/slc_beam/*.csv
+test/input/slc_beam/*.log
+test/input/slc_beam/*.h5
+*.7z

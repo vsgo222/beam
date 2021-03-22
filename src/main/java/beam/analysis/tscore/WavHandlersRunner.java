@@ -23,10 +23,10 @@ public class WavHandlersRunner {
 
 
     public static void main(String[] args){
-        String eventsFile = "output/WAV/wav_250/trial_01/outputEvents.xml.gz";
-        String networkFile = "output/WAV/wav_250/trial_01/output_network.xml.gz";
+        String eventsFile = "output/slc_beam/sc_1/scenario_1_fullWc_01/ITERS/it.0/0.events.xml";
+        String networkFile = "output/slc_beam/sc_1/scenario_1_fullWc_01/output_network.xml.gz";
         //String outputFile = "output/WAV/wav_250/route_ridership.csv";
-        String ridehailFleetFile = "test/input/WAV/rideHailFleet_wav.csv";
+        String ridehailFleetFile = "test/input/scenario_1_fullWc/rideHailFleet_wav.csv";
 
         Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
@@ -36,7 +36,7 @@ public class WavHandlersRunner {
         Map<String, RideHailAgentInputData> rhm = createRideHailVehicleMap(ridehailFleetFile);
 
         EventsManager em = EventsUtils.createEventsManager();
-        WavRidehailDelayCalculator wrdc = new WavRidehailDelayCalculator(scenario);
+        WavRidehailDelayCalculator wrdc = new WavRidehailDelayCalculator(scenario, rhm);
         AllEventsCounter aec = new AllEventsCounter(scenario);
         em.addHandler(wrdc);
         em.addHandler(aec);
