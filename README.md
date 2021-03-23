@@ -52,6 +52,8 @@ shadowJar{
 8. To execute your jar, use this command while in your BEAM project directory:
  [java -jar -Xmx8g .\build\libs\beam-0.8.0-all.jar --config test/input/beamville/beam.conf]
  This example is using the default scenario BEAMVILLE. 
+ 
+ 
  **Trouble Shooting**
  - If you're having trouble with memory issues, you may have a 32-bit Java Virtual Machine. You can lower the memory allocation by changing the -Xmx8g to -Xmx4g, but for bigger scenarios, you'll run out of memory. You can also try to run this on a lab computer to test it. 
 
