@@ -29,21 +29,33 @@ http://beam.lbl.gov/
 [id "com.github.johnrengelman.shadow" version "5.2.0"] // Shadow helps create fatJars
 Your plugins should look similar to this: 
 plugins {
+
     id "net.ltgt.apt" version "0.5"
+    
     id "de.undercouch.download" version "3.2.0"
+    
     id "org.scoverage" version "2.5.0"
+    
     id 'maven-publish'
+    
     id "me.champeau.gradle.jmh" version "0.5.0"
+    
     id "com.github.johnrengelman.shadow" version "5.2.0" // Shadow helps create fatJars
+
 }
 4. In the same build.gradle file, scroll down to under tasks.withType(scalaCompile){}
 5. Copy and paste this under tasks.withType(scalaCompile) [not the line of code, the entire section]
 mainClassName = 'RunBeam'
 shadowJar{
+
     zip64 true
+    
     mergeServiceFiles('reference.conf')
+    
     manifest{
+    
         attributes 'Main-Class': mainClassName
+    
     }
 }
 6. Compile the jar using this command while in your BEAM project directory:
