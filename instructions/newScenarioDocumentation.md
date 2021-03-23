@@ -2,6 +2,16 @@
 This document will describe how to create the salt lake scenario in Beam.
 --->
 
+# First steps: ActivitySim output
+ActivitySim writes a persons, houshoulds, and trips file. We also need the
+hhcoord file and the facility id table. These are the inputs into the
+plans maker (wav_microtransit_scenario repository)
+
+Verify that the trips file is arranged by person_id and `depart` (departure time).
+Then run the `InputFilesReader.java` class.
+
+This will write your *plans.xml.*
+
 # Create a New Scenario: Salt Lake City
 
 ## Conversion from MATSim to BEAM.
@@ -13,7 +23,7 @@ Input files needed:
 - network.xml
 - utah-latest.osm.pbf
 - tz49_d00_shp.zip
-- population.xml
+- population.xml (*plans.xml*)
 (r5 folder)
 - SLC.zip
 
