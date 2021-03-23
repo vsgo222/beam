@@ -50,6 +50,7 @@ plugins {
 5. Copy and paste this under tasks.withType(scalaCompile) [not the line of code, the entire section]
 
 mainClassName = 'RunBeam'
+
 shadowJar{
 
     zip64 true
@@ -64,10 +65,16 @@ shadowJar{
 }
 
 6. Compile the jar using this command while in your BEAM project directory:
-    [gradle shadowJar]
+
+    "gradle shadowJar"
+    
+    
 7. Your new JAR should be in BEAM\build\libs
 8. To execute your jar, use this command while in your BEAM project directory:
- [java -jar -Xmx8g .\build\libs\beam-0.8.0-all.jar --config test/input/beamville/beam.conf]
+
+ "java -jar -Xmx8g .\build\libs\beam-0.8.0-all.jar --config test/input/beamville/beam.conf"
+ 
+ 
  This example is using the default scenario BEAMVILLE. 
  
  
