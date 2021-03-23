@@ -27,7 +27,9 @@ http://beam.lbl.gov/
 2. We're going to build a fatJar, which is an executable file that includes all of the dependencies in the jar. 
 3. We will need an additional plugin for creating the fatJar. In build.gradle, put this plugin into the plugins section:
 [id "com.github.johnrengelman.shadow" version "5.2.0"] // Shadow helps create fatJars
+
 Your plugins should look similar to this: 
+
 plugins {
 
     id "net.ltgt.apt" version "0.5"
@@ -43,6 +45,7 @@ plugins {
     id "com.github.johnrengelman.shadow" version "5.2.0" // Shadow helps create fatJars
 
 }
+
 4. In the same build.gradle file, scroll down to under tasks.withType(scalaCompile){}
 5. Copy and paste this under tasks.withType(scalaCompile) [not the line of code, the entire section]
 mainClassName = 'RunBeam'
