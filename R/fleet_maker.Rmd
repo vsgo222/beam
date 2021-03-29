@@ -18,10 +18,18 @@ Then convert the coorinates to epsg:26912 (meters)
 ```{r}
 # nodes
 nodes <- read_csv("R/data/nodes.csv")
-# n is the number of wavs
-n <- 100
+# max ridehail vehicle ids is 500
+wavs <- 16
+cars <- 50
+n <- wavs+cars
 
-mySample <- nodes %>% sample_n(n)
+mySample <- nodes %>% 
+  sample_n(n) %>%
+  transmute(
+    myId = 1:n,
+    initialLocationX = xcoord,
+    initialLocationY = ycoord
+  )
 
 ```
 
@@ -29,14 +37,24 @@ mySample <- nodes %>% sample_n(n)
 ## Generate new file
 
 ```{r}
-ids <- read_csv("test/input_new/small_mix/ridehailfleet_wav.csv") %>% 
-  transmute(id, rideHailManagerId, vehicleType=NA, initialLocationX=NA, initialLocationY=NA, shifts=NA, geofenceX=NA, geofenceY=NA, geofenceRadius=NA)
+ids <- read_csv("test/input_new/small_mix/ridehailfleet_wav.csv") 
 
-tibble(
-  id = 1:n,
-  rideHailManagerId = "GlobalRHM",
-  vehicleType = "WAV"
-)
+idTable <- ids %>% transmute(myId = row_number(), id) 
+
+table <- left_join(mySample, idTable) %>% 
+  transmute(
+    id, 
+    rideHailManagerId = "GlobalRHM",
+    vehicleType = ifelse(myId > wavs, "Car", "WAV"),
+    initialLocationX, 
+    initialLocationY,
+    shifts = "{10:25200};{25300:80000}",
+    geofenceX = NA,
+    geofenceY = NA,
+    geofenceRadius = NA
+  )
+
+write_csv(table, "test/input_new/small_mix/fleet_16.csv")
 
 ```
 
