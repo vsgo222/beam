@@ -23,10 +23,11 @@ public class WavHandlersRunner {
 
 
     public static void main(String[] args){
-        String eventsFile = "output/slc_beam/sc_1/scenario_1_fullWc_01/ITERS/it.0/0.events.xml";
-        String networkFile = "output/slc_beam/sc_1/scenario_1_fullWc_01/output_network.xml.gz";
+        String path = "output/from_input_new/small_mix/clean/";
+        String eventsFile = path + "outputEvents.xml";
+        String networkFile = path + "outputNetwork.xml";
         //String outputFile = "output/WAV/wav_250/route_ridership.csv";
-        String ridehailFleetFile = "test/input/scenario_1_fullWc/rideHailFleet_wav.csv";
+        String ridehailFleetFile = "test/input_new/small_mix/fleet_16.csv";
 
         Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
