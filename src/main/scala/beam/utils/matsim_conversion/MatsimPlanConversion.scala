@@ -13,11 +13,17 @@ object MatsimPlanConversion {
 
   def generateScenarioData(conversionConfig: ConversionConfig): Unit = {
     val populationFile = conversionConfig.populationInput
+    println("planA")
     val populationDoc = XML.loadFile(populationFile)
+    println("planB")
 
     val transformedPopulationDoc = matsimPopulationToBeam(populationDoc)
+    println("planC")
 
     val persons = transformedPopulationDoc \\ "person"
+    println("planD")
+
+    println("plan1")
 
     //Generate vehicles data
     VehiclesDataConversion.generateFuelTypesDefaults(conversionConfig.scenarioDirectory)
@@ -34,6 +40,8 @@ object MatsimPlanConversion {
       VehiclesDataConversion.generateVehicleTypesDefaults(conversionConfig.scenarioDirectory, vehicleTypes)
       VehiclesDataConversion.generateVehiclesDataFromSource(conversionConfig.scenarioDirectory, vehiclesDoc)
     }
+
+    println("plan2")
 
     val houseHolds =
       generateHouseholds(persons, vehiclesWithTypeId.map(_.head), conversionConfig.income)
@@ -56,6 +64,8 @@ object MatsimPlanConversion {
     val householdsOutput = conversionConfig.scenarioDirectory + "/households.xml.gz"
     val householdAttrsOutput = conversionConfig.scenarioDirectory + "/householdAttributes.xml"
     val populationAttrsOutput = conversionConfig.scenarioDirectory + "/populationAttributes.xml"
+
+    println("plan3")
 
     safeGzip(populationOutput, transformedPopulationDoc, UTF8, xmlDecl = true, populationDoctype)
     safeGzip(householdsOutput, houseHolds, UTF8, xmlDecl = true)

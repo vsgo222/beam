@@ -23,25 +23,33 @@ import org.supercsv.prefs.CsvPreference
 
 object MatsimConversionTool extends App {
 
-  val dummyGtfsPath = "test/input/beamville/r5/dummy.zip"
+  val dummyGtfsPath = "test/input/slc_test/r5/SLC.zip"
 
   if (null != args && args.length > 0) {
-    val beamConfigFilePath = args(0) //"test/input/beamville/beam.conf"
+    val beamConfigFilePath = args(0) //"test/input/slc_test/slc_test.conf"
 
     val config = parseFileSubstitutingInputDirectory(beamConfigFilePath)
     val conversionConfig = ConversionConfig(config)
 
     val network = NetworkUtils.createNetwork()
-//    println(s"Network file ${conversionConfig.matsimNetworkFile}")
+    println(s"Network file ${conversionConfig.matsimNetworkFile}")
+    println("network created")
     new MatsimNetworkReader(network).readFile(conversionConfig.matsimNetworkFile)
+    println("network read")
 
     MatsimPlanConversion.generateScenarioData(conversionConfig)
+    println("temp1")
     generateTazDefaults(conversionConfig, network)
+    println("temp2")
     generateOsmFilteringCommand(conversionConfig, network)
+    println("temp3")
 
     val r5OutputFolder = conversionConfig.scenarioDirectory + "/r5"
-    val dummyGtfsOut = r5OutputFolder + "/dummy.zip"
+    println("temp4")
+    val dummyGtfsOut = r5OutputFolder + "/slc_test_gtfs.zip"
+    println("temp5")
     FileUtils.copyFile(new File(dummyGtfsPath), new File(dummyGtfsOut))
+    println("temp6")
   } else {
     println("Please specify config/file/path parameter")
   }
@@ -61,11 +69,15 @@ object MatsimConversionTool extends App {
 
   def generateTazDefaults(conversionConfig: ConversionConfig, network: Network): Unit = {
     val outputFilePath = s"${conversionConfig.scenarioDirectory}/taz-centers.csv"
-
+println("taz1")
     if (conversionConfig.shapeConfig.isDefined) {
+      println("tazrtue")
       val shapeConfig = conversionConfig.shapeConfig.get
+      println("tazA")
       ShapeUtils.shapeFileToCsv(shapeConfig.shapeFile, shapeConfig.tazIDFieldName, outputFilePath)
+      println("tazB")
     } else {
+      println("tazfalse")
       val defaultTaz = getDefaultTaz(network, conversionConfig.localCRS)
       generateSingleDefaultTaz(defaultTaz, outputFilePath, conversionConfig.localCRS)
     }
