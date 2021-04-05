@@ -167,29 +167,37 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
 
     }
 
+    // calculate travel times
+    //
+
     @Override
     public void handleEvent(PersonDepartureEvent personDepartureEvent) {
         String thisPerson = personDepartureEvent.getPersonId().toString();
 
-        this.departureTimes.put(thisPerson, personDepartureEvent.getTime());
+        if(personDepartureEvent.getLegMode().contains("ride_hail")) {
+            this.departureTimes.put(thisPerson, personDepartureEvent.getTime());
+        }
     }
 
     @Override
     public void handleEvent(PersonArrivalEvent personArrivalEvent) {
         String thisPerson = personArrivalEvent.getPersonId().toString();
 
-        double departureTime = this.departureTimes.get(thisPerson);
-        double travelTime = personArrivalEvent.getTime() - departureTime;
+        if(personArrivalEvent.getLegMode().contains("ride_hail")) { // the problem is that ride_hail_transit has big travel times
+            double departureTime = this.departureTimes.get(thisPerson);
+            double travelTime = personArrivalEvent.getTime() - departureTime;
 
-        // could add if WAV here to distinguish travel times for non wc in wavs...
-        // for now they are counted in non wc group
-        // WELL, personArrival events don't have vehicle IDs...
-        if (thisPerson.contains("wc")) {
-            this.travelTimeWcSum += travelTime;
-            this.travelTimeWcCount++;
-        } else {
-            this.travelTimeOtherSum += travelTime;
-            this.travelTimeOtherCount++;
+
+            // could add if WAV here to distinguish travel times for non wc in wavs...
+            // for now they are counted in non wc group
+            // WELL, personArrival events don't have vehicle IDs... just leg modes
+            if (thisPerson.contains("wc")) {
+                this.travelTimeWcSum += travelTime;
+                this.travelTimeWcCount++;
+            } else {
+                this.travelTimeOtherSum += travelTime;
+                this.travelTimeOtherCount++;
+            }
         }
     }
 
