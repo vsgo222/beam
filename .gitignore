@@ -90,3 +90,5 @@ test/input/slc_beam/*.csv
 test/input/slc_beam/*.log
 test/input/slc_beam/*.h5
 *.7z
+
+test/input/beamville/

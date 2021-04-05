@@ -124,3 +124,6 @@ Find and replace age from string to integer. (Fixed in the matsim plans maker)
 Change the time zone
 
 Maybe bounding box is too small for activities. This happens in the osmosis process
+
+verify the taz
+verify the ridehail coordinates input file
