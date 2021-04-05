@@ -3,7 +3,7 @@ library(tidyverse)
 library(sf)
 
 taz <- read_csv("test/input_new/small_mix/taz-centers.csv") %>% 
-  transmute(taz, x = `coord-x`, y = `coord-y`)
+  mutate(x = `coord-x`, y = `coord-y`)
 
 sf <- taz %>%
   rowwise() %>%
@@ -13,20 +13,18 @@ sf <- taz %>%
 
 st_as_sf(taz, coords = c("x","y")) 
 
-st_as_sf(sf %>% as.data.frame(), sf_column_name = "geometry")
-
-st_transform(sf$geometry, crs = st_crs("26912"))
-sf %>% st_transform(geometry, crs = 26912)
-
-sf %>% st_set_crs(4326) %>% st_transform(crs=26912)
-
-sf %>% st_point()
-%>% st_sfc(crs = 4326)
 
 
-
-
-st_as_sf(sf %>% as.data.frame(), sf_column_name = "geometry") %>% 
+finally <- st_as_sf(sf %>% as.data.frame(), sf_column_name = "geometry") %>% 
   st_set_crs(4326) %>% 
   st_transform(crs=26912) %>%
-  as_tibble()
+  st_coordinates() %>%
+  as_tibble() %>% 
+  bind_cols(taz) %>%
+  transmute(
+    taz,
+    `coord-x` = X,
+    `coord-y` = Y
+  )
+
+write_csv(finally, "test/input_new/small_mix/taz-centers_converted.csv")
