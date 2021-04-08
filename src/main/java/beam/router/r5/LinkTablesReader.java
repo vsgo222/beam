@@ -91,10 +91,8 @@ public class LinkTablesReader {
                 Double lon = (Double) nodesMap.get("x");
                 Double lat = (Double) nodesMap.get("y");
                 Coord coordLatLon = CoordUtils.createCoord(lon, lat);
-                //Coord coord = ct.transform(coordLatLon);
                 Node node = networkFactory.createNode(nodeId, coordLatLon);
                 network.addNode(node);
-
             }
 
         }
@@ -217,14 +215,14 @@ public class LinkTablesReader {
 
         // loop through all the outOnlyNodes
         for(Node outNode : outOnlyNodes){
-            // Loop through the inOnlyNodes and see if there are any outOnlyNodes within 50m. Finds the nearest outOnlyNode
+            // Loop through the inOnlyNodes and see if there are any outOnlyNodes within 100m. Finds the nearest outOnlyNode
             Node matchInNode = null;
             Coord outCoord = outNode.getCoord();
             Double inDistance = Double.POSITIVE_INFINITY; // starting distance is infinite
             for (Node inNode : inOnlyNodes) {
                 Coord inCoord = inNode.getCoord();
                 Double thisDistance = NetworkUtils.getEuclideanDistance(outCoord, inCoord);
-                if(thisDistance < inDistance & thisDistance < 50){
+                if(thisDistance < inDistance & thisDistance < 100){
                     matchInNode = inNode; // update the selected companion node
                     inDistance = thisDistance; // update the comparison distance
                 }
@@ -249,12 +247,11 @@ public class LinkTablesReader {
     }
 
 
-
     private void writeNetwork(){
         log.info("Writing network to " + outDir);
         log.info("--- Links: " + network.getLinks().values().size());
         log.info("--- Nodes: " + network.getNodes().values().size());
-        new NetworkWriter(network).write(outDir.toString() + "/highway_network.xml.gz");
+        new NetworkWriter(network).write(outDir.toString() + "/highway_network_tdm.xml.gz");
     }
 
 
