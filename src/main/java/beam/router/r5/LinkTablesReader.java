@@ -67,7 +67,6 @@ public class LinkTablesReader {
         readNodes(nodesFile);
         readLinks(linksFile);
         addTurnaroundLinks();
-        addConnectorLinks();
         new NetworkCleaner().run(network);
     }
 
@@ -265,63 +264,6 @@ public class LinkTablesReader {
             }
         }
     }
-
-    private void addConnectorLinks() {
-        // create map of nodes that only have one link entering or exiting.
-        ArrayList<Node> inOnlyNodes = new ArrayList<>();
-        ArrayList<Node> outOnlyNodes = new ArrayList<>();
-        ArrayList<Node> allNodes = new ArrayList<>();
-
-        // Loop through all nodes in the network, and populate the lists we just created
-        Iterator<? extends Node> iter = network.getNodes().values().iterator();
-        while (iter.hasNext()) {
-            Node myNode = iter.next();
-            if(myNode.getOutLinks().isEmpty()) inOnlyNodes.add(myNode); // no outbound links
-            if(myNode.getInLinks().isEmpty()) outOnlyNodes.add(myNode); // no inbound links
-            allNodes.add(myNode);
-        }
-
-        // loop through all the inOnlyNodes
-        for(Node inNode : inOnlyNodes){
-            // Loop through the inOnlyNodes and see if there are any nodes within 5m. Finds the nearest node
-            Node matchNode = null;
-            Coord inCoord = inNode.getCoord();
-            Double inDistance = Double.POSITIVE_INFINITY; // starting distance is infinite
-            for (Node allNode : allNodes) {
-                Coord allCoord = allNode.getCoord();
-                Double thisDistance = NetworkUtils.getEuclideanDistance(inCoord, allCoord);
-                if(thisDistance < inDistance & thisDistance < 5 & inNode != allNode){
-                    matchNode = allNode; // update the selected companion node
-                    inDistance = thisDistance; // update the comparison distance
-                }
-            }
-            // if there is a matched inOnlyNode, we will build a new link with default stupid attributes
-            if(matchNode != null){
-                buildStupidLink(matchNode,inNode);
-            }
-        }
-
-        // loop through all the outOnlyNodes
-        for(Node outNode : outOnlyNodes){
-            // Loop through the outOnlyNodes and see if there are any outOnlyNodes within 50m. Finds the nearest outOnlyNode
-            Node matchNode = null;
-            Coord outCoord = outNode.getCoord();
-            Double outDistance = Double.POSITIVE_INFINITY; // starting distance is infinite
-            for (Node allNode : allNodes) {
-                Coord allCoord = allNode.getCoord();
-                Double thisDistance = NetworkUtils.getEuclideanDistance(outCoord, allCoord);
-                if(thisDistance < outDistance & thisDistance < 5 & outNode != allNode){
-                    matchNode = allNode; // update the selected companion node
-                    outDistance = thisDistance; // update the comparison distance
-                }
-            }
-            // if there is a matched outOnlyNode, we will build a new link with default stupid attributes
-            if(matchNode != null){
-                buildStupidLink(matchNode,outNode);
-            }
-        }
-    }
-
 
     private void buildStupidLink(Node matchInNode,Node node){
         Id<Link> lid = Id.createLinkId(node.getId() + "_" + matchInNode.getId());
