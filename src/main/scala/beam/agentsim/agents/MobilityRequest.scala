@@ -14,9 +14,10 @@ case object Relocation extends MobilityRequestType { override def toString: Stri
 case object EnRoute extends MobilityRequestType { override def toString: String = "enroute" }
 case object Init extends MobilityRequestType { override def toString: String = "init" }
 
-case class MobilityRequest(
+case class  MobilityRequest(
   person: Option[PersonIdWithActorRef],
   activity: Activity,
+  //isWheelchair: Option[String] = None,
   baselineNonPooledTime: Int,
   trip: Trip,
   defaultMode: BeamMode,

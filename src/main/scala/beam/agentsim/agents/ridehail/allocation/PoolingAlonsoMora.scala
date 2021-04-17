@@ -41,7 +41,8 @@ class PoolingAlonsoMora(val rideHailManager: RideHailManager)
         inquiry.pickUpLocationUTM,
         inquiry.destinationUTM,
         rideHailManager.radiusInMeters,
-        inquiry.departAt
+        inquiry.departAt,
+        wheelchair = inquiry.customer.personId.toString.contains("wc")
       ) match {
       case Some(agentETA) =>
         val timeCostFactors = rideHailManager.beamServices.skims.od_skimmer.getRideHailPoolingTimeAndCostRatios(

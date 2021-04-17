@@ -44,6 +44,10 @@ class AlonsoMoraMatchingWithAsyncGreedyAssignment(
     // heading same direction
     customers = RideHailMatching.getNearbyRequestsHeadingSameDirection(v, customers, solutionSpaceSizePerVehicle)
 
+    // check accessibility, remove wheelchair users if non-WAV.
+    customers = RideHailMatching.getRequestsWithAccessibilityType(v, customers)
+    // logger.error("THIS IS THE ALONSO MORA MATCHING WITH ASYNC")
+
     // solution size resizing
     customers = customers.take(solutionSpaceSizePerVehicle)
 

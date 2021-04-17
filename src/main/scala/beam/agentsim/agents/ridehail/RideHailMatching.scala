@@ -9,6 +9,7 @@ import beam.agentsim.agents.vehicles.{BeamVehicle, BeamVehicleType, PersonIdWith
 import beam.router.BeamRouter.Location
 import beam.router.Modes.BeamMode
 import beam.router.skim.{ODSkimmer, Skims, SkimsUtils}
+import beam.sim.RunBeam.logger
 import beam.sim.common.GeoUtils
 import beam.sim.{BeamServices, Geofence}
 import com.typesafe.scalalogging.LazyLogging
@@ -19,6 +20,7 @@ import org.jgrapht.graph.{DefaultEdge, DefaultUndirectedWeightedGraph}
 import org.matsim.api.core.v01.population.Activity
 import org.matsim.api.core.v01.{Coord, Id}
 import org.matsim.core.population.PopulationUtils
+
 import scala.collection.immutable.List
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
@@ -51,6 +53,9 @@ object RideHailMatching {
       extends RVGraphNode {
     override def getId: String = person.personId.toString
     override def toString: String = s"Person:${person.personId}|Pickup:$pickup|Dropoff:$dropoff"
+    def needsWC: Boolean = if(getId.toString.contains("wc")) true else false
+      // what about getId. substring(0,2).equals("wc")
+
   }
   // Ride Hail vehicles, capacity and their predefined schedule
   case class VehicleAndSchedule(
@@ -135,6 +140,25 @@ object RideHailMatching {
       beamServices.beamScenario
     )
   }
+
+  def getRequestsWithAccessibilityType(v: VehicleAndSchedule, demand: List[CustomerRequest])(
+    implicit services: BeamServices
+  ) : List[CustomerRequest] = {
+
+    val vehicleIsAccessible = v.vehicle.beamVehicleType.isAccessible
+    //val population = services.matsimServices.getScenario.getPopulation
+    val abledDemand = demand.filter(_.needsWC == false)
+    val wcDemand = demand.filter(_.needsWC == true)
+    val allDemand = demand
+
+   if (vehicleIsAccessible == "F") {
+     abledDemand
+   } else {
+     allDemand
+   }
+  }
+
+
 
   def getNearbyRequestsHeadingSameDirection(v: VehicleAndSchedule, demand: List[CustomerRequest], searchSpace: Int)(
     implicit services: BeamServices
