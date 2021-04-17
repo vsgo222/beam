@@ -118,13 +118,22 @@ object RideHailMatching {
     v.geofence match {
       case Some(gf) =>
         val gfCenter = new Coord(gf.geofenceX, gf.geofenceY)
-        demand.filter(
-          r =>
-            GeoUtils.distFormula(r.pickup.activity.getCoord, gfCenter) <= gf.geofenceRadius &&
-            GeoUtils.distFormula(r.dropoff.activity.getCoord, gfCenter) <= gf.geofenceRadius
-        )
+        val gfPoly = new String(gf.geofencePolygon)
+        if (gfPoly.isEmpty){
+          demand.filter(
+            r =>
+              GeoUtils.distFormula(r.pickup.activity.getCoord, gfCenter) <= gf.geofenceRadius &&
+              GeoUtils.distFormula(r.dropoff.activity.getCoord, gfCenter) <= gf.geofenceRadius)
+        } else {
+          demand.filter(
+            r =>
+              GeoUtils.polyContains(GeoUtils.wkt2geom(gfPoly), r.pickup.activity.getCoord) &&
+              GeoUtils.polyContains(GeoUtils.wkt2geom(gfPoly), r.dropoff.activity.getCoord))
+        }
       case _ => demand
     }
+
+    // TODO: add option for polygon geofence
   }
 
   def getTimeDistanceAndCost(src: MobilityRequest, dst: MobilityRequest, beamServices: BeamServices): ODSkimmer.Skim = {

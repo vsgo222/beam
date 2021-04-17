@@ -5,11 +5,13 @@ import beam.sim.config.BeamConfig
 import beam.utils.ProfilingUtils
 import beam.utils.logging.ExponentialLazyLogging
 import beam.utils.map.GpxPoint
+import com.axiomalaska.polylineencoder.WktUtil
 import com.conveyal.r5.profile.StreetMode
 import com.conveyal.r5.streets.{EdgeStore, Split, StreetLayer}
 import com.conveyal.r5.transit.TransportNetwork
 import com.google.inject.{ImplementedBy, Inject}
-import com.vividsolutions.jts.geom.{Coordinate, Envelope}
+import com.vividsolutions.jts.geom.{Coordinate, Envelope, Geometry}
+import org.geotools.geometry.jts.JTSFactoryFinder
 import org.matsim.api.core.v01
 import org.matsim.api.core.v01.Coord
 import org.matsim.api.core.v01.network.Link
@@ -217,6 +219,22 @@ object GeoUtils {
 
   def distFormula(x1: Double, y1: Double, x2: Double, y2: Double): Double = {
     Math.sqrt(Math.pow(x1 - x2, 2.0) + Math.pow(y1 - y2, 2.0))
+  }
+
+  def wkt2geom(wkt:String) : Geometry = WktUtil.wktToGeom(wkt)
+
+  def polyContains(poly: Geometry, x: Double, y: Double): Boolean = {
+    val geometryFactory = JTSFactoryFinder.getGeometryFactory
+    val coord = new Coordinate(x,y)
+    val point = geometryFactory.createPoint(coord)
+    poly.contains(point)
+  }
+
+  def polyContains(poly: Geometry, coordi: Coord): Boolean = {
+    val geometryFactory = JTSFactoryFinder.getGeometryFactory
+    val coord = new Coordinate(coordi.getX,coordi.getY)
+    val point = geometryFactory.createPoint(coord)
+    poly.contains(point)
   }
 
   /**
