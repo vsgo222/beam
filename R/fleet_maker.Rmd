@@ -13,6 +13,28 @@ library(tidyverse)
 Read in the nodes and select the coordinates at random.
 Then convert the coorinates to epsg:26912 (meters)
 
+### How many ride hail vehicles should there be?
+
+This is an important value, as general users will also request wavs, thus
+preventing wheelchair users from using empty wavs.
+
+Ideally, we should calibrate BEAM with an ideal number of ride hail vehicles,
+then evaluate the change in wavs.
+
+According to Yufei and the [SFCTA](https://www.sfcta.org/sites/default/files/2019-02/TNCs_Today_112917_0.pdf), 
+there are roughly 21,000 TNC drivers in San Francisco (population 874,962).
+
+Given this same ratio, there should be roughly *27,800* TNC drivers in Salt Lake 
+County (population 1.16 million).
+
+The sf-light scenario uses 500 ride hail vehicles in their simulation and I am thinking
+that the ratio should be constant with population size of the scenario.
+
+1 - population = 20,598; ride hail cars = 500; Make 32 of these the WAVs
+2 - population = 115,601; ride hail cars = 2890;
+3 - population = 567,932; ride hail cars = 14200;
+4 - population = 248,740; ride hail cars = 6200;
+
 ## Data and conversion
 
 ```{r}
