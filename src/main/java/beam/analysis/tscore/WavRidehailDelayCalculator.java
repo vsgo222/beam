@@ -41,6 +41,7 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
     int numberOfOtherTrips = 0;
 
     int wavCount = 0;
+    int requestCount = 0;
 
     // calculating travel times
     Map<String, Double> departureTimes = new HashMap<>();
@@ -161,6 +162,9 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
         String thisPerson = genericEvent.getAttributes().get("person");
 
         if (genericEvent.getEventType().contains("Reserve")){
+            if (genericEvent.getAttributes().get("person").contains("wc")) {
+                requestCount++;
+            }
             Double requestTime = genericEvent.getTime();
             reserveTimeMap.put(thisPerson, requestTime);
         }
@@ -241,6 +245,11 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
     // total wc trips count
     public int getNumberOfWcTrips() {
         return numberOfWcTrips;
+    }
+
+    // number of requests
+    public int getRequestCount() {
+        return requestCount;
     }
 
     // compute average wait time for wheelchair users
