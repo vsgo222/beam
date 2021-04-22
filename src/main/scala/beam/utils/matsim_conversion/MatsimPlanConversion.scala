@@ -181,7 +181,10 @@ object MatsimPlanConversion {
             }
 
             elem.copy(label = "activity", attributes = capitalizedAttrs)
-          case elem: Elem if elem.label == "leg" => NodeSeq.Empty
+          case elem: Elem if elem.label == "leg" =>
+            val attrs = elem.attributes
+            val filteredAttrs = attrs.filter(m => m.key.equals("mode"))
+            elem.copy(attributes = filteredAttrs)
           case o                                 => o
         }
       }
