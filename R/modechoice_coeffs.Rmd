@@ -1,0 +1,39 @@
+---
+title: "modechoice_coeffs"
+author: "Chris Day"
+date: "4/23/2021"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+
+In this markdown the calibrated activitysim mode choice coefficients and constants are compared with the default mode choice coefficients and constants in beam.
+
+First we read in some data. Then, the first comparison that is a spread point chart.
+
+```{r}
+as_trip_coeffs <- read_csv("trip_mode_choice_coeffs.csv")
+as_tour_coeffs <- read_csv("tour_mode_choice_coeffs.csv") %>%
+  mutate(mode = gsub('.{1}$', '', word(coefficient_name,1,sep="ASC")),
+         autos = word(sub(".*ASC_", "", coefficient_name),1,2,sep="_"),
+         auto_status = ifelse(autos %in% c("no_auto","auto_deficient","auto_sufficient"),autos,"not_specified"),
+         activity = 
+           case_when(
+             auto_status == "no_auto" ~ sub(".*auto_","",coefficient_name),
+             auto_status == "auto_deficient" ~ sub(".*deficient_","",coefficient_name),
+             auto_status == "auto_sufficient" ~ sub(".*sufficient_","",coefficient_name),
+             auto_status == "not_specified" ~ sub(".*ASC_","",coefficient_name)
+             )) 
+as_tour_coeffs<- tail(as_tour_coeffs,-32) %>%
+  select(coefficient_name, mode,auto_status,activity,value,constrain)
+```
+
+```{r}
+ggplot(data = as_tour_coeffs) + 
+  geom_point(mapping = aes(x = mode, y = value))
+```
+
