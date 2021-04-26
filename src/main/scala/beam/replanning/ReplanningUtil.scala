@@ -22,7 +22,7 @@ object ReplanningUtil {
 
     if (experiencedPlan != null && experiencedPlan.getPlanElements.size() > 0) {
       // keep track of the vehicles that been used during previous simulation
-      for (i <- 0 until (experiencedPlan.getPlanElements.size() - 1)) {
+      for (i <- 0 until (Math.min(experiencedPlan.getPlanElements.size(), person.getSelectedPlan.getPlanElements.size()) - 1)) {
         experiencedPlan.getPlanElements.get(i) match {
           case leg: Leg =>
             // Make sure it is not `null`

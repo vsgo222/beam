@@ -23,10 +23,11 @@ public class WavHandlersRunner {
 
 
     public static void main(String[] args){
-        String eventsFile = "output/slc_beam/sc_1/scenario_1_fullWc_01/ITERS/it.0/0.events.xml";
-        String networkFile = "output/slc_beam/sc_1/scenario_1_fullWc_01/output_network.xml.gz";
+        String path = "output/small_mix/";
+        String eventsFile = path + "outputEvents.xml.gz";
+        String networkFile = path + "outputNetwork.xml.gz";
         //String outputFile = "output/WAV/wav_250/route_ridership.csv";
-        String ridehailFleetFile = "test/input/scenario_1_fullWc/rideHailFleet_wav.csv";
+        String ridehailFleetFile = "test/input_new/small_mix/fleet_16.csv";
 
         Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
@@ -72,7 +73,7 @@ public class WavHandlersRunner {
 
         log.info("-------- General Travel Time information -------------");
         log.info("Average travel time for WC users on WAV: " + wrdc.getAverageWcTravelTime() + " minutes.");
-        log.info("Averge travel time for other users: " + wrdc.getAverageOtherTravelTime() + " minutes.");
+        log.info("Averge travel time for other users in ride_hail: " + wrdc.getAverageOtherTravelTime() + " minutes.");
 
         log.info("----- General WAV utilization statistics ----------");
 

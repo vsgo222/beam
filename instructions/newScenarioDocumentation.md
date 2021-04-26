@@ -2,6 +2,16 @@
 This document will describe how to create the salt lake scenario in Beam.
 --->
 
+# First steps: ActivitySim output
+ActivitySim writes a persons, houshoulds, and trips file. We also need the
+hhcoord file and the facility id table. These are the inputs into the
+plans maker (wav_microtransit_scenario repository)
+
+Verify that the trips file is arranged by person_id and `depart` (departure time).
+Then run the `InputFilesReader.java` class.
+
+This will write your *plans.xml.*
+
 # Create a New Scenario: Salt Lake City
 
 ## Conversion from MATSim to BEAM.
@@ -13,7 +23,7 @@ Input files needed:
 - network.xml
 - utah-latest.osm.pbf
 - tz49_d00_shp.zip
-- population.xml
+- population.xml (*plans.xml*)
 (r5 folder)
 - SLC.zip
 
@@ -46,6 +56,9 @@ matsim.conversion {
      tazIdFieldName = "TZ49_D00_I"
   }
 }
+beam.spatial.localCRS = "epsg:4326"
+# beam.routing.r5.mNetBuilder.toCRS = “epsg:4326”
+beam.spatial.boundingBoxBuffer = 10000
 ```
 Edit configurations to match the config file path and run. Should take about
 30 seconds to run.
@@ -111,3 +124,6 @@ Find and replace age from string to integer. (Fixed in the matsim plans maker)
 Change the time zone
 
 Maybe bounding box is too small for activities. This happens in the osmosis process
+
+verify the taz
+verify the ridehail coordinates input file

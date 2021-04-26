@@ -24,8 +24,8 @@ plugins {
     id "org.scoverage" version "2.5.0"
     id 'maven-publish'
     id "me.champeau.gradle.jmh" version "0.5.0"
-    //id 'org.springframework.boot' version '1.5.1.RELEASE' //This is new
     id "com.github.johnrengelman.shadow" version "5.2.0" //This is new
+
 }
 
 apply plugin: 'java'
@@ -347,9 +347,11 @@ tasks.withType(ScalaCompile) {
         scalaCompileOptions.additionalParameters = ["-unchecked", "-deprecation", "-feature",  "-Xfatal-warnings"]
     }
 }
+
 mainClassName = 'RunBeam'
 shadowJar{
     zip64 true
+    mergeServiceFiles('reference.conf')
     manifest{
         attributes 'Main-Class': mainClassName
     }
