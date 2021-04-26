@@ -26,11 +26,11 @@ library(data.table)
 
 
 #read in geojson file
-geojson_file = "R/fleet_areas2.geojson"
+shapefile = "Polygons2.shp"
 
 #tabulate the geojson file
-fleet_org <- st_read(geojson_file)%>%
-  select(area_id,fleet_id,FLEETSIZE,xcoord,ycoord,vehicleType,rideHailManagerId,geometry)%>%
+fleet_org <- st_read(shapefile)%>%
+  select(area_id,fleet_id,fleet_size,x_coord,y_coord,veh_type,managerID,geometry)%>%
   mutate(num = 1:n())
 
 #create wkt text relating to the geometry of the geojson
@@ -40,26 +40,33 @@ wkt <- sf_convert(fleet_org) %>% as_tibble() %>% mutate(num = 1:n())
 fleet_wkt <- left_join(fleet_org,wkt,by="num")
 
 #create the ridehailfleet table with the number of rows corresponding to fleetsize and then rename columns 
-rhfleet <- as.data.frame(lapply(fleet_wkt, rep, fleet_wkt$FLEETSIZE)) %>% as_tibble() %>%
+rhfleet <- as.data.frame(lapply(fleet_wkt, rep, fleet_wkt$fleet_size)) %>% as_tibble() %>%
   group_by(area_id,fleet_id) %>%
   mutate(number = 1:n(), 
     id = paste("rideHailVehicle", area_id,fleet_id, number,sep="-"),
-    initialLocationX = xcoord, 
-    initialLocationY = ycoord,
+    initialLocationX = x_coord, 
+    initialLocationY = y_coord,
     shifts = "{10:25200};{25300:80000}",
     geofenceX = NA, geofenceY = NA, geofenceRadius = NA,
     geofencePolygon = value) %>%
   ungroup() %>%
-  select(area_id,fleet_id,id,rideHailManagerId,vehicleType,initialLocationX,initialLocationY,
+  select(area_id,fleet_id,id,managerID,veh_type,initialLocationX,initialLocationY,
          shifts,geofenceX,geofenceY,geofenceRadius,geofencePolygon)
 
 #organize ridehailfleet table by area id and fleet id
 rhfleet_order<- rhfleet[with(rhfleet, order(area_id, fleet_id)), ] %>%
-  select(id,rideHailManagerId,vehicleType,initialLocationX,initialLocationY,
+  select(id,managerID,veh_type,initialLocationX,initialLocationY,
          shifts,geofenceX,geofenceY,geofenceRadius,geofencePolygon)
 
+#change column names to be correct
+colnames(rhfleet_order)[colnames(rhfleet_order) == 'managerID'] <- 'rideHailManagerId'
+colnames(rhfleet_order)[colnames(rhfleet_order) == 'veh_type'] <- 'vehicleType'
+
+#delete NA values from dataframe
+rhfleet_order[,c('geofenceX','geofenceY','geofenceRadius')] <- ""
+
 #write the rideHailFleet.csv
-write_csv(rhfleet_order,"R/rideHailFleetPolygonsFULL.csv")
+write_csv(rhfleet_order,"Fleet_with_fence.csv")
 
 
 
