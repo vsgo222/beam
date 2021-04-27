@@ -3,12 +3,6 @@
 
 # The following site can be usefull for understanding wkt R stuff
 #https://cran.r-project.org/web/packages/wellknown/wellknown.pdf
-# ------------------------------------------------------------------- #
-
-library(tidyverse)
-library(sf)
-library(wellknown)
-library(data.table)
 
 #creating a geojson file in QGIS
 #-	Layer/Create Layer/New Temporary Scratch Layer
@@ -66,11 +60,14 @@ colnames(rhfleet_order)[colnames(rhfleet_order) == 'veh_type'] <- 'vehicleType'
 rhfleet_order[,c('geofenceX','geofenceY','geofenceRadius')] <- ""
 
 #write the rideHailFleet.csv
-write_csv(rhfleet_order,"Fleet_with_fence.csv")
+write_csv(rhfleet_order,"rideHailFleetPolygons.csv")
 
 
-
-
+#write .txt file for VIA group
+write.table(rhfleet_order[,'id'],"rideHailFleetIDs.txt",
+  row.names = FALSE, 
+  quote = FALSE, 
+  col.names = FALSE)
 
 
 
