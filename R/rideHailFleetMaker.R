@@ -1,33 +1,23 @@
-# This R code with convert a geojson file of polygons into a 
+# This R code with convert a shapefile of polygons into a 
 # a csv table of wkt values
 
 # The following site can be usefull for understanding wkt R stuff
 #https://cran.r-project.org/web/packages/wellknown/wellknown.pdf
 
-#creating a geojson file in QGIS
-#-	Layer/Create Layer/New Temporary Scratch Layer
-#-	Select Geometry Type – Polygon
-#-	Select Coordinate System
-#-	Click Add Polygon, Create the Polygon, Make Attributes for it
-  #-	Open Attribute Table, Add New Fields (area_id,fleet_id,FLEETSIZE,xcoord,ycoord,vehicleType,rideHailManagerId)
-  #-	To create numerous fleets in the same area id, copy and paste the row using the copy and paste commands. 
+library(tidyverse)
+library(sf)
+library(wellknown)
+library(data.table)
 
-#-	Repeat for as many polygons as wanted
-#-	Right Click/Export/Save Feature as/GeoJSON
+#read in shapefile
+shapefile = "sf-light-geofencing/geofencedArea.shp"
 
-
-
-
-
-#read in geojson file
-shapefile = "Polygons2.shp"
-
-#tabulate the geojson file
+#tabulate the shapefile
 fleet_org <- st_read(shapefile)%>%
-  select(area_id,fleet_id,fleet_size,x_coord,y_coord,veh_type,managerID,geometry)%>%
+  select(area_id,fleet_id,fleet_size,x_coord,y_coord,veh_type,manager_id,geometry)%>%
   mutate(num = 1:n())
 
-#create wkt text relating to the geometry of the geojson
+#create wkt text relating to the geometry of the shapefile
 wkt <- sf_convert(fleet_org) %>% as_tibble() %>% mutate(num = 1:n())
 
 #a table including the wkt polygon
@@ -44,27 +34,28 @@ rhfleet <- as.data.frame(lapply(fleet_wkt, rep, fleet_wkt$fleet_size)) %>% as_ti
     geofenceX = NA, geofenceY = NA, geofenceRadius = NA,
     geofencePolygon = value) %>%
   ungroup() %>%
-  select(area_id,fleet_id,id,managerID,veh_type,initialLocationX,initialLocationY,
+  select(area_id,fleet_id,id,manager_id,veh_type,initialLocationX,initialLocationY,
          shifts,geofenceX,geofenceY,geofenceRadius,geofencePolygon)
 
 #organize ridehailfleet table by area id and fleet id
 rhfleet_order<- rhfleet[with(rhfleet, order(area_id, fleet_id)), ] %>%
-  select(id,managerID,veh_type,initialLocationX,initialLocationY,
+  select(id,manager_id,veh_type,initialLocationX,initialLocationY,
          shifts,geofenceX,geofenceY,geofenceRadius,geofencePolygon)
 
 #change column names to be correct
-colnames(rhfleet_order)[colnames(rhfleet_order) == 'managerID'] <- 'rideHailManagerId'
+colnames(rhfleet_order)[colnames(rhfleet_order) == 'manager_id'] <- 'rideHailManagerId'
 colnames(rhfleet_order)[colnames(rhfleet_order) == 'veh_type'] <- 'vehicleType'
 
 #delete NA values from dataframe
 rhfleet_order[,c('geofenceX','geofenceY','geofenceRadius')] <- ""
 
+
 #write the rideHailFleet.csv
-write_csv(rhfleet_order,"rideHailFleetPolygons.csv")
+write_csv(rhfleet_order,"rideHailFleet_geofenced.csv")
 
 
 #write .txt file for VIA group
-write.table(rhfleet_order[,'id'],"rideHailFleetIDs.txt",
+write.table(rhfleet_order[,'id'],"rideHailFleet_IDs.txt",
   row.names = FALSE, 
   quote = FALSE, 
   col.names = FALSE)
