@@ -8,32 +8,145 @@ output: html_document
 ```{r}
 library(tidyverse)
 library(ggplot2)
+library(scales)
 ```
 
-
+## Introduction
 In this markdown the calibrated activitysim mode choice coefficients and constants are compared with the default mode choice coefficients and constants in beam.
 
-First we read in some data. Then, the first comparison that is a spread point chart.
+## Read in Data
+First we read in some data. The beam_coeffs is a file containing a list of the mode choice coefficients found in a few of the beam configs. The as_trip_coeffs are the constants relating to trips in activitysim and the as_tour_coeffs are the constants relating to tours in activitysim. We will specifically compare the constants of the activitysim tours based on purpose with the constants in beam. 
 
 ```{r}
-as_trip_coeffs <- read_csv("trip_mode_choice_coeffs.csv")
-as_tour_coeffs <- read_csv("tour_mode_choice_coeffs.csv") %>%
+beam_coeffs <- read_csv("modechoice/beam_config_coeffs.csv")
+as_trip_coeffs <- read_csv("modechoice/trip_mode_choice_coeffs.csv")
+
+as_tour_coeffs <- read_csv("modechoice/tour_mode_choice_coeffs.csv") %>%
   mutate(mode = gsub('.{1}$', '', word(coefficient_name,1,sep="ASC")),
          autos = word(sub(".*ASC_", "", coefficient_name),1,2,sep="_"),
          auto_status = ifelse(autos %in% c("no_auto","auto_deficient","auto_sufficient"),autos,"not_specified"),
          activity = 
            case_when(
-             auto_status == "no_auto" ~ sub(".*auto_","",coefficient_name),
-             auto_status == "auto_deficient" ~ sub(".*deficient_","",coefficient_name),
-             auto_status == "auto_sufficient" ~ sub(".*sufficient_","",coefficient_name),
-             auto_status == "not_specified" ~ sub(".*ASC_","",coefficient_name)
+             auto_status == "no_auto" ~ sub(".*auto ","", gsub("_"," ",coefficient_name)),
+             auto_status == "auto_deficient" ~ sub(".*deficient ","", gsub("_"," ",coefficient_name)),
+             auto_status == "auto_sufficient" ~ sub(".*sufficient ","", gsub("_"," ",coefficient_name)),
+             auto_status == "not_specified" ~ sub(".*ASC ","", gsub("_"," ",coefficient_name))
              )) 
 as_tour_coeffs<- tail(as_tour_coeffs,-32) %>%
   select(coefficient_name, mode,auto_status,activity,value,constrain)
 ```
 
+## Create Spread Point Charts
+As a way of comparison, a spred point chart for each mode is created. The modegrapher function is used to better organize each mode. The autographer function is another way of showing the same data. The functions themselves are described more further down. 
+
 ```{r}
-ggplot(data = as_tour_coeffs) + 
-  geom_point(mapping = aes(x = mode, y = value))
+#a chart showing each mode's constants relating to as purpose and beam
+modegrapher(as_tour_coeffs, "walk")
+modegrapher(as_tour_coeffs, "bike")
+modegrapher(as_tour_coeffs, "sr2")
+modegrapher(as_tour_coeffs, "sr3p")
+modegrapher(as_tour_coeffs, "walk_transit")
+modegrapher(as_tour_coeffs, "drive_transit")
+modegrapher(as_tour_coeffs, "taxi")
+modegrapher(as_tour_coeffs, "tnc_single")
+modegrapher(as_tour_coeffs, "all")
+
+#a chart showing each constant based on their auto type; each mode is represented in each graph
+autographer(as_tour_coeffs,"not_specified")
+autographer(as_tour_coeffs, "auto_sufficient")
+autographer(as_tour_coeffs, "auto_deficient")
+autographer(as_tour_coeffs, "no_auto")
+autographer(as_tour_coeffs, "all")
+
+#a chart showing the joint coefficients
+jointgrapher(as_tour_coeffs, "all")
 ```
+
+## Functions
+Three functions are created as a way to interpret the data and create a spread point chart. The modegrapher function takes in the activitysim tours coefficient data set and the name of the mode that you want to chart, and creates a chart based on the criteria. The autographer functions divides up the data by auto dependency, and all modes are shown on each chart. The jointgrapher simply displays the joint mode options. 
+
+```{r}
+modegrapher <- function(as_coeffs, mode_choice){
+  if(mode_choice == "all"){
+    plot <- ggplot(data = as_coeffs) +
+      geom_point(mapping = aes(x = activity, y = value, color = auto_status)) +
+      facet_grid(~mode)
+    return(plot)
+  } else {
+    beamval <- beam_coeffs %>% filter(mode == mode_choice)
+    as_mode <- as_coeffs %>% 
+      filter(mode == mode_choice | mode == paste("joint_",mode_choice,sep="")) %>% 
+      filter(value > -100)
+    plot <- ggplot(data = as_mode) +
+      geom_point(mapping = aes(x = activity, y = value, color = auto_status)) +
+      scale_x_discrete(labels = wrap_format(10)) +
+      theme(axis.text.x=element_text(angle = 90, hjust = 1)) +
+      geom_hline(aes(yintercept = beamval$value, linetype = beamval$config), data = beamval) +
+      ggtitle(mode_choice)
+    return(plot)}
+}
+```
+
+```{r}
+autographer <- function(as_coeffs, auto){
+ if (auto == "all"){
+   as_mode <- as_coeffs %>% 
+      filter(auto_status %in% c("no_auto","auto_sufficient","auto_deficient","not_specified") &  
+             !str_detect(mode,"joint")) %>% filter(value > -100)
+   plot <- ggplot(data = as_mode) +
+      geom_point(mapping = aes(x = activity, y = value, color = mode)) +
+      #scale_x_discrete(labels = wrap_format(25)) +
+      theme(axis.text.x=element_text(angle = 90, hjust = 1)) +
+      ggtitle("All auto modes") +
+      facet_grid(~auto_status)
+   return(plot)
+ } else {
+   as_mode <- as_coeffs %>% 
+      filter(auto_status == auto & !str_detect(mode,"joint")) %>% filter(value > -100)
+   plot <- ggplot(data = as_mode) +
+      geom_point(mapping = aes(x = activity, y = value, color = mode)) +
+      scale_x_discrete(labels = wrap_format(10)) +
+     theme(axis.text.x=element_text(angle = 90, hjust = 1)) +
+      ggtitle(auto)
+    return(plot)}
+}
+```
+
+```{r}
+
+jointgrapher <- function(as_coeffs, act_type){
+  as_mode <- as_coeffs %>% filter(activity == act_type)
+  plot <- ggplot(data = as_mode) +
+    geom_point(mapping = aes(x = mode, y = value, color = auto_status)) +
+    facet_wrap(~activity) +
+    theme(axis.text.x=element_text(angle = 90, hjust = 0))
+  return(plot)
+}
+```
+
+## Other
+The following code below was used to help create the ggplots above. Some of the things below can still be implemented in the charts, but I just don't feel like doing it right now. For example, it shows how to change the axis titles. 
+
+```{r}
+plot.iris <- ggplot(iris, aes(Sepal.Length, Sepal.Width)) + 
+  geom_point() + facet_grid(. ~ Species) + stat_smooth(method = "lm") +
+  background_grid(major = 'y', minor = "none") + # add thin horizontal lines 
+  panel_border() # and a border around each panel
+
+library(scales)
+ggplot(df, aes(x, y)) + geom_bar(stat = "identity") + 
+    labs(x = "", y = "Number of Participants") + 
+    scale_x_discrete(labels = wrap_format(10)) +
+    theme(axis.text.x=element_text(angle = 90, hjust = 0))
+
+ggplot(vehicles, aes(x = vehyear, y = od_read, color = make)) + 
+  geom_point(alpha = 0.5) + 
+  scale_color_discrete("Manufacturer") + 
+  stat_smooth(method = "loess") + 
+  facet_wrap(~vehtype) +
+  xlab("Vehicle Model Year") + ylab("Odometer Reading") +
+  theme_bw()
+```
+
+
 
