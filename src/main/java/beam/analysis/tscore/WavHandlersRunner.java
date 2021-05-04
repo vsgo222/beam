@@ -2,6 +2,7 @@ package beam.analysis.tscore;
 
 import beam.sim.RideHailFleetInitializer;
 import beam.sim.RideHailFleetInitializer.RideHailAgentInputData;
+import cats.kernel.Hash;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.core.api.experimental.events.EventsManager;
@@ -46,7 +47,7 @@ public class WavHandlersRunner {
 
        // print into log file
         aec.printEventCounts();
-
+        HashMap<String, String> check = wrdc.getEmptyTime();
         log.info("Total number of people entering a vehicle: " + wrdc.getTotalPersonEntersVehicle());
         log.info("Number of people entering a 'ride hail' vehicle: " + wrdc.getTotalRideHailCount());
         log.info("Total wait time: " + wrdc.getTotalWaitTimeForAllPeople() + " seconds.");

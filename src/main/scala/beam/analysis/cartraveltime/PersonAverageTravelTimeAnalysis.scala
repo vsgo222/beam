@@ -2,9 +2,11 @@ package beam.analysis.cartraveltime
 
 import beam.analysis.plots.{GraphAnalysis, GraphUtils, GraphsStatsAgentSimEventsListener}
 import beam.sim.config.BeamConfig
+
 import javax.inject.Inject
 import org.jfree.chart.ChartFactory
 import org.jfree.chart.axis.{NumberTickUnit, TickUnits}
+import org.jfree.chart.plot.PlotOrientation
 import org.jfree.data.xy.{XYDataItem, XYDataset, XYSeries}
 import org.matsim.api.core.v01.events._
 import org.matsim.core.controler.events.IterationEndsEvent
@@ -260,7 +262,7 @@ class PersonAverageTravelTimeAnalysis @Inject()(
     val fileName = "averageCarTravelTimes.png"
     val outputDirectoryHierarchy = event.getServices.getControlerIO
     val chart =
-      ChartFactory.createXYLineChart("Average Travel Times [Car]", "Iteration", "Average Travel Time [min]", dataSet)
+      ChartFactory.createXYLineChart("Average Travel Times [Car]", "Iteration", "Average Travel Time [min]", dataSet, PlotOrientation.HORIZONTAL, true, false, false)
     val xyPlot = chart.getXYPlot
     val xAxis = xyPlot.getDomainAxis()
 

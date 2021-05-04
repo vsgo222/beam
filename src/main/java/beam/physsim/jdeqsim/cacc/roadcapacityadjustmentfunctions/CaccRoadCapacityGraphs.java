@@ -40,7 +40,7 @@ class CaccRoadCapacityGraphs {
 
         JFreeChart chart = ChartFactory.createScatterPlot(
                 plotTitle,
-                x_axis, y_axis, dataset);
+                x_axis, y_axis, dataset, PlotOrientation.HORIZONTAL, true, false, false);
 
         try {
             ChartUtilities.saveChartAsPNG(new File(graphImageFile), chart, width,

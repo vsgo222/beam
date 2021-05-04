@@ -329,5 +329,5 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
         return (travelTimeOtherSum / travelTimeOtherCount) / 60;
     }
 
-
+    public HashMap<String, String>  getEmptyTime(){ return wavUtilizationMap.getAverageTimes(); }
 }
