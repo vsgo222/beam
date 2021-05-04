@@ -92,3 +92,9 @@ test/input/slc_beam/*.h5
 *.7z
 
 test/input/beamville/
+
+test/input/slc-light/calibration/*
+test/input/slc-light/conversion-input/*
+test/input/slc-light/data/*
+test/input/slc-light/r5/*
+test/input/slc-light/sample/*
