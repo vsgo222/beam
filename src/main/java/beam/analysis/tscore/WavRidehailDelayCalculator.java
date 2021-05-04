@@ -157,7 +157,7 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
 
     @Override
     public void handleEvent(PersonLeavesVehicleEvent event) {
-
+        wavUtilizationMap.personLeavesVehicle(event.getVehicleId().toString(), event.getTime());
     }
 
 

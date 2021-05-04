@@ -23,11 +23,11 @@ public class WavHandlersRunner {
 
 
     public static void main(String[] args){
-        String path = "output/mode_change/";
+        String path = "output/small/";
         String eventsFile = path + "outputEvents.xml.gz";
         String networkFile = path + "output_network.xml.gz";
         //String outputFile = "output/WAV/wav_250/route_ridership.csv";
-        String ridehailFleetFile = "test/input_new/small_mix/fleet_16.csv";
+        String ridehailFleetFile = "output/small/fleet_16.csv";
 
         Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
@@ -53,7 +53,6 @@ public class WavHandlersRunner {
         log.info("Total trips count: " + wrdc.getNumberOfTrips());
 
         log.info("------ WAV ridership information ---------");
-        log.info("Number of requests (of wc requests): " + wrdc.getRequestCount());
         log.info("Number of all people entering WAVs: " + wrdc.getTotalWavCount());
         log.info("Total number of wc users in Wavs: " + wrdc.getWcPeopleInWavs());
         log.info("total wait time for WC users: " + wrdc.getTotalWaitTimeForWcPeople());
@@ -63,7 +62,7 @@ public class WavHandlersRunner {
         log.info("Total wait time for others in wavs: " + wrdc.getTotalWaitTimeforOtherInWavs());
         log.info("Total trips for others in wavs: " + wrdc.getTotalTripsOthersInWavs());
         log.info("Average wait time for others in wavs: " + wrdc.getAverageOtherInWavWaitTime() + " minutes.");
-        log.info("Percent Wc of all people using WAVs: " + wrdc.getPercentWcInWavs() + " %");
+        log.info("Percent of Wc people using WAVs: " + wrdc.getPercentWcInWavs() + " %");
 
         log.info("------- General non-wav ride hail information -----------");
         log.info("Total number of other people enter a ride hail: " + wrdc.getRideHailCount());
