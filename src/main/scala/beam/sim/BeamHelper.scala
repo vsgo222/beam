@@ -205,6 +205,7 @@ trait BeamHelper extends LazyLogging {
           addPlanStrategyBinding("AddSupplementaryTrips").to(classOf[AddSupplementaryTrips])
           addPlanStrategyBinding("ClearRoutes").to(classOf[ClearRoutes])
           addPlanStrategyBinding("ClearModes").to(classOf[ClearModes])
+          addPlanStrategyBinding("ClearSomeModes").to(classOf[ClearSomeModes])
           addPlanStrategyBinding("TimeMutator").to(classOf[BeamTimeMutator])
           addPlanStrategyBinding(BeamReplanningStrategy.UtilityBasedModeChoice.toString)
             .toProvider(classOf[UtilityBasedModeChoice])

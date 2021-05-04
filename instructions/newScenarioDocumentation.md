@@ -57,7 +57,7 @@ matsim.conversion {
   }
 }
 beam.spatial.localCRS = "epsg:4326"
-# beam.routing.r5.mNetBuilder.toCRS = “epsg:4326”
+# beam.routing.r5.mNetBuilder.toCRS = “epsg:26912”
 beam.spatial.boundingBoxBuffer = 10000
 ```
 Edit configurations to match the config file path and run. Should take about

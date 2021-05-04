@@ -29,6 +29,7 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
     Map<String, Double> totalWaitTimeOtherInWavMap = new HashMap<>();
     Map<String, Double> totalWaitTimeOtherMap = new HashMap<>();
     Map<String, Double> reserveTimeMap = new HashMap<>();
+    WavUtilizationMap wavUtilizationMap = new WavUtilizationMap();
 
     Double totalWaitTimeForAllPeople = 0.0;
     Double totalWaitTimeForWcPeople = 0.0;
@@ -41,6 +42,7 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
     int numberOfOtherTrips = 0;
 
     int wavCount = 0;
+    int requestCount = 0;
 
     // calculating travel times
     Map<String, Double> departureTimes = new HashMap<>();
@@ -68,6 +70,10 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
                 String thisVehicleType = rhm.get(thisVehicle).vehicleType();
 
                 if (thisVehicleType.equals("WAV")) {
+                    // This pertains to the vehicle utilization per hour
+                    wavUtilizationMap.addVehicle(event.getVehicleId().toString());
+                    wavUtilizationMap.personEntersVehicle(event.getVehicleId().toString(),event.getTime());
+
                     wavCount++;
                     // wc users in wavs
                     if (thisPerson.contains("wc")) {
@@ -161,6 +167,9 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
         String thisPerson = genericEvent.getAttributes().get("person");
 
         if (genericEvent.getEventType().contains("Reserve")){
+            if (genericEvent.getAttributes().get("person").contains("wc")) {
+                requestCount++;
+            }
             Double requestTime = genericEvent.getTime();
             reserveTimeMap.put(thisPerson, requestTime);
         }
@@ -241,6 +250,11 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
     // total wc trips count
     public int getNumberOfWcTrips() {
         return numberOfWcTrips;
+    }
+
+    // number of requests
+    public int getRequestCount() {
+        return requestCount;
     }
 
     // compute average wait time for wheelchair users
