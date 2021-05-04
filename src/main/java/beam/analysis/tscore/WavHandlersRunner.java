@@ -23,7 +23,7 @@ public class WavHandlersRunner {
 
 
     public static void main(String[] args){
-        String path = "output/small_wc/";
+        String path = "output/mode_change/";
         String eventsFile = path + "outputEvents.xml.gz";
         String networkFile = path + "output_network.xml.gz";
         //String outputFile = "output/WAV/wav_250/route_ridership.csv";

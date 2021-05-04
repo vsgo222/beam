@@ -29,6 +29,7 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
     Map<String, Double> totalWaitTimeOtherInWavMap = new HashMap<>();
     Map<String, Double> totalWaitTimeOtherMap = new HashMap<>();
     Map<String, Double> reserveTimeMap = new HashMap<>();
+    WavUtilizationMap wavUtilizationMap = new WavUtilizationMap();
 
     Double totalWaitTimeForAllPeople = 0.0;
     Double totalWaitTimeForWcPeople = 0.0;
@@ -69,6 +70,10 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
                 String thisVehicleType = rhm.get(thisVehicle).vehicleType();
 
                 if (thisVehicleType.equals("WAV")) {
+                    // This pertains to the vehicle utilization per hour
+                    wavUtilizationMap.addVehicle(event.getVehicleId().toString());
+                    wavUtilizationMap.personEntersVehicle(event.getVehicleId().toString(),event.getTime());
+
                     wavCount++;
                     // wc users in wavs
                     if (thisPerson.contains("wc")) {
