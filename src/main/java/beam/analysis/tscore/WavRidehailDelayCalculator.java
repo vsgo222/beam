@@ -59,14 +59,16 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
 
     @Override
     public void handleEvent(PersonEntersVehicleEvent event) {
+        String thisPerson = event.getPersonId().toString();
+        String thisVehicle = event.getVehicleId().toString();
         if(event.getTime() != 0.0) {
             // counts the number of people in vehicles
-            String thisPerson = event.getPersonId().toString();
+
             peopleInVehicles++;
-            String thisVehicle = event.getVehicleId().toString();
+
             // if rideHail, get the vehicle type
             if (thisVehicle.contains("rideHail")) {
-                totalRideHailCount++;
+
                 String thisVehicleType = rhm.get(thisVehicle).vehicleType();
 
                 if (thisVehicleType.equals("WAV")) {
@@ -74,7 +76,7 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
                     wavUtilizationMap.addVehicle(event.getVehicleId().toString());
                     wavUtilizationMap.personEntersVehicle(event.getVehicleId().toString(),event.getTime());
 
-                    wavCount++;
+
                     // wc users in wavs
                     if (thisPerson.contains("wc")) {
                         // count number of users
@@ -151,7 +153,15 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
             // count time used (by hour of day)
             // count time empty (by hour of day)
         }
-
+        else {
+            if (thisVehicle.contains("rideHail")) {
+                totalRideHailCount++;
+                String thisVehicleType = rhm.get(thisVehicle).vehicleType();
+                if (thisVehicleType.equals("WAV")) {
+                    wavCount++;
+                }
+            }
+        }
 
     }
 

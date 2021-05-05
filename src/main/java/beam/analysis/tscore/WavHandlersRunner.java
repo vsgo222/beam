@@ -48,6 +48,15 @@ public class WavHandlersRunner {
        // print into log file
         aec.printEventCounts();
         HashMap<String, String> check = wrdc.getEmptyTime();
+        int nonNull = 0;
+        log.info("Average time for WAV's sitting empty: ");
+        for (Map.Entry<String, String> id: check.entrySet()){
+            if (id.getKey() != null)
+                nonNull++;
+            log.info(id.getKey() + "'s average time sitting empty: " + id.getValue());
+        }
+        int trys = wrdc.getTotalWavCount();
+        log.info("Ratio of WAV's being used: " + ((double)nonNull/wrdc.getTotalWavCount()));
         log.info("Total number of people entering a vehicle: " + wrdc.getTotalPersonEntersVehicle());
         log.info("Number of people entering a 'ride hail' vehicle: " + wrdc.getTotalRideHailCount());
         log.info("Total wait time: " + wrdc.getTotalWaitTimeForAllPeople() + " seconds.");

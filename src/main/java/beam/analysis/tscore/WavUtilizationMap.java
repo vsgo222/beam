@@ -72,7 +72,6 @@ public class WavUtilizationMap {
         return averages;
     }
     private double getAverageTime(String id){ // Goes through an entry of the map (a vehicle) and gets average empty time
-        getEmptyTimes();
         double average = 0.0;
         for(int i = 0; i < 29; i++){
             average += emptyTracker.get(id)[i];
@@ -87,10 +86,11 @@ public class WavUtilizationMap {
     }
     private double[] getEmptyTime(String id){
         double[] data = hourTracker.get(id)[1];
+        double[] reversed = new double[data.length];
         for (int i = 0; i < data.length; i++){
-            data[i] = 3600 - data[i];
+            reversed[i] = 3600 - data[i];
         }
-        return data;
+        return reversed;
     }
     private double[][] putInHours(){
         double[][] unfinishedArray = new double[2][30];
