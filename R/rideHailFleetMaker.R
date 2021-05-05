@@ -10,7 +10,7 @@ library(wellknown)
 library(data.table)
 
 #read in shapefile
-shapefile = "sf-light-geofencing/geofencedArea.shp"
+shapefile = "Polygons.shp"
 
 #tabulate the shapefile
 fleet_org <- st_read(shapefile)%>%
@@ -22,6 +22,10 @@ wkt <- sf_convert(fleet_org) %>% as_tibble() %>% mutate(num = 1:n())
 
 #a table including the wkt polygon
 fleet_wkt <- left_join(fleet_org,wkt,by="num")
+
+################Start here if using "noSpecificFleet.csv"###############
+
+#fleet_wkt <- read_csv("noSpecificFleet.csv")
 
 #create the ridehailfleet table with the number of rows corresponding to fleetsize and then rename columns 
 rhfleet <- as.data.frame(lapply(fleet_wkt, rep, fleet_wkt$fleet_size)) %>% as_tibble() %>%
