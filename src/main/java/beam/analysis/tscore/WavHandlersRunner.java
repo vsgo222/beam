@@ -2,6 +2,7 @@ package beam.analysis.tscore;
 
 import beam.sim.RideHailFleetInitializer;
 import beam.sim.RideHailFleetInitializer.RideHailAgentInputData;
+import cats.kernel.Hash;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.core.api.experimental.events.EventsManager;
@@ -23,11 +24,11 @@ public class WavHandlersRunner {
 
 
     public static void main(String[] args){
-        String path = "output/mode_change/";
+        String path = "output/small/";
         String eventsFile = path + "outputEvents.xml.gz";
         String networkFile = path + "output_network.xml.gz";
         //String outputFile = "output/WAV/wav_250/route_ridership.csv";
-        String ridehailFleetFile = "test/input_new/small_mix/fleet_16.csv";
+        String ridehailFleetFile = "output/small/fleet_16.csv";
 
         Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
@@ -46,14 +47,22 @@ public class WavHandlersRunner {
 
        // print into log file
         aec.printEventCounts();
-
+        HashMap<String, String> check = wrdc.getEmptyTime();
+        int nonNull = 0;
+        log.info("Average time for WAV's sitting empty: ");
+        for (Map.Entry<String, String> id: check.entrySet()){
+            if (id.getKey() != null)
+                nonNull++;
+            log.info(id.getKey() + "'s average time sitting empty: " + id.getValue());
+        }
+        int trys = wrdc.getTotalWavCount();
+        log.info("Ratio of WAV's being used: " + ((double)nonNull/wrdc.getTotalWavCount()));
         log.info("Total number of people entering a vehicle: " + wrdc.getTotalPersonEntersVehicle());
         log.info("Number of people entering a 'ride hail' vehicle: " + wrdc.getTotalRideHailCount());
         log.info("Total wait time: " + wrdc.getTotalWaitTimeForAllPeople() + " seconds.");
         log.info("Total trips count: " + wrdc.getNumberOfTrips());
 
         log.info("------ WAV ridership information ---------");
-        log.info("Number of requests (of wc requests): " + wrdc.getRequestCount());
         log.info("Number of all people entering WAVs: " + wrdc.getTotalWavCount());
         log.info("Total number of wc users in Wavs: " + wrdc.getWcPeopleInWavs());
         log.info("total wait time for WC users: " + wrdc.getTotalWaitTimeForWcPeople());
@@ -63,7 +72,7 @@ public class WavHandlersRunner {
         log.info("Total wait time for others in wavs: " + wrdc.getTotalWaitTimeforOtherInWavs());
         log.info("Total trips for others in wavs: " + wrdc.getTotalTripsOthersInWavs());
         log.info("Average wait time for others in wavs: " + wrdc.getAverageOtherInWavWaitTime() + " minutes.");
-        log.info("Percent Wc of all people using WAVs: " + wrdc.getPercentWcInWavs() + " %");
+        log.info("Percent of Wc people using WAVs: " + wrdc.getPercentWcInWavs() + " %");
 
         log.info("------- General non-wav ride hail information -----------");
         log.info("Total number of other people enter a ride hail: " + wrdc.getRideHailCount());
