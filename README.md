@@ -77,6 +77,7 @@ shadowJar{
  
  This example is using the default scenario BEAMVILLE. 
  
+ 9. You will need the additional input files for your scenario as well, otherwise you'll get a error for missing files. 
  
  **Trouble Shooting**
  - If you're having trouble with memory issues, you may have a 32-bit Java Virtual Machine. You can lower the memory allocation by changing the -Xmx8g to -Xmx4g, but for bigger scenarios, you'll run out of memory. You can also try to run this on a lab computer to test it. 
