@@ -104,3 +104,4 @@ test/input/siouxfalls/
 
 activitysim_output/*.csv
 activitysim_output/*/*.csv
+test/input/slc_test_fence/rh*.csv
