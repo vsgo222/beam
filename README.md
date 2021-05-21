@@ -21,7 +21,7 @@ check out the [developer guide](http://beam.readthedocs.io/en/latest/developers.
 ## Project website: 
 http://beam.lbl.gov/
 
-### Running BEAM on the SuperComputer:
+# Running BEAM on the SuperComputer:
 To run BEAM with a scenario on the SuperComputer, follow these steps:
 1. Make sure you have an account with the BYU Research Computing Department. https://rc.byu.edu/ If they ask for a sponsor, find the netID of your professor you're researching with. Set up your account with a password and authentication keys. 
 
