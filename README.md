@@ -30,27 +30,27 @@ To run BEAM with a scenario on the SuperComputer, follow these steps:
 3. You will need a few extra files: the common folder (test/input/common) and the scenario folder (test/input/beamville).
 
 4. Your files should be positioned like this:
--  *folder name*
-    - test
-        - input
-            - beamville (or the scenario you're running)
-            - common
-    - beam jar
+    -  *folder name*
+        - test
+            - input
+                - beamville (or the scenario you're running)
+                - common
+        - beam jar
 
 5. Once you have your files positioned, secure-copy your files to the SuperComputer. Open a terminal like Windows Powershell or a Linux Terminal:
-- Navigate to your file that contains the jar and test folder. Hint: "cd .\folder"
-- Use the command "scp -r ./ *your_username*@ssh.rc.byu.edu:/fslhome/*your_username*"
-- Type in your password and verification code according to the terminal prompts.
+    - Navigate to your file that contains the jar and test folder. Hint: "cd .\folder"
+    - Use the command "scp -r ./ *your_username*@ssh.rc.byu.edu:/fslhome/*your_username*"
+    - Type in your password and verification code according to the terminal prompts.
 
 6. Login to the SuperComputer.
-- Use the command "ssh *your_username*@ssh.rc.byu.edu"
-- Type in your password and verification code according to the terminal prompts.
+    - Use the command "ssh *your_username*@ssh.rc.byu.edu"
+    - Type in your password and verification code according to the terminal prompts.
 
 7. Run the jar.
-- Use the command "java -jar -Xmx8g .\build\libs\beam-0.8.0-all.jar --config test/input/beamville/beam.conf"
+    - Use the command "java -jar -Xmx8g .\build\libs\beam-0.8.0-all.jar --config test/input/beamville/beam.conf"
 
 8. View the created outputfiles and SCP them back to your computer for analysis. 
-- Use the command "scp -r *your_username*@ssh.rc.byu.edu:/fslhome/username/*output_folder* Documents/
+    - Use the command "scp -r *your_username*@ssh.rc.byu.edu:/fslhome/username/*output_folder* Documents/
 
 
 ## Building BEAM as a JAR through Gradle:
