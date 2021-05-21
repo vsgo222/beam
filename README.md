@@ -27,7 +27,7 @@ To run BEAM with a scenario on the SuperComputer, follow these steps:
 
 2. You will need to build BEAM as a JAR through Gradle. See down below. You will not be able to use IntelliJ on the SuperComputer, so you will need to use a FatJar, which includes all packages in the JAR. 
 
-3. You will need a few extra files: the common folder (test/input/common) and the scenario folder (test/input/beamville).
+3. You will need a few extra files: the common folder (test/input/common), the dtd folder (test/input/dtd) and the scenario folder (test/input/beamville).
 
 4. Your files should be positioned like this:
     -  *folder name*
@@ -35,6 +35,7 @@ To run BEAM with a scenario on the SuperComputer, follow these steps:
             - input
                 - beamville (or the scenario you're running)
                 - common
+                - dtd
         - beam jar
 
 5. Once you have your files positioned, secure-copy your files to the SuperComputer. Open a terminal like Windows Powershell or a Linux Terminal:
