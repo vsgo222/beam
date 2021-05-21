@@ -21,6 +21,37 @@ check out the [developer guide](http://beam.readthedocs.io/en/latest/developers.
 ## Project website: 
 http://beam.lbl.gov/
 
+### Running BEAM on the SuperComputer:
+To run BEAM with a scenario on the SuperComputer, follow these steps:
+1. Make sure you have an account with the BYU Research Computing Department. https://rc.byu.edu/ If they ask for a sponsor, find the netID of your professor you're researching with. Set up your account with a password and authentication keys. 
+
+2. You will need to build BEAM as a JAR through Gradle. See down below. You will not be able to use IntelliJ on the SuperComputer, so you will need to use a FatJar, which includes all packages in the JAR. 
+
+3. You will need a few extra files: the common folder (test/input/common) and the scenario folder (test/input/beamville).
+
+4. Your files should be positioned like this:
+-  *folder name*
+    - test
+        - input
+            - beamville (or the scenario you're running)
+            - common
+    - beam jar
+
+5. Once you have your files positioned, secure-copy your files to the SuperComputer. Open a terminal like Windows Powershell or a Linux Terminal:
+- Navigate to your file that contains the jar and test folder. Hint: "cd .\folder"
+- Use the command "scp -r ./ *your_username*@ssh.rc.byu.edu:/fslhome/*your_username*"
+- Type in your password and verification code according to the terminal prompts.
+
+6. Login to the SuperComputer.
+- Use the command "ssh *your_username*@ssh.rc.byu.edu"
+- Type in your password and verification code according to the terminal prompts.
+
+7. Run the jar.
+- Use the command "java -jar -Xmx8g .\build\libs\beam-0.8.0-all.jar --config test/input/beamville/beam.conf"
+
+8. View the created outputfiles and SCP them back to your computer for analysis. 
+- Use the command "scp -r *your_username*@ssh.rc.byu.edu:/fslhome/username/*output_folder* Documents/
+
 
 ## Building BEAM as a JAR through Gradle:
 1. Once your BEAM project is running on an IDE like IntelliJ, go to your build.gradle file.
