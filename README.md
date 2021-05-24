@@ -73,8 +73,11 @@ To run BEAM with a scenario on the SuperComputer, follow these steps:
     - sbatch *shell_script.sh* // This runs your script
         - You will see "Submitted batch job ##########"
     - tail -f slurm-######## //This puts your script log into the terminal 
-10. View the created outputfiles and SCP them back to your computer for analysis. 
-    - Use the command "scp -r *your_username*@ssh.rc.byu.edu:/fslhome/username/*output_folder* Documents/
+        - Make sure the slurm file that you put in this command aligns with the batch job ID you just saw. 
+10. Zip the created outputfiles.
+    - Use the command "7z a outputs.7z output/*"
+
+## TODO: Using RClone to mount a Box Drive on your node so you don't have to SCP massive output files. 
 
 
 ## Building BEAM as a JAR through Gradle:
