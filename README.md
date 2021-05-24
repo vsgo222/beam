@@ -49,6 +49,7 @@ To run BEAM with a scenario on the SuperComputer, follow these steps:
 
 7. Run the jar.
     - Use the command "java -jar -Xmx8g .\build\libs\beam-0.8.0-all.jar --config test/input/beamville/beam.conf"
+        - Xmx8g = 8 GB. Bigger scenarios will 100% need more RAM.
 
 8. View the created outputfiles and SCP them back to your computer for analysis. 
     - Use the command "scp -r *your_username*@ssh.rc.byu.edu:/fslhome/username/*output_folder* Documents/
