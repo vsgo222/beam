@@ -44,14 +44,36 @@ To run BEAM with a scenario on the SuperComputer, follow these steps:
     - Type in your password and verification code according to the terminal prompts.
 
 6. Login to the SuperComputer.
-    - Use the command "ssh *your_username*@ssh.rc.byu.edu"
-    - Type in your password and verification code according to the terminal prompts.
+    - Go to https://viz.rc.byu.edu:3443/
+        - This is a desktop interface for the SuperComputer. 
+    - Start a new session by clicking on the blue + button on the left side of the screen.
+    - Click "Cinnamon" and "Launch".
+    - You're now viewing a graphical interface for the SuperComputer you're going to run scenarios on. 
+ 
+7. Write the Slurm Script to run your Jar.
+    - Slurm is how your job gets allocated resources. You need to build a .sh script for it. 
+    - In your Home Directory in the SuperComputer, type vim *nameOfScript*.sh
+    - For the first half of your script, go to https://rc.byu.edu/documentation/slurm/script-generator
+        - In the parameters section, put in what resources you will need. 
+        - Example: ![image](https://user-images.githubusercontent.com/59575386/119387505-45f11880-bc86-11eb-8192-1dad278ee4c2.png)
+        - This will generate the first half of your script. Copy and paste it into the .sh file you created. Be sure to familiarize yourself with vim commands. 
+    - For the second half of your script, you will need to:
+        1. Load some modules. Type on separate lines:
+            - module purge 
+            - module load java
+            - module list
+        2. Type the command to get into your scenario's file directory
+            - Example: cd beamville
+            - Otherwise, your script won't be able to access the jar.
+        3. Type the command "java -jar -Xmx8g .\build\libs\beam-0.8.0-all.jar --config test/input/beamville/beam.conf"
+            - Xmx8g = 8 GB. Bigger scenarios will 100% need more RAM.
+            - --config is directed at the beamville config. Adjust for your scenario's config. 
 
-7. Run the jar.
-    - Use the command "java -jar -Xmx8g .\build\libs\beam-0.8.0-all.jar --config test/input/beamville/beam.conf"
-        - Xmx8g = 8 GB. Bigger scenarios will 100% need more RAM.
-
-8. View the created outputfiles and SCP them back to your computer for analysis. 
+8. Run the script with some additional commands to view log output in the terminal.
+    - sbatch *shell_script.sh* // This runs your script
+        - You will see "Submitted batch job ##########"
+    - tail -f slurm-######## //This puts your script log into the terminal 
+10. View the created outputfiles and SCP them back to your computer for analysis. 
     - Use the command "scp -r *your_username*@ssh.rc.byu.edu:/fslhome/username/*output_folder* Documents/
 
 
