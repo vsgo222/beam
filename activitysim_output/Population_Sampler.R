@@ -9,9 +9,11 @@ if(exists('allPersons') == FALSE) allPersons <- read_csv("final_persons.csv")
 if(exists('allTrips') == FALSE) allTrips <- read_csv("final_trips.csv")
 TAZinZone <- unname(deframe(read_csv("TAZ_in_Zone.csv")))
 
+###############################################################################
+
 #Set percent of people to sample
-pctInZone = 50
-pctOutZone = 3
+pctInZone = 100
+pctOutZone = 100
 
 #Set output folder naming scheme
 outputFolder <- paste("SampleFiles_",pctInZone,"-",pctOutZone, sep = "")
