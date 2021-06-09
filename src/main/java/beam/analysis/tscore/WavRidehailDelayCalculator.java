@@ -68,15 +68,11 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
 
             // if rideHail, get the vehicle type
             if (thisVehicle.contains("rideHail")) {
-
                 String thisVehicleType = rhm.get(thisVehicle).vehicleType();
-
                 if (thisVehicleType.equals("WAV")) {
                     // This pertains to the vehicle utilization per hour
                     wavUtilizationMap.addVehicle(event.getVehicleId().toString());
                     wavUtilizationMap.personEntersVehicle(event.getVehicleId().toString(),event.getTime());
-
-
                     // wc users in wavs
                     if (thisPerson.contains("wc")) {
                         // count number of users
@@ -205,7 +201,6 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
         if(personArrivalEvent.getLegMode().contains("ride_hail")) { // the problem is that ride_hail_transit has big travel times
             double departureTime = this.departureTimes.get(thisPerson);
             double travelTime = personArrivalEvent.getTime() - departureTime;
-
 
             // could add if WAV here to distinguish travel times for non wc in wavs...
             // for now they are counted in non wc group

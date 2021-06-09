@@ -2,7 +2,6 @@ package beam.analysis.tscore;
 
 import beam.sim.RideHailFleetInitializer;
 import beam.sim.RideHailFleetInitializer.RideHailAgentInputData;
-import cats.kernel.Hash;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.core.api.experimental.events.EventsManager;
@@ -55,7 +54,6 @@ public class WavHandlersRunner {
                 nonNull++;
             log.info(id.getKey() + "'s average time sitting empty: " + id.getValue());
         }
-        int trys = wrdc.getTotalWavCount();
         log.info("Ratio of WAV's being used: " + ((double)nonNull/wrdc.getTotalWavCount()));
         log.info("Total number of people entering a vehicle: " + wrdc.getTotalPersonEntersVehicle());
         log.info("Number of people entering a 'ride hail' vehicle: " + wrdc.getTotalRideHailCount());
@@ -99,7 +97,7 @@ public class WavHandlersRunner {
 
         Iterator<RideHailAgentInputData> agentListIterator = rideHailList.iterator();
         RideHailAgentInputData placeholder;
-        while(agentListIterator.hasNext()){ ;
+        while(agentListIterator.hasNext()){
             placeholder = agentListIterator.next();
             rhMap.put(placeholder.id(), placeholder);
         }

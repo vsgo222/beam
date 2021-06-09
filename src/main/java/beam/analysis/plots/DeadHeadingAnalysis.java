@@ -634,7 +634,7 @@ public class DeadHeadingAnalysis implements GraphAnalysis, OutputDataDescriptor 
 
                         Map<Integer, Double> hourData = deadHeadingsTnc0Map.get(hour);
 
-                        if (hourData.keySet().contains(passengerKey)) {
+                        if (hourData.containsKey(passengerKey)) {
                             vkt = hourData.get(passengerKey);
 
                             if (passengerKey == 0) {

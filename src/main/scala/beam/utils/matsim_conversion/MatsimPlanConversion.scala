@@ -21,6 +21,7 @@ object MatsimPlanConversion {
 
     //Generate vehicles data
     VehiclesDataConversion.generateFuelTypesDefaults(conversionConfig.scenarioDirectory)
+
     val vehiclesWithTypeId = if (conversionConfig.generateVehicles) {
       VehiclesDataConversion.generateVehicleTypesDefaults(
         conversionConfig.scenarioDirectory,
@@ -50,14 +51,14 @@ object MatsimPlanConversion {
     val populationAttrDoctype =
       DocType("objectattributes", SystemID("../dtd/objectattributes_v1.dtd"), Nil)
 
-    val populationDoctype = DocType("population", SystemID("../dtd/population_v6.dtd"), Nil)
+    //val populationDoctype = DocType("population", SystemID("../dtd/population_v6.dtd"), Nil)
 
-    val populationOutput = conversionConfig.scenarioDirectory + "/population.xml.gz"
+    //val populationOutput = conversionConfig.scenarioDirectory + "/population.xml.gz"
     val householdsOutput = conversionConfig.scenarioDirectory + "/households.xml.gz"
     val householdAttrsOutput = conversionConfig.scenarioDirectory + "/householdAttributes.xml"
     val populationAttrsOutput = conversionConfig.scenarioDirectory + "/populationAttributes.xml"
 
-    safeGzip(populationOutput, transformedPopulationDoc, UTF8, xmlDecl = true, populationDoctype)
+    //safeGzip(populationOutput, transformedPopulationDoc, UTF8, xmlDecl = true, populationDoctype)
     safeGzip(householdsOutput, houseHolds, UTF8, xmlDecl = true)
     XML.save(householdAttrsOutput, householdAtrrs, UTF8, xmlDecl = true, householdsAttrDoctype)
     XML.save(populationAttrsOutput, populationAttrs, UTF8, xmlDecl = true, populationAttrDoctype)

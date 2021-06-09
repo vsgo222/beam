@@ -47,10 +47,8 @@ public class BeamDominatingList implements DominatingList {
             // if the out of pocket cost is the same or less and the transfer privilege is as good as or better than the
             // other transfer allowance (exact definition depends on the system, see javadoc), then there is no way that
             // dominatee could yield a better fare than dominator.
-            if (dominator.fare.cumulativeFarePaid <= dominatee.fare.cumulativeFarePaid &&
-                    dominator.fare.transferAllowance.atLeastAsGoodForAllFutureRedemptions(dominatee.fare.transferAllowance)) {
-                return true;
-            }
+            return dominator.fare.cumulativeFarePaid <= dominatee.fare.cumulativeFarePaid &&
+                    dominator.fare.transferAllowance.atLeastAsGoodForAllFutureRedemptions(dominatee.fare.transferAllowance);
         }
 
         // if we have not returned true by now, there may be a way that the dominatee can yield a faster or cheaper route
