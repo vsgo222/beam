@@ -224,6 +224,9 @@ object PopulationAdjustment extends LazyLogging {
       .asInstanceOf[AttributesOfIndividual]
   }
 
+  // create a map to store each person's id and modality style
+  var peeps = Map[String,Option[String]]()
+
   def createAttributesOfIndividual(
     beamScenario: BeamScenario,
     population: MPopulation,
@@ -240,18 +243,16 @@ object PopulationAdjustment extends LazyLogging {
     val income = Option(personAttributes.getAttribute(person.getId.toString, "income"))
       .map(_.asInstanceOf[Double])
       .getOrElse(0D)
-    // Read person attribute "modalityStyle"
-    val modalityStyle =
-      Option(person.getSelectedPlan)
-        .map(_.getAttributes)
-        .flatMap(attrib => Option(attrib.getAttribute("modality-style")).map(_.toString))
-
+    // Randomly assign person attribute "modalityStyle"
+    val random = new Random()
+    val modalityList = Seq("class1","class2","class3","class4","class5","class6")
+    val modalityStyle =Option(modalityList(random.nextInt(modalityList.length)))
+    peeps += (person.getId.toString -> modalityStyle)
     // Read household attributes for the person
     val householdAttributes = HouseholdAttributes(
       household,
       agentsim.agents.Population.getVehiclesFromHousehold(household, beamScenario)
     )
-
     // Read person attribute "valueOfTime", use function of HH income if not, and default it to the respective config value if neither is found
     val valueOfTime: Double =
       Option(personAttributes.getAttribute(person.getId.toString, "valueOfTime"))
@@ -282,5 +283,9 @@ object PopulationAdjustment extends LazyLogging {
     } else {
       None
     }
+  }
+
+  def getModalityStyle(personId: String): Option[String] = {
+    peeps(personId)
   }
 }

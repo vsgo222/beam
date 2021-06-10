@@ -2,6 +2,7 @@ package beam.analysis.plots.modality;
 
 import beam.analysis.plots.GraphUtils;
 import beam.analysis.plots.GraphsStatsAgentSimEventsListener;
+import beam.sim.population.PopulationAdjustment;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.data.category.CategoryDataset;
@@ -61,7 +62,7 @@ public class ModalityStyleStats {
             String key = entry.toString();
             Person person = population.getPersons().get(Id.createPersonId(key));
             Plan plan = person.getSelectedPlan();
-            String modalityStyle = plan.getAttributes().getAttribute(attributeName).toString();
+            String modalityStyle = PopulationAdjustment.getModalityStyle(key).get();
             className.add(modalityStyle);
             Map<String, Double> modalityData;
             modalityData = iterationVsModalityClassCount.get(event.getIteration());
