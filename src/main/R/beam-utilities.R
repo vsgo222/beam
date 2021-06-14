@@ -1,37 +1,42 @@
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#  install.packages("BiocManager")
+#BiocManager::install("GEOquery")
 
-load.libraries(c('GEOquery','XML'))
+#load.libraries(c('GEOquery','XML'))
+lapply(c("GEOquery","XML"), require, character.only = TRUE)
+
 
 clean.and.relabel <- function(ev,factor.to.scale.personal.back,factor.to.scale.transit.back,val.of.time=16.9){
   # Clean and relabel
-  ev[vehicle_type=="bus",vehicle_type:="BUS-DEFAULT"]
-  ev[vehicle_type=="CAR",vehicle_type:="Car"]
+  ev[vehicleType=="bus",vehicleType:="BUS-DEFAULT"]
+  ev[vehicleType=="CAR",vehicleType:="Car"]
   ev[substr(vehicle,1,5)=="rideH",mode:="ride_hail"]
-  ev[vehicle_type=="subway",vehicle_type:="SUBWAY-DEFAULT"]
-  ev[vehicle_type=="SUV",vehicle_type:="Car"]
-  ev[vehicle_type=="cable_car",vehicle_type:="CABLE_CAR-DEFAULT"]
-  ev[vehicle_type=="tram",vehicle_type:="TRAM-DEFAULT"]
-  ev[vehicle_type=="rail",vehicle_type:="RAIL-DEFAULT"]
-  ev[vehicle_type=="ferry",vehicle_type:="FERRY-DEFAULT"]
+  ev[vehicleType=="subway",vehicleType:="SUBWAY-DEFAULT"]
+  ev[vehicleType=="SUV",vehicleType:="Car"]
+  ev[vehicleType=="cable_car",vehicleType:="CABLE_CAR-DEFAULT"]
+  ev[vehicleType=="tram",vehicleType:="TRAM-DEFAULT"]
+  ev[vehicleType=="rail",vehicleType:="RAIL-DEFAULT"]
+  ev[vehicleType=="ferry",vehicleType:="FERRY-DEFAULT"]
   transit.types <- c('BUS-DEFAULT','FERRY-DEFAULT','TRAM-DEFAULT','RAIL-DEFAULT','CABLE_CAR-DEFAULT','SUBWAY-DEFAULT')
   ev[,tripmode:=ifelse(mode%in%c('subway','bus','rail','tram','walk_transit','drive_transit','cable_car','ferry'),'transit',as.character(mode))]
   ev[,hour:=time/3600]
   ev[,hr:=round(hour)]
-  setkey(ev,vehicle_type)
+  setkey(ev,vehicleType)
   if(is.factor(ev$start.x[1]))ev[,start.x:=as.numeric(as.character(start.x))]
   if(is.factor(ev$end.x[1]))ev[,end.x:=as.numeric(as.character(end.x))]
-  if(is.factor(ev$start.y[1]))ev[,start.y:=as.numeric(as.character(start.y))]
-  if(is.factor(ev$end.y[1]))ev[,end.y:=as.numeric(as.character(end.y))]
-  if(is.factor(ev$num_passengers[1]))ev[,num_passengers:=as.numeric(as.character(num_passengers))]
+  if(is.factor(ev$startY[1]))ev[,startY:=as.numeric(as.character(startY))]
+  if(is.factor(ev$endY[1]))ev[,endY:=as.numeric(as.character(endY))]
+  if(is.factor(ev$numPassengers[1]))ev[,numPassengers:=as.numeric(as.character(numPassengers))]
   if(is.factor(ev$capacity[1]))ev[,capacity:=as.numeric(as.character(capacity))]
   if(is.factor(ev$expectedMaximumUtility[1]))ev[,expectedMaximumUtility:=as.numeric(as.character(expectedMaximumUtility))]
   if(is.factor(ev$fuel[1]))ev[,fuel:=as.numeric(as.character(fuel))]
-  ev[start.y<=0.003 | end.y <=0.003,':='(start.x=NA,start.y=NA,end.x=NA,end.y=NA)]
+  ev[startY<=0.003 | endY <=0.003,':='(start.x=NA,startY=NA,end.x=NA,endY=NA)]
   ev[length==Inf,length:=NA]
-  ev[vehicle_type%in%transit.types & !is.na(start.x)  & !is.na(start.y)  & !is.na(end.y)  & !is.na(end.y),length:=dist.from.latlon(start.y,start.x,end.y,end.x)]
-  ev[vehicle_type%in%transit.types,num_passengers:=round(num_passengers*factor.to.scale.personal.back)]
-  ev[vehicle_type%in%transit.types,capacity:=round(capacity*factor.to.scale.transit.back)]
-  ev[num_passengers > capacity,num_passengers:=capacity]
-  ev[,pmt:=num_passengers*length/1609]
+  ev[vehicleType%in%transit.types & !is.na(start.x)  & !is.na(startY)  & !is.na(endY)  & !is.na(endY),length:=dist.from.latlon(startY,start.x,endY,end.x)]
+  ev[vehicleType%in%transit.types,numPassengers:=round(numPassengers*factor.to.scale.personal.back)]
+  ev[vehicleType%in%transit.types,capacity:=round(capacity*factor.to.scale.transit.back)]
+  ev[numPassengers > capacity,numPassengers:=capacity]
+  ev[,pmt:=numPassengers*length/1609]
   ev[is.na(pmt),pmt:=0]
   #ev[,expectedMaximumUtility:=expectedMaximumUtility-quantile(ev$expectedMaximumUtility,probs=.001,na.rm=T)]
   #ev[,expectedMaximumUtility:=expectedMaximumUtility-mean(ev$expectedMaximumUtility,na.rm=T)]

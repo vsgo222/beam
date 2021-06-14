@@ -4,8 +4,9 @@
 # 
 # Argument: the path to the run output directory.
 ##############################################################################################################################################
+remotes::install_github("colinsheppard/colinmisc")
 library(colinmisc)
-setwd('/Users/critter/Dropbox/ucb/vto/beam-all/beam') # for development and debugging
+#setwd('/Users/critter/Dropbox/ucb/vto/beam-all/beam') # for development and debugging
 source('./src/main/R/beam-utilities.R')
 load.libraries(c('optparse'),quietly=T)
 load.libraries(c('maptools','sp'))
@@ -20,8 +21,9 @@ option_list <- list(
 )
 if(interactive()){
   #setwd('~/downs/')
-  args<-'/Users/critter/Documents/beam/beam-output/experiments/2018-04/base_2018-04-17_15-36-19/'
+  #args<-'/Users/critter/Documents/beam/beam-output/experiments/2018-04/base_2018-04-17_15-36-19/'
   #args<-'/Users/critter/Documents/beam/beam-output/sf-light-25k_2018-02-13_15-04-19/'
+  args<-'D:/Users/chris/Documents/CSDWork/projects/beam_output/slc-light-2.5k-lccm__2021-06-10_12-40-14_cen/'
   args <- parse_args(OptionParser(option_list = option_list,usage = "run2plots.R [config-file]"),positional_arguments=T,args=args)
 }else{
   args <- parse_args(OptionParser(option_list = option_list,usage = "run2plots.R [config-file]"),positional_arguments=T)
@@ -44,15 +46,18 @@ pops <- list()
 iter <- tail(list.dirs(iter.dir,full.names=F),-1)[1]
 for(iter in tail(list.dirs(iter.dir,full.names=F),-1)){
   my.cat(iter)
-  iter.i <- as.numeric(tail(str_split(iter,'\\.')[[1]],1))
+  #iter.i <- as.numeric(tail(str_split(iter,'\\.')[[1]],1))
+  iter.j <- tail(str_split(iter,'\\.')[[1]],1)
+  iter.i <- as.numeric(head(str_split(iter.j,'/')[[1]],1))
 
-  events.csv <- pp(iter.dir,iter,'/',iter.i,'.events.csv')
+  events.csv <- pp(iter.dir,'it.',iter.i,'/',iter.i,'.events.csv.gz')
   ev <- csv2rdata(events.csv)
   ev[,iter:=iter.i]
   evs[[length(evs)+1]] <- ev[type%in%c('PathTraversal','ModeChoice')]
   vehs[[length(evs)+1]] <- ev[type%in%c('PersonEntersVehicle','PersonLeavesVehicle')]
 
-  pop.csv <- pp(iter.dir,iter,'/',iter.i,'.population.csv.gz')
+  #pop.csv <- pp(iter.dir,iter,'/',iter.i,'.population.csv.gz')
+  pop.csv <- pp(run.dir,'./population.csv.gz')
   pop <- csv2rdata(pop.csv)
   pop[,iter:=iter.i]
   pops[[length(pops)+1]] <- pop
@@ -68,27 +73,27 @@ ev <- clean.and.relabel(ev,factor.to.scale.personal.back,factor.to.scale.transit
 
 veh[,is.transit:=grepl(":",vehicle)]
 
-setkey(ev,type,iter,hr,vehicle_type)
+setkey(ev,type,iter,hr,vehicleType)
 
 ############################
 ## Default Plots 
 ############################
 
 ## VMT by time and mode
-toplot <- ev[J('PathTraversal')][,.(vmt=sum(length/1609,na.rm=T)),by=c('hr','iter','vehicle_type')]
+toplot <- ev[J('PathTraversal')][,.(vmt=sum(length/1609,na.rm=T)),by=c('hr','iter','vehicleType')]
 if(max(toplot$iter)>9){
   toplot <- toplot[iter %in% seq(0,max(toplot$iter),by=max(toplot$iter)/8)]
 }
 toplot[vehicle_type%in%c('Car','TNC'),vmt:=vmt*factor.to.scale.personal.back]
-p <- ggplot(toplot,aes(x=hr,y=vmt,fill=vehicle_type))+geom_bar(stat='identity',position='stack')+facet_wrap(~iter)+labs(x="Hour",y="Vehicle Miles Traveled",fill="Vehicle Type",title=to.title(run.name))
+p <- ggplot(toplot,aes(x=hr,y=vmt,fill=vehicleType))+geom_bar(stat='identity',position='stack')+facet_wrap(~iter)+labs(x="Hour",y="Vehicle Miles Traveled",fill="Vehicle Type",title=to.title(run.name))
 pdf.scale <- .6
 ggsave(pp(plots.dir,'vmt-by-hour.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
 
 # Transit use
-#ggplot(ev[tripmode=='transit',],aes(x=length,y= num_passengers))+geom_point()
-#ggplot(toplot[,],aes(x=num_passengers/capacity))+geom_histogram()+facet_wrap(~level)
+#ggplot(ev[tripmode=='transit',],aes(x=length,y= numPassengers))+geom_point()
+#ggplot(toplot[,],aes(x=numPassengers/capacity))+geom_histogram()+facet_wrap(~level)
 toplot<-ev[J('PathTraversal')][tripmode=='transit']
-p <- ggplot(toplot[,.(cap.factor=mean(num_passengers/capacity,na.rm=T),frac.full=ifelse(all(capacity==0),as.numeric(NA),sum(num_passengers==capacity)/length(capacity))),by=c('hr','vehicle_type','iter')],aes(x=hr,y=cap.factor,fill=vehicle_type))+geom_bar(stat='identity',position='dodge')+geom_line(aes(y=frac.full))+facet_grid(vehicle_type~iter)+labs(x="Hour",y="Capacity Factor (bars) and Fraction of Trips at Full (line)",title=to.title(run.name),fill="Transit Type")
+p <- ggplot(toplot[,.(cap.factor=mean(numPassengers/capacity,na.rm=T),frac.full=ifelse(all(capacity==0),as.numeric(NA),sum(numPassengers==capacity)/length(capacity))),by=c('hr','vehicleType','iter')],aes(x=hr,y=cap.factor,fill=vehicleType))+geom_bar(stat='identity',position='dodge')+geom_line(aes(y=frac.full))+facet_grid(vehicleType~iter)+labs(x="Hour",y="Capacity Factor (bars) and Fraction of Trips at Full (line)",title=to.title(run.name),fill="Transit Type")
 pdf.scale <- .8
 ggsave(pp(plots.dir,'transit-use.pdf'),p,width=10*pdf.scale,height=8*pdf.scale,units='in')
 
@@ -126,7 +131,7 @@ ggsave(pp(plots.dir,'accessibility.pdf'),p,width=10*pdf.scale,height=8*pdf.scale
 toplot<-ev[J('PathTraversal')][tripmode=='transit' & iter==0]
 toplot[,agency:=unlist(lapply(str_split(vehicle_id,":"),function(x){ x[1] }))]
 toplot[,transitTrip:=unlist(lapply(str_split(vehicle_id,":"),function(x){ x[2] }))]
-toplot <- toplot[,.(numPassengers=sum(num_passengers),pmt=sum(num_passengers*length/1609)),by=c('agency','transitTrip')]
+toplot <- toplot[,.(numPassengers=sum(numPassengers),pmt=sum(numPassengers*length/1609)),by=c('agency','transitTrip')]
 
 write.csv(toplot,file=pp(plots.dir,'transit-use-by-trip.csv'))
 write.csv(toplot[pmt<=20],file=pp(plots.dir,'transit-trips-below-20-pmt.csv'))
