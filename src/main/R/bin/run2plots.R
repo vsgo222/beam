@@ -6,7 +6,6 @@
 ##############################################################################################################################################
 remotes::install_github("colinsheppard/colinmisc")
 library(colinmisc)
-#setwd('/Users/critter/Dropbox/ucb/vto/beam-all/beam') # for development and debugging
 source('./src/main/R/beam-utilities.R')
 load.libraries(c('optparse'),quietly=T)
 load.libraries(c('maptools','sp'))
@@ -46,7 +45,6 @@ pops <- list()
 iter <- tail(list.dirs(iter.dir,full.names=F),-1)[1]
 for(iter in tail(list.dirs(iter.dir,full.names=F),-1)){
   my.cat(iter)
-  #iter.i <- as.numeric(tail(str_split(iter,'\\.')[[1]],1))
   iter.j <- tail(str_split(iter,'\\.')[[1]],1)
   iter.i <- as.numeric(head(str_split(iter.j,'/')[[1]],1))
 
@@ -56,8 +54,7 @@ for(iter in tail(list.dirs(iter.dir,full.names=F),-1)){
   evs[[length(evs)+1]] <- ev[type%in%c('PathTraversal','ModeChoice')]
   vehs[[length(evs)+1]] <- ev[type%in%c('PersonEntersVehicle','PersonLeavesVehicle')]
 
-  #pop.csv <- pp(iter.dir,iter,'/',iter.i,'.population.csv.gz')
-  pop.csv <- pp(run.dir,'./population.csv.gz')
+  pop.csv <- pp(run.dir,'./population_test.csv')
   pop <- csv2rdata(pop.csv)
   pop[,iter:=iter.i]
   pops[[length(pops)+1]] <- pop
@@ -84,7 +81,7 @@ toplot <- ev[J('PathTraversal')][,.(vmt=sum(length/1609,na.rm=T)),by=c('hr','ite
 if(max(toplot$iter)>9){
   toplot <- toplot[iter %in% seq(0,max(toplot$iter),by=max(toplot$iter)/8)]
 }
-toplot[vehicle_type%in%c('Car','TNC'),vmt:=vmt*factor.to.scale.personal.back]
+toplot[vehicleType%in%c('Car','TNC'),vmt:=vmt*factor.to.scale.personal.back]
 p <- ggplot(toplot,aes(x=hr,y=vmt,fill=vehicleType))+geom_bar(stat='identity',position='stack')+facet_wrap(~iter)+labs(x="Hour",y="Vehicle Miles Traveled",fill="Vehicle Type",title=to.title(run.name))
 pdf.scale <- .6
 ggsave(pp(plots.dir,'vmt-by-hour.pdf'),p,width=10*pdf.scale,height=6*pdf.scale,units='in')
