@@ -31,9 +31,9 @@ object MatsimConversionTool extends App {
     val config = parseFileSubstitutingInputDirectory(beamConfigFilePath)
     val conversionConfig = ConversionConfig(config)
 
-    //val network = NetworkUtils.createNetwork()
-    //println(s"Network file ${conversionConfig.matsimNetworkFile}")
-    //new MatsimNetworkReader(network).readFile(conversionConfig.matsimNetworkFile)
+    val network = NetworkUtils.createNetwork()
+    println(s"Network file ${conversionConfig.matsimNetworkFile}")
+    new MatsimNetworkReader(network).readFile(conversionConfig.matsimNetworkFile)
 
     MatsimPlanConversion.generateScenarioData(conversionConfig)
     //generateTazDefaults(conversionConfig, network)

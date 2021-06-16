@@ -12,6 +12,8 @@ object MatsimPlanConversion {
   val UTF8: String = StandardCharsets.UTF_8.name()
 
   def generateScenarioData(conversionConfig: ConversionConfig): Unit = {
+    //The Conversion Config gets fed into the method.
+    // They then load the doc using a XML class?
     val populationFile = conversionConfig.populationInput
     val populationDoc = XML.loadFile(populationFile)
 
@@ -53,15 +55,15 @@ object MatsimPlanConversion {
 
     //val populationDoctype = DocType("population", SystemID("../dtd/population_v6.dtd"), Nil)
 
-    //val populationOutput = conversionConfig.scenarioDirectory + "/population.xml.gz"
+    val populationOutput = conversionConfig.scenarioDirectory + "/population.xml.gz"
     val householdsOutput = conversionConfig.scenarioDirectory + "/households.xml.gz"
     val householdAttrsOutput = conversionConfig.scenarioDirectory + "/householdAttributes.xml"
     val populationAttrsOutput = conversionConfig.scenarioDirectory + "/populationAttributes.xml"
 
     //safeGzip(populationOutput, transformedPopulationDoc, UTF8, xmlDecl = true, populationDoctype)
-    safeGzip(householdsOutput, houseHolds, UTF8, xmlDecl = true)
-    XML.save(householdAttrsOutput, householdAtrrs, UTF8, xmlDecl = true, householdsAttrDoctype)
-    XML.save(populationAttrsOutput, populationAttrs, UTF8, xmlDecl = true, populationAttrDoctype)
+    safeGzip(householdsOutput, houseHolds, UTF8, xmlDecl = true) //this is where the households.xml.gz is made
+    XML.save(householdAttrsOutput, householdAtrrs, UTF8, xmlDecl = true, householdsAttrDoctype)//householdAttributes.xml
+    XML.save(populationAttrsOutput, populationAttrs, UTF8, xmlDecl = true, populationAttrDoctype) //populationAttributes.xml
   }
 
   def safeGzip(filename: String, node: Node, enc: String, xmlDecl: Boolean = false, doctype: DocType = null): Unit = {
