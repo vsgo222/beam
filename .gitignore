@@ -19,10 +19,8 @@ settings.gradle
 
 /output/**
 
-/test/input/common
-/test/input/dtd
-/test/input/beamville
-/test/input/**
+test/input/beamville
+test/input/common
+test/input/dtd
 
-!/test/input/slc_BASE/**
-!/test/input/slc_test_fence/**
+#Add .gitignore with "*" in each scenario you don't want to track
