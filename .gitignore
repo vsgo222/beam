@@ -24,4 +24,5 @@ settings.gradle
 /test/input/beamville
 /test/input/**
 
-!/test/input/slc_BASE
+!/test/input/slc_BASE/**
+!/test/input/slc_test_fence/**
