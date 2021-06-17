@@ -45,10 +45,10 @@ object ReplanningUtil {
         case (_, _) =>
       }
       val attributes = experiencedPlan.getAttributes
-      val modalityStyle = if (person.getSelectedPlan.getAttributes.getAttribute("modality-style") == null) { "" } else {
+      val modalityStyle = if (person.getSelectedPlan.getAttributes.getAttribute("modality-style") == null) { "class1" } else {
         person.getSelectedPlan.getAttributes.getAttribute("modality-style")
       }
-      val scores = if (person.getSelectedPlan.getAttributes.getAttribute("scores") == null) { "" } else {
+      val scores = if (person.getSelectedPlan.getAttributes.getAttribute("scores") == null) { "class1" } else {
         person.getSelectedPlan.getAttributes.getAttribute("scores")
       }
       attributes.putAttribute("modality-style", modalityStyle)
