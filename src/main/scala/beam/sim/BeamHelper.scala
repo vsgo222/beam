@@ -26,13 +26,7 @@ import beam.replanning.utilitybased.UtilityBasedModeChoice
 import beam.router._
 import beam.router.gtfs.FareCalculator
 import beam.router.osm.TollCalculator
-import beam.router.r5.{
-  BikeLanesAdjustment,
-  BikeLanesData,
-  DefaultNetworkCoordinator,
-  FrequencyAdjustingNetworkCoordinator,
-  NetworkCoordinator
-}
+import beam.router.r5.{BikeLanesAdjustment, BikeLanesData, DefaultNetworkCoordinator, FrequencyAdjustingNetworkCoordinator, NetworkCoordinator}
 import beam.router.skim.{DriveTimeSkimmer, ODSkimmer, Skims, TAZSkimmer, TransitCrowdingSkimmer}
 import beam.scoring.BeamScoringFunctionFactory
 import beam.sim.ArgumentsParser.{Arguments, Worker}
@@ -507,12 +501,26 @@ trait BeamHelper extends LazyLogging {
     (scenario.getConfig, beamExecutionConfig.outputDirectory, services)
   }
 
+  def updateScenarioWithModalityStyle(scenario: MutableScenario) = {
+    //add a modality style to each person's selected plan
+    val allStyles = List("class1","class2","class3","class4","class5","class6")
+    val random = new Random
+    scenario.getPopulation.getPersons.values()
+      .forEach(person => {
+        person.getSelectedPlan
+          .getAttributes
+          .putAttribute("modality-style", SwitchModalityStyle.getRandomElement(allStyles, random))
+      })
+    scenario
+  }
+
   def prepareBeamService(config: TypesafeConfig): (BeamExecutionConfig, MutableScenario, BeamScenario, BeamServices) = {
     val beamExecutionConfig = updateConfigWithWarmStart(setupBeamWithConfig(config))
     val (scenario, beamScenario) = buildBeamServicesAndScenario(
       beamExecutionConfig.beamConfig,
       beamExecutionConfig.matsimConfig,
     )
+    //val scenario = updateScenarioWithModalityStyle(scenario2)
     logger.info(s"Java version: ${System.getProperty("java.version")}")
     logger.info(
       "JVM args: " + java.lang.management.ManagementFactory.getRuntimeMXBean.getInputArguments.asScala.toList.toString()
