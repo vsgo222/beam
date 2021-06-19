@@ -5,7 +5,7 @@
 /docker/**
 /gradle/**
 /log-path_IS_UNDEFINED/**
-/src/**
+#/src/**
 
 .dockerignore
 .gitattributes
