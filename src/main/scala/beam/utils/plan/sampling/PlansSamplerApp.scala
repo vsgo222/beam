@@ -1,9 +1,7 @@
 package beam.utils.plan.sampling
 
-import java.util
-
 import beam.router.Modes.BeamMode.CAR
-import beam.utils.matsim_conversion.{MatsimConversionTool, ShapeUtils}
+import beam.utils.matsim_conversion.ShapeUtils
 import beam.utils.plan.sampling.HouseholdAttrib.{HomeCoordX, HomeCoordY, HousingType}
 import beam.utils.plan.sampling.PopulationAttrib.Rank
 import beam.utils.scripts.PopulationWriterCSV
@@ -37,8 +35,9 @@ import org.matsim.vehicles.{Vehicle, VehicleUtils, VehicleWriterV1, Vehicles}
 import org.opengis.feature.simple.SimpleFeature
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 
+import java.util
 import scala.collection.JavaConverters._
-import scala.collection.{immutable, mutable, JavaConverters}
+import scala.collection.{JavaConverters, immutable, mutable}
 import scala.util.control.Breaks._
 import scala.util.{Random, Try}
 
@@ -483,9 +482,8 @@ object PlansSampler {
 
     }
   }
-
+/*
   def run(): Unit = {
-
     val carVehicleType = MatsimConversionTool.beamVehicleTypeToMatsimVehicleType(null)
 
     newVehicles.addVehicleType(carVehicleType)
@@ -606,7 +604,7 @@ object PlansSampler {
     new ObjectAttributesXmlWriter(newPopAttributes)
       .writeFile(s"$outDir/populationAttributes.xml.gz")
 
-  }
+  }*/
 
   private def hasNoWorkAct(plan: Plan) = {
     !plan.getPlanElements.asScala.exists {
@@ -647,5 +645,5 @@ object PlansSampler {
 object PlansSamplerApp extends App {
   val sampler = PlansSampler
   sampler.init(args)
-  sampler.run()
+  //sampler.run()
 }

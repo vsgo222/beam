@@ -95,9 +95,12 @@ public class ActivitySimTripsReader {
                     PlanElement lastElement = plan.getPlanElements().get(plansize - 1);
                     if (lastElement instanceof Activity) {
                         Activity lastActivity = (Activity) lastElement;
-                        Coord lastPlace = scenario.getActivityFacilities().getFacilities().get(lastActivity.getFacilityId()).getCoord();
+                        if (lastActivity.getFacilityId() != null) {
+                            Coord lastPlace = scenario.getActivityFacilities().getFacilities().get(lastActivity.getFacilityId()).getCoord();
+                            lastActivity.setCoord(lastPlace);
+                        }
                         lastActivity.setEndTime(depTime);
-                        lastActivity.setCoord(lastPlace);
+
                     }
                 }
 

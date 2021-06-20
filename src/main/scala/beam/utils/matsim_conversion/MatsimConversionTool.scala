@@ -21,30 +21,29 @@ import org.matsim.vehicles.EngineInformation.{FuelType => MatsimFuelType}
 import org.supercsv.io.{CsvMapWriter, ICsvMapWriter}
 import org.supercsv.prefs.CsvPreference
 
-object MatsimConversionTool extends App {
+class MatsimConversionTool() extends App {
+  def runConversion(beamConfigFilePath: File){
+    if (beamConfigFilePath.exists()) {
+      val config = parseFileSubstitutingInputDirectory(beamConfigFilePath)
+      val conversionConfig = ConversionConfig(config)
 
+      val network = NetworkUtils.createNetwork()
+      println(s"Network file ${conversionConfig.matsimNetworkFile}")
+      new MatsimNetworkReader(network).readFile(conversionConfig.matsimNetworkFile)
+
+      MatsimPlanConversion.generateScenarioData(conversionConfig)
+      generateTazDefaults(conversionConfig, network)
+      generateOsmFilteringCommand(conversionConfig, network)
+
+      //val r5OutputFolder = conversionConfig.scenarioDirectory + "/r5"
+      //val dummyGtfsOut = r5OutputFolder + "/dummy.zip"
+      //FileUtils.copyFile(new File(dummyGtfsPath), new File(dummyGtfsOut))
+    } else {
+      println("Please specify correct config/file/path parameter")
+    }
+  }
   //val dummyGtfsPath = "test/input_new/small_wc/r5/SLC.zip"
 
-  if (null != args && args.length > 0) {
-    val beamConfigFilePath = args(0) //"test/input/beamville/beam.conf"
-
-    val config = parseFileSubstitutingInputDirectory(beamConfigFilePath)
-    val conversionConfig = ConversionConfig(config)
-
-    val network = NetworkUtils.createNetwork()
-    println(s"Network file ${conversionConfig.matsimNetworkFile}")
-    new MatsimNetworkReader(network).readFile(conversionConfig.matsimNetworkFile)
-
-    MatsimPlanConversion.generateScenarioData(conversionConfig)
-    //generateTazDefaults(conversionConfig, network)
-    //generateOsmFilteringCommand(conversionConfig, network)
-
-    val r5OutputFolder = conversionConfig.scenarioDirectory + "/r5"
-    //val dummyGtfsOut = r5OutputFolder + "/dummy.zip"
-    //FileUtils.copyFile(new File(dummyGtfsPath), new File(dummyGtfsOut))
-  } else {
-    println("Please specify config/file/path parameter")
-  }
 
   def generateOsmFilteringCommand(cf: ConversionConfig, network: Network): Unit = {
     val boundingBox =
