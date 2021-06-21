@@ -15,7 +15,6 @@ AMI_Cleanup.py
 beam-osx.json
 gradle*
 Jenkinsfile
-settings.gradle
 
 /output/**
 
