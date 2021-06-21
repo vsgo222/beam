@@ -1,9 +1,10 @@
 package beam.utils.matsim_conversion
 
 import java.io.{FileOutputStream, OutputStreamWriter}
+import java.nio.ByteBuffer
+import java.nio.channels.{Channels, FileChannel}
 import java.nio.charset.StandardCharsets
 import java.util.zip.GZIPOutputStream
-
 import scala.xml._
 import scala.xml.dtd.{DocType, SystemID}
 import scala.xml.transform.{RewriteRule, RuleTransformer}
@@ -53,21 +54,20 @@ object MatsimPlanConversion {
     val populationAttrDoctype =
       DocType("objectattributes", SystemID("../dtd/objectattributes_v1.dtd"), Nil)
 
-    //val populationDoctype = DocType("population", SystemID("../dtd/population_v6.dtd"), Nil)
+    val populationDoctype = DocType("population", SystemID("../dtd/population_v6.dtd"), Nil)
 
     val populationOutput = conversionConfig.scenarioDirectory + "/population.xml.gz"
     val householdsOutput = conversionConfig.scenarioDirectory + "/households.xml.gz"
     val householdAttrsOutput = conversionConfig.scenarioDirectory + "/householdAttributes.xml"
     val populationAttrsOutput = conversionConfig.scenarioDirectory + "/populationAttributes.xml"
 
-    //safeGzip(populationOutput, transformedPopulationDoc, UTF8, xmlDecl = true, populationDoctype)
+    safeGzip(populationOutput, transformedPopulationDoc, UTF8, xmlDecl = true, populationDoctype)
     safeGzip(householdsOutput, houseHolds, UTF8, xmlDecl = true) //this is where the households.xml.gz is made
     XML.save(householdAttrsOutput, householdAtrrs, UTF8, xmlDecl = true, householdsAttrDoctype)//householdAttributes.xml
     XML.save(populationAttrsOutput, populationAttrs, UTF8, xmlDecl = true, populationAttrDoctype) //populationAttributes.xml
   }
 
   def safeGzip(filename: String, node: Node, enc: String, xmlDecl: Boolean = false, doctype: DocType = null): Unit = {
-
     val output = new FileOutputStream(filename)
     try {
       val writer = new OutputStreamWriter(new GZIPOutputStream(output), "UTF-8")
@@ -79,9 +79,20 @@ object MatsimPlanConversion {
     } finally {
       output.close()
     }
-
   }
 
+  def saveToFile(node: Node, filename: String): Unit ={
+    val prettyPrinter = new PrettyPrinter(80,2)
+    val fileOutputStream = new FileOutputStream(filename)
+    val writer = Channels.newWriter(fileOutputStream.getChannel(), UTF8)
+    try{
+      writer.write(prettyPrinter.format(node))
+    }
+    finally{
+      writer.close()
+    }
+    filename
+  }
   def generatePopulationAttributes(persons: NodeSeq): Elem = {
     val popAttrs = persons.zipWithIndex map {
       case (person, _) =>
