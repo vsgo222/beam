@@ -57,7 +57,8 @@ class AlonsoMoraMatchingWithMIPAssignment(
               List(r1.pickup, r1.dropoff, r2.pickup, r2.dropoff),
               Integer.MAX_VALUE,
               startPoint,
-              beamServices
+              beamServices,
+              None
             )
             .foreach { schedule =>
               rvG.addVertex(r2)
@@ -92,7 +93,8 @@ class AlonsoMoraMatchingWithMIPAssignment(
                 List(r.pickup, r.dropoff),
                 v.vehicleRemainingRangeInMeters.toInt,
                 v.getRequestWithCurrentVehiclePosition,
-                beamServices
+                beamServices,
+                Some(v.vehicle.beamVehicleType)
               )
               .foreach { schedule =>
                 rvG.addVertex(v)
