@@ -51,7 +51,7 @@ public class InputFilesReader {
         if (!outputDirectory.exists()){
             outputDirectory.mkdir();
         }
-        String scenarioPath = "conversion_input/";
+        String scenarioPath = "./conversion_input/";
         File configFile = new File(scenarioPath + args[0]);
         File personsFile = new File(scenarioPath + "persons.csv");
         File tripsFile = new File(scenarioPath + "trips.csv");

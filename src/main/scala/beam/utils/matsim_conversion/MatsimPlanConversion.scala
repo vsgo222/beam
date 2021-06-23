@@ -91,7 +91,6 @@ object MatsimPlanConversion {
     finally{
       writer.close()
     }
-    filename
   }
   def generatePopulationAttributes(persons: NodeSeq): Elem = {
     val popAttrs = persons.zipWithIndex map {
