@@ -7,6 +7,10 @@
 /log-path_IS_UNDEFINED/**
 #/src/**
 
+/.gradle/buildOutputCleanup/**
+
+/.idea/codeStyles/**
+
 .dockerignore
 .gitattributes
 .lfsconfig
