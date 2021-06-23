@@ -22,7 +22,12 @@ test/input/beamville
 test/input/common
 test/input/dtd
 
-#Add .gitignore with "*" in each scenario you don't want to track
+###Add .gitignore with "*" in each scenario you don't want to track###
+
+
+
+#Added from GitKraken
+
 .gradle/5.6.4/executionHistory/executionHistory.bin
 
 .gradle/5.6.4/executionHistory/executionHistory.lock
