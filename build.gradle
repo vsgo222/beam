@@ -570,9 +570,9 @@ task matsimConversion(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     environment "PWD", "na"
     if (project.hasProperty("confPath")) {
-        args Eval.me(confPath)
+        // args Eval.me(confPath)
         // if this triggers an error, try
-        // args "${confPath}"
+        args "${confPath}"
     }
 }
 
