@@ -1,6 +1,8 @@
 package beam.utils.matsim_conversion
 
-import java.io.{FileOutputStream, OutputStreamWriter}
+import beam.utils.conversion.LargeFileProcessing
+
+import java.io.{File, FileOutputStream, OutputStreamWriter}
 import java.nio.ByteBuffer
 import java.nio.channels.{Channels, FileChannel}
 import java.nio.charset.StandardCharsets
@@ -60,11 +62,14 @@ object MatsimPlanConversion {
     val householdsOutput = "conversion_output/households.xml.gz"
     val householdAttrsOutput = "conversion_output/householdAttributes.xml"
     val populationAttrsOutput = "conversion_output/populationAttributes.xml"
+    val largeFileProcessor: LargeFileProcessing = new LargeFileProcessing(4*1024)
 
     //safeGzip(populationOutput, transformedPopulationDoc, UTF8, xmlDecl = true, populationDoctype)
     safeGzip(householdsOutput, houseHolds, UTF8, xmlDecl = true) //this is where the households.xml.gz is made
-    XML.save(householdAttrsOutput, householdAtrrs, UTF8, xmlDecl = true, householdsAttrDoctype)//householdAttributes.xml
-    XML.save(populationAttrsOutput, populationAttrs, UTF8, xmlDecl = true, populationAttrDoctype) //populationAttributes.xml
+    largeFileProcessor.writeUsingChunks(new File(householdAttrsOutput), householdAtrrs, 1)
+    largeFileProcessor.writeUsingChunks(new File(populationAttrsOutput), populationAttrs, 0)
+    //XML.save(householdAttrsOutput, householdAtrrs, UTF8, xmlDecl = true, householdsAttrDoctype)//householdAttributes.xml
+    //XML.save(populationAttrsOutput, populationAttrs, UTF8, xmlDecl = true, populationAttrDoctype) //populationAttributes.xml
   }
 
   def safeGzip(filename: String, node: Node, enc: String, xmlDecl: Boolean = false, doctype: DocType = null): Unit = {
