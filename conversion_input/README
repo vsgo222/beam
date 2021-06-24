@@ -1,0 +1,16 @@
+ReadME for the InputFilesReader
+
+
+The InputFilesReader.java class (src/main/java/beam/utils/conversion/InputFilesReader.java)
+converts ActivitySim output files into BEAM input files.
+Initially, this class converted ActivitySim output files into Matsim files. The MatsimConversionTool.scala
+was then used to convert the Matsim files into BEAM-ready input files. This new version of InputFilesReader.java
+combines the two into a single step.
+
+It also tackles the issue of memory issues. The MatsimConversionTool initially uses the base scala.xml class
+to print to a file, but that would load the entire file onto RAM before writing it to a file. We adjusted the
+process by creating a new class LargeFileProcessing.java (src/main/java/beam/utils/conversion/LargeFileProcessing.java)
+that prints the xml to a file in small chunks, vastly reducing the amount of RAM necessary for large scenarios.
+
+HOW TO USE:
+1. In the beam/conversion_input folder
