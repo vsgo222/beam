@@ -1,10 +1,13 @@
 package beam.utils.conversion;
 
+
 import beam.utils.matsim_conversion.MatsimConversionTool;
+import beam.utils.matsim_conversion.MatsimToBeam;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.PopulationWriter;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.facilities.FacilitiesWriter;
 
 import java.io.File;
 import java.util.logging.Logger;
@@ -14,6 +17,7 @@ import java.util.logging.Logger;
  */
 public class InputFilesReader {
     private static final Logger log = Logger.getLogger(String.valueOf(InputFilesReader.class));
+    private static MatsimConversionTool matsimConversionTool;
     private final Scenario scenario;
 
     public InputFilesReader(Scenario sc){
@@ -51,8 +55,8 @@ public class InputFilesReader {
         if (!outputDirectory.exists()){
             outputDirectory.mkdir();
         }
-        String scenarioPath = "./conversion_input/";
-        File configFile = new File(scenarioPath + args[0]);
+        String scenarioPath = "conversion_input/";
+        args[0] = scenarioPath + args[0];
         File personsFile = new File(scenarioPath + "persons.csv");
         File tripsFile = new File(scenarioPath + "trips.csv");
         File householdsFile = new File(scenarioPath + "households.csv");
@@ -60,10 +64,10 @@ public class InputFilesReader {
         File householdCoordFile = new File(scenarioPath + "hhcoord.csv");
         reader.readActivitySimFiles(personsFile, tripsFile, facilitiesFile, householdsFile, householdCoordFile);
 
-        new PopulationWriter(scenario.getPopulation()).write(scenarioPath + "complete_population_plans.xml");
-        MatsimConversionTool matsimToBeam = new MatsimConversionTool();
-        matsimToBeam.runConversion(configFile);
-        // new FacilitiesWriter(scenario.getActivityFacilities()).write(scenarioPath + "facilities.xml.gz");
+        new PopulationWriter(scenario.getPopulation()).write(scenarioPath + "plans.xml");
+
+        new FacilitiesWriter(scenario.getActivityFacilities()).write(scenarioPath + "facilities.xml.gz");
+        MatsimConversionTool.main(args);
     }
 
 }

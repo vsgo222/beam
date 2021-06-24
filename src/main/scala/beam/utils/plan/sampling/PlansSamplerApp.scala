@@ -1,7 +1,7 @@
 package beam.utils.plan.sampling
 
 import beam.router.Modes.BeamMode.CAR
-import beam.utils.matsim_conversion.ShapeUtils
+import beam.utils.matsim_conversion.{MatsimConversionTool, ShapeUtils}
 import beam.utils.plan.sampling.HouseholdAttrib.{HomeCoordX, HomeCoordY, HousingType}
 import beam.utils.plan.sampling.PopulationAttrib.Rank
 import beam.utils.scripts.PopulationWriterCSV
@@ -482,7 +482,7 @@ object PlansSampler {
 
     }
   }
-/*
+
   def run(): Unit = {
     val carVehicleType = MatsimConversionTool.beamVehicleTypeToMatsimVehicleType(null)
 
@@ -604,7 +604,7 @@ object PlansSampler {
     new ObjectAttributesXmlWriter(newPopAttributes)
       .writeFile(s"$outDir/populationAttributes.xml.gz")
 
-  }*/
+  }
 
   private def hasNoWorkAct(plan: Plan) = {
     !plan.getPlanElements.asScala.exists {

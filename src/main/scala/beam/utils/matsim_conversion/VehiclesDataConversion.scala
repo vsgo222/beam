@@ -256,7 +256,7 @@ object VehiclesDataConversion extends App {
       case (_, index) =>
         Seq(s"${index + 1}", "CAR")
     }
-    val beamVehiclesPath = conversionConfig.scenarioDirectory + "/vehicles.csv"
+    val beamVehiclesPath = "conversion_output" + "/vehicles.csv"
     writeCsvFile(beamVehiclesPath, vehicles, beamVehicleTitles)
     vehicles
   }

@@ -17,17 +17,17 @@ object MatsimPlanConversion {
     // They then load the doc using a XML class?
     val populationFile = conversionConfig.populationInput
     val populationDoc = XML.loadFile(populationFile)
-
+    //println("Population Doc: "+populationDoc.toString())
     val transformedPopulationDoc = matsimPopulationToBeam(populationDoc)
-
+    //println(transformedPopulationDoc.toString())
     val persons = transformedPopulationDoc \\ "person"
 
     //Generate vehicles data
-    VehiclesDataConversion.generateFuelTypesDefaults(conversionConfig.scenarioDirectory)
+    VehiclesDataConversion.generateFuelTypesDefaults("conversion_output")
 
     val vehiclesWithTypeId = if (conversionConfig.generateVehicles) {
       VehiclesDataConversion.generateVehicleTypesDefaults(
-        conversionConfig.scenarioDirectory,
+        "conversion_output",
         VehiclesDataConversion.beamVehicleTypes
       )
       VehiclesDataConversion.generateVehiclesDataFromPersons(persons, conversionConfig)
@@ -35,8 +35,8 @@ object MatsimPlanConversion {
       val vehiclesFile = conversionConfig.vehiclesInput.get
       val vehiclesDoc = XML.loadFile(vehiclesFile)
       val vehicleTypes = VehiclesDataConversion.generateVehicleTypesFromSource(vehiclesDoc \\ "vehicleType")
-      VehiclesDataConversion.generateVehicleTypesDefaults(conversionConfig.scenarioDirectory, vehicleTypes)
-      VehiclesDataConversion.generateVehiclesDataFromSource(conversionConfig.scenarioDirectory, vehiclesDoc)
+      VehiclesDataConversion.generateVehicleTypesDefaults("conversion_output", vehicleTypes)
+      VehiclesDataConversion.generateVehiclesDataFromSource("conversion_output", vehiclesDoc)
     }
 
     val houseHolds =
@@ -54,14 +54,14 @@ object MatsimPlanConversion {
     val populationAttrDoctype =
       DocType("objectattributes", SystemID("../dtd/objectattributes_v1.dtd"), Nil)
 
-    val populationDoctype = DocType("population", SystemID("../dtd/population_v6.dtd"), Nil)
+    //val populationDoctype = DocType("population", SystemID("../dtd/population_v6.dtd"), Nil)
 
-    val populationOutput = conversionConfig.scenarioDirectory + "/population.xml.gz"
-    val householdsOutput = conversionConfig.scenarioDirectory + "/households.xml.gz"
-    val householdAttrsOutput = conversionConfig.scenarioDirectory + "/householdAttributes.xml"
-    val populationAttrsOutput = conversionConfig.scenarioDirectory + "/populationAttributes.xml"
+    //val populationOutput = conversionConfig.scenarioDirectory + "/population.xml.gz"
+    val householdsOutput = "conversion_output/households.xml.gz"
+    val householdAttrsOutput = "conversion_output/householdAttributes.xml"
+    val populationAttrsOutput = "conversion_output/populationAttributes.xml"
 
-    safeGzip(populationOutput, transformedPopulationDoc, UTF8, xmlDecl = true, populationDoctype)
+    //safeGzip(populationOutput, transformedPopulationDoc, UTF8, xmlDecl = true, populationDoctype)
     safeGzip(householdsOutput, houseHolds, UTF8, xmlDecl = true) //this is where the households.xml.gz is made
     XML.save(householdAttrsOutput, householdAtrrs, UTF8, xmlDecl = true, householdsAttrDoctype)//householdAttributes.xml
     XML.save(populationAttrsOutput, populationAttrs, UTF8, xmlDecl = true, populationAttrDoctype) //populationAttributes.xml
@@ -84,7 +84,7 @@ object MatsimPlanConversion {
   def saveToFile(node: Node, filename: String): Unit ={
     val prettyPrinter = new PrettyPrinter(80,2)
     val fileOutputStream = new FileOutputStream(filename)
-    val writer = Channels.newWriter(fileOutputStream.getChannel(), UTF8)
+    val writer = Channels.newWriter(fileOutputStream.getChannel, UTF8)
     try{
       writer.write(prettyPrinter.format(node))
     }

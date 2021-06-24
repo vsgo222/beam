@@ -20,30 +20,30 @@ import org.matsim.vehicles.{EngineInformationImpl, VehicleCapacityImpl, VehicleT
 import org.matsim.vehicles.EngineInformation.{FuelType => MatsimFuelType}
 import org.supercsv.io.{CsvMapWriter, ICsvMapWriter}
 import org.supercsv.prefs.CsvPreference
-//Checking push
-class MatsimConversionTool() extends App {
-  def runConversion(beamConfigFilePath: File){
-    if (beamConfigFilePath.exists()) {
-      val config = parseFileSubstitutingInputDirectory(beamConfigFilePath)
-      val conversionConfig = ConversionConfig(config)
 
-      val network = NetworkUtils.createNetwork()
-      println(s"Network file ${conversionConfig.matsimNetworkFile}")
-      new MatsimNetworkReader(network).readFile(conversionConfig.matsimNetworkFile)
+object MatsimConversionTool extends App {
 
-      MatsimPlanConversion.generateScenarioData(conversionConfig)
-      generateTazDefaults(conversionConfig, network)
-      generateOsmFilteringCommand(conversionConfig, network)
+  val dummyGtfsPath = "src/main/resources/dummy.zip"
 
-      //val r5OutputFolder = conversionConfig.scenarioDirectory + "/r5"
-      //val dummyGtfsOut = r5OutputFolder + "/dummy.zip"
-      //FileUtils.copyFile(new File(dummyGtfsPath), new File(dummyGtfsOut))
-    } else {
-      println("Please specify correct config/file/path parameter")
-    }
+  if (null != args && args.length > 0) {
+    val beamConfigFilePath = args(0) //"test/input/beamville/beam.conf"
+    val config = parseFileSubstitutingInputDirectory(beamConfigFilePath)
+    val conversionConfig = ConversionConfig(config)
+
+    val network = NetworkUtils.createNetwork()
+    //    println(s"Network file ${conversionConfig.matsimNetworkFile}")
+    new MatsimNetworkReader(network).readFile(conversionConfig.matsimNetworkFile)
+
+    MatsimPlanConversion.generateScenarioData(conversionConfig)
+    generateTazDefaults(conversionConfig, network)
+    generateOsmFilteringCommand(conversionConfig, network)
+
+    //val r5OutputFolder = conversionConfig.scenarioDirectory + "/r5"
+    //val dummyGtfsOut = r5OutputFolder + "/dummy.zip"
+//    FileUtils.copyFile(new File(dummyGtfsPath), new File(dummyGtfsOut))
+  } else {
+    println("Please specify config/file/path parameter")
   }
-  //val dummyGtfsPath = "test/input_new/small_wc/r5/SLC.zip"
-
 
   def generateOsmFilteringCommand(cf: ConversionConfig, network: Network): Unit = {
     val boundingBox =
@@ -71,10 +71,10 @@ class MatsimConversionTool() extends App {
   }
 
   def generateSingleDefaultTaz(
-    default: CsvTaz,
-    outputFilePath: String,
-    localCRS: String
-  ): Unit = {
+                                default: CsvTaz,
+                                outputFilePath: String,
+                                localCRS: String
+                              ): Unit = {
     var mapWriter: ICsvMapWriter = null
     try {
       mapWriter = new CsvMapWriter(new FileWriter(outputFilePath), CsvPreference.STANDARD_PREFERENCE)

@@ -37,7 +37,7 @@ object ConversionConfig {
     val simName = c.getString("beam.agentsim.simulationName")
     val scenarioDir = matsimConversionConfig.getString("scenarioDirectory")
     val matsimNetworkFile =
-      s"$scenarioDir/conversion-input/${matsimConversionConfig.getString("matsimNetworkFile")}"
+      s"$scenarioDir/${matsimConversionConfig.getString("matsimNetworkFile")}"
 
     val spatialConfig = c.getConfig("beam.spatial")
 
@@ -47,16 +47,16 @@ object ConversionConfig {
 
     val mShapeConfig = if (matsimConversionConfig.hasPathOrNull("shapeConfig")) {
       val shapeConfig = matsimConversionConfig.getConfig("shapeConfig")
-      val shapeFile = s"$scenarioDir/conversion-input/${shapeConfig.getString("shapeFile")}"
+      val shapeFile = s"$scenarioDir/${shapeConfig.getString("shapeFile")}"
       val tazIdField = shapeConfig.getString("tazIdFieldName")
       Some(ShapeConfig(shapeFile, tazIdField))
     } else
       None
 
     val populationInput =
-      s"$scenarioDir/conversion-input/${matsimConversionConfig.getString("populationFile")}"
+      s"$scenarioDir/${matsimConversionConfig.getString("populationFile")}"
     val generateVehicles = matsimConversionConfig.getBoolean("generateVehicles")
-    val osmFile = s"$scenarioDir/conversion-input/${matsimConversionConfig.getString("osmFile")}"
+    val osmFile = s"$scenarioDir/${matsimConversionConfig.getString("osmFile")}"
 
 //    val transitVehiclesPath = Try(c.getString("matsim.modules.transit.vehiclesFile")).toOption
 
