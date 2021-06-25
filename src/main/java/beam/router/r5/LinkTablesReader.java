@@ -116,28 +116,24 @@ public class LinkTablesReader {
         };
     }
 
-
     /**
      * Read the network links information
      * @param linksFile A csv file containing the following fields:
      *                  - link_id,
-     *                  - Oneway,
-     *                  - Speed (free flow),
-     *                  - DriveTime (minutes)
-     *                  - Length_Miles (miles)
-     *                  - RoadClass (text)
-     *                  - AADT (count)
-     *                  - start_node
-     *                  - end_node
-     *                  - ft (hcm definition)
-     *                  - lanes
-     *                  - sl (miles per hour)
-     *                  - med median treatment
-     *                  - area type
-     *                  - terrain
-     *                  - capacity (vehicles / hr)
-     *                  - FF_SPD (mph)
+     *                  - aadt (count),
+     *                  - oneway,
+     *                  - length (miles),
+     *                  - speed (mph),
+     *                  - ftype,
+     *                  - fdesc,
+     *                  - a (start link),
+     *                  - b (end link),
+     *                  - join_fclass,
+     *                  - tdm_id,
+     *                  - lanes,
+     *                  - capacity (veh/hr)
      */
+
     private void readLinks(File linksFile) throws IOException {
         ICsvMapReader mapReader = null;
         try{
@@ -149,20 +145,20 @@ public class LinkTablesReader {
             while(( linkMap = mapReader.read(header, processors)) != null) {
 
                 // set up link ID with from and to nodes
-                Id<Node> fromNodeId = Id.createNodeId(linkMap.get("start_node").toString());
-                Id<Node> toNodeId   = Id.createNodeId(linkMap.get("end_node").toString());
+                Id<Node> fromNodeId = Id.createNodeId(linkMap.get("a").toString());
+                Id<Node> toNodeId   = Id.createNodeId(linkMap.get("b").toString());
                 Node fromNode = network.getNodes().get(fromNodeId);
                 Node toNode   = network.getNodes().get(toNodeId);
                 Id<Link> linkId = Id.createLinkId((String) linkMap.get("link_id"));
                 Link l = networkFactory.createLink(linkId, fromNode, toNode);
 
                 // get link attributes from csv
-                Double driveTime   = (Double) linkMap.get("DriveTime");
-                Double lengthMiles = (Double) linkMap.get("Length_Miles");
+                //Double driveTime   = (Double) linkMap.get("DriveTime");
+                Double lengthMiles = (Double) linkMap.get("length");
                 Double capacity    = (Double) linkMap.get("capacity");
                 Integer lanes      = (Integer) linkMap.get("lanes");
-                Integer oneWay     = (Integer) linkMap.get("Oneway");
-                Double freeSpeed   = (Double) linkMap.get("FF_SPD") * 1609.34 / 3600;
+                Integer oneWay     = (Integer) linkMap.get("oneway");
+                Double freeSpeed   = (Double) linkMap.get("speed") * 1609.34 / 3600;
 
                 Double length = lengthMiles * 1609.34; // convert miles to meters
                 //Double freeSpeed = length / (driveTime * 60); // convert meters per minute to meters per second
@@ -204,22 +200,19 @@ public class LinkTablesReader {
     private static CellProcessor[] getLinksProcessors() {
 
         return new CellProcessor[] {
-                    new UniqueHashCode(), // linkNo (must be unique)
-                    new ParseInt(),      //Oneway
-                    new ParseDouble(),    //DriveTime
-                    new ParseDouble(),    //length
-                    new NotNull(),        // RoadClass
-                    new Optional(),    // AADT
-                    new NotNull(), //start_node
-                    new NotNull(), //end_node
-                    new NotNull(),        //ft (HCM)
-                    new ParseInt(),       //lanes
-                    new ParseDouble(),    //sl
-                    new NotNull(),        //median treatment
-                    new NotNull(),        // area type
-                    new NotNull(),        // terrain
-                    new ParseDouble(),     // capacity
-                    new ParseDouble()     // ff_spd
+                    new UniqueHashCode(),   // linkNo (must be unique)
+                    new Optional(),         // aadt
+                    new ParseInt(),         // Oneway
+                    new ParseDouble(),      // length
+                    new ParseDouble(),      // speed
+                    new ParseInt(),         // ftype
+                    new NotNull(),          // fdesc
+                    new NotNull(),          // a(start node)
+                    new NotNull(),          // b(end node)
+                    new NotNull(),          // join_fclass
+                    new NotNull(),          // tdm_id
+                    new ParseInt(),         // lanes
+                    new ParseDouble()     // capacity
             };
     }
 
@@ -279,7 +272,7 @@ public class LinkTablesReader {
         log.info("Writing network to " + outDir);
         log.info("--- Links: " + network.getLinks().values().size());
         log.info("--- Nodes: " + network.getNodes().values().size());
-        new NetworkWriter(network).write(outDir.toString() + "/highway_network_tdm.xml.gz");
+        new NetworkWriter(network).write(outDir.toString() + "/highway_network_allstreets.xml.gz");
     }
 
 
