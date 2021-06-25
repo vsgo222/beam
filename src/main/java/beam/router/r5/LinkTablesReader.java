@@ -121,16 +121,22 @@ public class LinkTablesReader {
      * Read the network links information
      * @param linksFile A csv file containing the following fields:
      *                  - link_id,
+     *                  - Oneway,
      *                  - Speed (free flow),
+     *                  - DriveTime (minutes)
      *                  - Length_Miles (miles)
+     *                  - RoadClass (text)
      *                  - AADT (count)
      *                  - start_node
      *                  - end_node
      *                  - ft (hcm definition)
      *                  - lanes
+     *                  - sl (miles per hour)
+     *                  - med median treatment
      *                  - area type
      *                  - terrain
      *                  - capacity (vehicles / hr)
+     *                  - FF_SPD (mph)
      */
     private void readLinks(File linksFile) throws IOException {
         ICsvMapReader mapReader = null;
@@ -151,12 +157,15 @@ public class LinkTablesReader {
                 Link l = networkFactory.createLink(linkId, fromNode, toNode);
 
                 // get link attributes from csv
+                Double driveTime   = (Double) linkMap.get("DriveTime");
                 Double lengthMiles = (Double) linkMap.get("Length_Miles");
                 Double capacity    = (Double) linkMap.get("capacity");
                 Integer lanes      = (Integer) linkMap.get("lanes");
-                Double freeSpeed   = (Double) linkMap.get("Speed");
+                Integer oneWay     = (Integer) linkMap.get("Oneway");
+                Double freeSpeed   = (Double) linkMap.get("FF_SPD") * 1609.34 / 3600;
 
                 Double length = lengthMiles * 1609.34; // convert miles to meters
+                //Double freeSpeed = length / (driveTime * 60); // convert meters per minute to meters per second
 
                 // put link attributes on link
                 l.setLength(length);
@@ -164,6 +173,19 @@ public class LinkTablesReader {
                 l.setNumberOfLanes(lanes);
                 l.setCapacity(capacity);
                 network.addLink(l);
+
+                // create reverse direction link if it exists
+                if(oneWay != 1) {
+                    Id<Link> rLinkId = Id.createLinkId(linkId.toString() + "r");
+                    Link rl = networkFactory.createLink(rLinkId, toNode, fromNode);
+
+                    rl.setLength(length);
+                    rl.setFreespeed(freeSpeed);
+                    rl.setNumberOfLanes(lanes);
+                    rl.setCapacity(capacity);
+                    network.addLink(rl);
+                }
+
             }
 
         }
@@ -182,18 +204,23 @@ public class LinkTablesReader {
     private static CellProcessor[] getLinksProcessors() {
 
         return new CellProcessor[] {
-                new UniqueHashCode(), // linkNo (must be unique)
-                new ParseDouble(),    //length
-                new Optional(),    // AADT
-                new NotNull(), //start_node
-                new NotNull(), //end_node
-                new NotNull(),        //ft (HCM)
-                new ParseInt(),       //lanes
-                new ParseDouble(),    //sl
-                new NotNull(),        // area type
-                new NotNull(),        // terrain
-                new ParseDouble()     // capacity
-        };
+                    new UniqueHashCode(), // linkNo (must be unique)
+                    new ParseInt(),      //Oneway
+                    new ParseDouble(),    //DriveTime
+                    new ParseDouble(),    //length
+                    new NotNull(),        // RoadClass
+                    new Optional(),    // AADT
+                    new NotNull(), //start_node
+                    new NotNull(), //end_node
+                    new NotNull(),        //ft (HCM)
+                    new ParseInt(),       //lanes
+                    new ParseDouble(),    //sl
+                    new NotNull(),        //median treatment
+                    new NotNull(),        // area type
+                    new NotNull(),        // terrain
+                    new ParseDouble(),     // capacity
+                    new ParseDouble()     // ff_spd
+            };
     }
 
     /**
@@ -201,6 +228,7 @@ public class LinkTablesReader {
      * going in that direction end up breaking.
      */
     private void addTurnaroundLinks() {
+
         // create map of nodes that only have one link entering or exiting.
         ArrayList<Node> inOnlyNodes = new ArrayList<>();
         ArrayList<Node> outOnlyNodes = new ArrayList<>();
