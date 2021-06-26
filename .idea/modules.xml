@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/beam.iml" filepath="$PROJECT_DIR$/.idea/modules/beam.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/aws/beam.aws.iml" filepath="$PROJECT_DIR$/.idea/modules/aws/beam.aws.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/beam-gui/beam.beam-gui.iml" filepath="$PROJECT_DIR$/.idea/modules/beam-gui/beam.beam-gui.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/beam.jmh.iml" filepath="$PROJECT_DIR$/.idea/modules/beam.jmh.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/beam.main.iml" filepath="$PROJECT_DIR$/.idea/modules/beam.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/metrics2.0/beam.metrics2.0.iml" filepath="$PROJECT_DIR$/.idea/modules/metrics2.0/beam.metrics2.0.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/beam.scoverage.iml" filepath="$PROJECT_DIR$/.idea/modules/beam.scoverage.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/beam.test.iml" filepath="$PROJECT_DIR$/.idea/modules/beam.test.iml" />
+    </modules>
+  </component>
+</project>
