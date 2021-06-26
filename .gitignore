@@ -4,7 +4,7 @@ venv/
 test/output
 *BeamRouterCache.dat
 *DS_Store
-.gradle
+
 .project
 .settings
 .classpath
