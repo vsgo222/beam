@@ -92,9 +92,9 @@ object LatentClassChoiceModel {
       val theData = classMemData.filter(_.tourType.equalsIgnoreCase(theTourType.toString))
       val utilityFunctions: Iterable[(String, Map[String, UtilityFunctionOperation])] = for {
         data          <- theData
-        alternativeId <- data.alternative
+        //alternativeId <- data.alternative
       } yield {
-        (alternativeId.toString, Map(data.variable -> UtilityFunctionOperation(data.variable, data.value)))
+        (data.alternative, Map(data.variable -> UtilityFunctionOperation(data.variable, data.value)))
       }
       theTourType -> utilityFunctions.toMap
     }.toMap
@@ -122,9 +122,9 @@ object LatentClassChoiceModel {
 
         val utilityFunctions: Iterable[(String, Map[String, UtilityFunctionOperation])] = for {
           data          <- theData
-          alternativeId <- data.alternative
+          //alternativeId <- data.alternative
         } yield {
-          (alternativeId.toString, Map(data.variable -> UtilityFunctionOperation(data.variable, data.value)))
+          (data.alternative, Map(data.variable -> UtilityFunctionOperation(data.variable, data.value)))
         }
         val utilityFunctionMap = utilityFunctions.toMap
 
