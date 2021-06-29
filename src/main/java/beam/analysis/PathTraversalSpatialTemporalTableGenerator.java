@@ -318,7 +318,7 @@ public class PathTraversalSpatialTemporalTableGenerator implements BasicEventHan
                                 .append(NEW_LINE_CHAR);
                         pw.write(sb.toString());
                         if (j < PRINT_TO_CONSOLE_NUMBER_OF_LINES) {
-                            System.out.print(sb.toString());
+                            System.out.print(sb);
                         }
                         sb.setLength(0);
                         j++;
@@ -444,7 +444,7 @@ public class PathTraversalSpatialTemporalTableGenerator implements BasicEventHan
         if (isNonRoadMode(vehicleType)) {
             if (PathTraversalLib.hasEmptyStartOrEndCoordinate(attributes)) {
                 System.out.println("not processing pathTraversal, as it has empty start or end coordinates: ");
-                System.out.println(attributes.toString());
+                System.out.println(attributes);
                 return; // don't consider traversal events which are missing start or end coordinates
             }
 

@@ -65,7 +65,7 @@ public class NestedLogit implements AbstractLogit {
                     utility = new UtilityFunctionJava();
                     for (int j = 0; j < elem.getChildren().size(); j++) {
                         Element paramElem = (Element) elem.getChildren().get(j);
-                        if (paramElem.getName().toLowerCase().equals("param")) {
+                        if (paramElem.getName().equalsIgnoreCase("param")) {
                             utility.addCoefficient(paramElem.getAttributeValue("name"), Double.parseDouble(paramElem.getValue()), LogitCoefficientType.valueOf(paramElem.getAttributeValue("type")));
                         }
                     }

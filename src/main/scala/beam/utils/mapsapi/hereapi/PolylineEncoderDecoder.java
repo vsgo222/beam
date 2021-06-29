@@ -427,9 +427,7 @@ class PolylineEncoderDecoder {
             }
             if (anObject instanceof LatLngZ) {
                 LatLngZ passed = (LatLngZ)anObject;
-                if (passed.lat == this.lat && passed.lng == this.lng && passed.z == this.z) {
-                    return true;
-                }
+                return passed.lat == this.lat && passed.lng == this.lng && passed.z == this.z;
             }
             return false;
         }

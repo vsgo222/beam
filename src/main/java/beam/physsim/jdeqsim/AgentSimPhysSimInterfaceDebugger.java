@@ -69,7 +69,7 @@ public class AgentSimPhysSimInterfaceDebugger {
                     System.out.print(i);
                     System.out.print(", distanceBetweenEdgesInMeters:");
                     System.out.println(distanceBetweenEdgesInMeters);
-                    System.out.println(event.toString());
+                    System.out.println(event);
                     DebugLib.emptyFunctionForSettingBreakPoint();
                 }
             }
