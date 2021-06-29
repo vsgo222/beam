@@ -658,7 +658,7 @@ object BeamConfig {
                 else com.typesafe.config.ConfigFactory.parseString("poolingMultiplier{}")
               ),
               modalityStyle = if (c.hasPathOrNull("modalityStyle")) c.getString("modalityStyle")
-              else "random",
+              else "",
             )
           }
         }
