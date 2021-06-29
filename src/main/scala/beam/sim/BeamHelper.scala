@@ -538,17 +538,33 @@ trait BeamHelper extends LazyLogging {
     )
     (scenario.getConfig, beamExecutionConfig.outputDirectory, services)
   }
-
+  def updateScenarioWithRandomModalityStyles(scenario: MutableScenario) = {
+    //add a modality style to each person's selected plan
+    val allStyles = List("class1","class2","class3","class4","class6")
+    val random = new Random
+    scenario.getPopulation.getPersons.values()
+      .forEach(person => {
+        person.getSelectedPlan
+          .getAttributes
+          .putAttribute("modality-style", SwitchModalityStyle.getRandomElement(allStyles, random))
+      })
+    scenario
+  }
   def prepareBeamService(
     config: TypesafeConfig,
     abstractModule: Option[AbstractModule]
   ): (BeamExecutionConfig, MutableScenario, BeamScenario, BeamServices, Boolean) = {
     val beamExecutionConfig = updateConfigWithWarmStart(setupBeamWithConfig(config))
-    val (scenario, beamScenario, plansMerged) = buildBeamServicesAndScenario(
+    val (scenario2, beamScenario, plansMerged) = buildBeamServicesAndScenario(
       beamExecutionConfig.beamConfig,
       beamExecutionConfig.matsimConfig,
     )
-    //val scenario = updateScenarioWithModalityStyle(scenario2)
+    var scenario = scenario2
+    val beamConfig = BeamConfig(config)
+    if (beamConfig.beam.agentsim.agents.modalBehaviors.modalityStyle.equals("random")){
+      scenario = updateScenarioWithRandomModalityStyles(scenario2)
+    }
+    //val scenario = updateScenarioWithRandomModalityStyles(scenario2)
     logger.info(s"Java version: ${System.getProperty("java.version")}")
     logger.info(
       "JVM args: " + java.lang.management.ManagementFactory.getRuntimeMXBean.getInputArguments.asScala.toList.toString()
