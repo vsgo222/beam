@@ -540,7 +540,7 @@ trait BeamHelper extends LazyLogging {
   }
   def updateScenarioWithRandomModalityStyles(scenario: MutableScenario) = {
     //add a modality style to each person's selected plan
-    val allStyles = List("class1","class2","class3","class4","class6")
+    val allStyles = List("class1","class2","class3","class4","class5","class6")
     val random = new Random
     scenario.getPopulation.getPersons.values()
       .forEach(person => {
