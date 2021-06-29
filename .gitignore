@@ -28,3 +28,6 @@ test/input/dtd
 .gradle/5.6.4/fileHashes/fileHashes.lock
 .gradle/buildOutputCleanup/buildOutputCleanup.lock
 .idea/workspace.xml
+.idea/libraries-with-intellij-classes.xml
+
+.idea/.name
