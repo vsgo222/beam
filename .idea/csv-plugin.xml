@@ -3,6 +3,20 @@
   <component name="CsvFileAttributes">
     <option name="attributeMap">
       <map>
+        <entry key="C:\Users\munse\.gradle\caches\modules-2\files-2.1\com.github.wrashid.matsim\matsim\0.10.1-beam-15\538b49008f1ef19f00f8bf53b5d5b46979c1487e\matsim-0.10.1-beam-15-sources.jar!\org\matsim\api\core\v01\population\PopulationWriter.java">
+          <value>
+            <Attribute>
+              <option name="separator" value="&#9;" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="C:\Users\munse\.gradle\caches\modules-2\files-2.1\org.scala-lang.modules\scala-xml_2.12\1.3.0\b862fbf6db8a330bc0302f61046ae1f17e33aca9\scala-xml_2.12-1.3.0-sources.jar!\scala\xml\factory\XMLLoader.scala">
+          <value>
+            <Attribute>
+              <option name="separator" value=":" />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\conversion_input\README">
           <value>
             <Attribute>

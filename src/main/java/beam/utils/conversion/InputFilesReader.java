@@ -35,13 +35,18 @@ public class InputFilesReader {
         ActivitySimFacilitiesReader facilitiesReader = new ActivitySimFacilitiesReader(scenario, facilitiesFile,
                 householdsFile, householdCoordFile);
         facilitiesReader.readFacilities();
+        System.out.println("Facilities Done");
         facilitiesReader.readHouseholds();
+        System.out.println("Households Done");
         ActivitySimPersonsReader personsReader = new ActivitySimPersonsReader(scenario, personsFile);
         personsReader.readPersons();
+        System.out.println("Persons Done");
         personsReader.readPlans();
+        System.out.println("Plans Done");
         ActivitySimTripsReader tripsReader = new ActivitySimTripsReader(scenario, tripsFile,
                 facilitiesReader.getTazFacilityMap());
         tripsReader.readTrips();
+        System.out.println("Trips Done");
 
 
     }
@@ -56,18 +61,18 @@ public class InputFilesReader {
             outputDirectory.mkdir();
         }
         String scenarioPath = "conversion_input/";
-        args[0] = scenarioPath + args[0];
+        String configPath = scenarioPath + "CONF.conf";
         File personsFile = new File(scenarioPath + "persons.csv");
         File tripsFile = new File(scenarioPath + "trips.csv");
         File householdsFile = new File(scenarioPath + "households.csv");
         File facilitiesFile = new File(scenarioPath + "facility_ids.csv");
         File householdCoordFile = new File(scenarioPath + "hhcoord.csv");
-        reader.readActivitySimFiles(personsFile, tripsFile, facilitiesFile, householdsFile, householdCoordFile);
+        //reader.readActivitySimFiles(personsFile, tripsFile, facilitiesFile, householdsFile, householdCoordFile);
 
-        new PopulationWriter(scenario.getPopulation()).write(scenarioPath + "plans.xml");
+        //new PopulationWriter(scenario.getPopulation()).write(scenarioPath + "plans.xml");
 
-        new FacilitiesWriter(scenario.getActivityFacilities()).write(scenarioPath + "facilities.xml.gz");
-        MatsimConversionTool.main(args);
+        //new FacilitiesWriter(scenario.getActivityFacilities()).write(scenarioPath + "facilities.xml.gz");
+        MatsimConversionTool.readInConfig(configPath);
     }
 
 }

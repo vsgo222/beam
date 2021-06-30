@@ -29,6 +29,7 @@ public class LargeFileProcessing {
         bytes = info.toString().getBytes(StandardCharsets.UTF_8);
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
         OutputStream outputFileStream = new FileOutputStream(output);
+        System.out.println("File Printing Started");
         if (type == 0){
             String docType = "<?xml version='1.0' encoding='UTF-8'?>\n" +
                     "<!DOCTYPE objectattributes SYSTEM \"../dtd/objectattributes_v1.dtd\">\n";
