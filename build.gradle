@@ -27,6 +27,7 @@ plugins {
     id "me.champeau.gradle.jmh" version "0.5.0"
     id 'com.bmuschko.docker-java-application' version '6.6.1'
     id 'org.ajoberstar.grgit' version '4.0.2'
+    id "com.github.johnrengelman.shadow" version "5.2.0" // Shadow helps create fatJars
 }
 
 apply plugin: 'java'
@@ -333,6 +334,15 @@ configurations.all {
 //compileScala.dependsOn(scalafmtAll)
 
 tasks.withType(ScalaCompile) {
+    mainClassName = 'RunBeam'
+    shadowJar{
+        zip64 true
+        mergeServiceFiles('reference.conf')
+        manifest{
+            attributes 'Main-Class': mainClassName
+        }
+    }
+
     def additionalParameters = ["-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
                                 "-P:scapegoat:dataDir:" + buildDir + "/reports/scapegoat",
                                 "-P:scapegoat:reports:html:xml",
