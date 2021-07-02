@@ -51,7 +51,13 @@ public class InputFilesReader {
 
     }
 
-
+/*
+** To use the InputFilesReader:
+*  (If you don't already have one)
+* 1. Create a folder in your beam directory called conversion_input and put in your input files
+* - persons.csv, trips.csv, households.csv, facility_ids.csv, hhcoord.csv
+* 2.
+ */
     public static void main(String[] args){
         Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
         scenario.getConfig().global().setCoordinateSystem("EPSG:26912");
@@ -67,11 +73,13 @@ public class InputFilesReader {
         File householdsFile = new File(scenarioPath + "households.csv");
         File facilitiesFile = new File(scenarioPath + "facility_ids.csv");
         File householdCoordFile = new File(scenarioPath + "hhcoord.csv");
-        //reader.readActivitySimFiles(personsFile, tripsFile, facilitiesFile, householdsFile, householdCoordFile);
-
-        //new PopulationWriter(scenario.getPopulation()).write(scenarioPath + "plans.xml");
+        //Reads in all the input files
+        reader.readActivitySimFiles(personsFile, tripsFile, facilitiesFile, householdsFile, householdCoordFile);
+        //Creates the plans.xml with the input files
+        new PopulationWriter(scenario.getPopulation()).write(scenarioPath + "plans.xml");
 
         //new FacilitiesWriter(scenario.getActivityFacilities()).write(scenarioPath + "facilities.xml.gz");
+        //Uses the MatsimConversionTool singleton object to convert plans.xml to BEAM output
         MatsimConversionTool.readInConfig(configPath);
     }
 
