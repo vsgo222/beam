@@ -1223,6 +1223,7 @@ trait ChoosesMode {
       modeChoiceCalculator(
         filteredItinerariesForChoice,
         attributesOfIndividual,
+        currentActivity(choosesModeData.personData),
         nextActivity(choosesModeData.personData),
         Some(matsimPlan.getPerson)
       ) match {

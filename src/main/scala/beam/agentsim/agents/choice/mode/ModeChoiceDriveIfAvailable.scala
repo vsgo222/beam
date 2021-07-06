@@ -21,6 +21,7 @@ class ModeChoiceDriveIfAvailable(val beamServices: BeamServices) extends ModeCho
   def apply(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
+    originActivity: Activity,
     destinationActivity: Option[Activity],
     person: Option[Person] = None
   ): Option[EmbodiedBeamTrip] = {

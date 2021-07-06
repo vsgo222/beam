@@ -24,6 +24,7 @@ class ModeChoiceTransitIfAvailable(val beamServices: BeamServices) extends ModeC
   override def apply(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
+    originActivity: Activity,
     destinationActivity: Option[Activity],
     person: Option[Person] = None
   ): Option[EmbodiedBeamTrip] = {
