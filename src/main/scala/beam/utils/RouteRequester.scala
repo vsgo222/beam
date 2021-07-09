@@ -153,6 +153,7 @@ object RouteRequester extends BeamHelper {
 
   val personAttributes: AttributesOfIndividual = AttributesOfIndividual(
     householdAttributes = HouseholdAttributes("031400-2014000788156-0", 325147.0, 10, 4, 1),
+    tourPurposes = List(),
     modalityStyle = None,
     isMale = true,
     availableModes = Seq(

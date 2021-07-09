@@ -20,6 +20,7 @@ sealed trait PopulationAttributes
 
 case class AttributesOfIndividual(
   householdAttributes: HouseholdAttributes,
+  tourPurposes: List[String],
   modalityStyle: Option[String],
   isMale: Boolean,
   availableModes: Seq[BeamMode],
@@ -194,7 +195,7 @@ case class AttributesOfIndividual(
 object AttributesOfIndividual {
 
   val EMPTY: AttributesOfIndividual =
-    AttributesOfIndividual(HouseholdAttributes.EMPTY, None, true, Seq(), 0.0, None, None)
+    AttributesOfIndividual(HouseholdAttributes.EMPTY, List(), None, true, Seq(), 0.0, None, None)
 }
 
 case class HouseholdAttributes(

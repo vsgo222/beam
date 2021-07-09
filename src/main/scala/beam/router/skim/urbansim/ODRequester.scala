@@ -220,6 +220,7 @@ class ODRequester(
       .getOrElse(beamConfig.beam.agentsim.agents.modalBehaviors.defaultValueOfTime)
     AttributesOfIndividual(
       householdAttributes = dummyHouseholdAttributes,
+      tourPurposes = List(),
       modalityStyle = None,
       isMale = true,
       availableModes = Seq(CAR, WALK_TRANSIT, BIKE, DRIVE_TRANSIT),

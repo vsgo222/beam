@@ -20,6 +20,7 @@ object R5Requester extends BeamHelper {
     val originUTM = new Location(2961475.272057291, 3623253.4635826824)
     val personAttribs = AttributesOfIndividual(
       householdAttributes = HouseholdAttributes("48-453-001845-2:117138", 70000.0, 1, 1, 1),
+      tourPurposes = List(),
       modalityStyle = None,
       isMale = true,
       availableModes = Seq(BeamMode.CAR, BeamMode.WALK_TRANSIT, BeamMode.BIKE),

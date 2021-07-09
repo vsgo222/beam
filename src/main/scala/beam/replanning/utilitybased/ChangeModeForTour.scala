@@ -229,6 +229,13 @@ class ChangeModeForTour(
     val householdVehicles =
       Population.getVehiclesFromHousehold(household, beamScenario)
 
+    val activities: List[Activity] = person.getSelectedPlan.getPlanElements.asScala
+      .collect{ case activity: Activity => activity }
+      .toList
+    val attributes: List[Attributes] = activities.map(_.getAttributes).init
+    val tourPurposes: List[String] = attributes.map(_.getAttribute("primary_purpose").toString)
+      .toSet.toList
+
     val modalityStyle =
       Option(person.getSelectedPlan.getAttributes.getAttribute("modality-style"))
         .map(_.asInstanceOf[String])
@@ -255,6 +262,7 @@ class ChangeModeForTour(
     val attributesOfIndividual =
       AttributesOfIndividual(
         HouseholdAttributes(household, householdVehicles),
+        tourPurposes,
         modalityStyle,
         PersonUtils.getSex(person).equalsIgnoreCase("M"),
         availableModes,
