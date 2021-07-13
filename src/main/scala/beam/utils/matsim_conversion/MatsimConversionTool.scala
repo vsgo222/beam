@@ -23,7 +23,7 @@ import org.supercsv.prefs.CsvPreference
 
 object MatsimConversionTool extends App {
 
-  val dummyGtfsPath = "src/main/resources/dummy.zip"
+//  val dummyGtfsPath = "test/input/slc_test/r5/SLC.zip" (not needed?)
 
   if (null != args && args.length > 0) {
     val beamConfigFilePath = args(0) //"test/input/beamville/beam.conf"
@@ -41,7 +41,7 @@ object MatsimConversionTool extends App {
 
     val r5OutputFolder = conversionConfig.scenarioDirectory + "/r5"
     val dummyGtfsOut = r5OutputFolder + "/dummy.zip"
-    FileUtils.copyFile(new File(dummyGtfsPath), new File(dummyGtfsOut))
+//    FileUtils.copyFile(new File(dummyGtfsPath), new File(dummyGtfsOut)) (not needed?)
   } else {
     println("Please specify config/file/path parameter")
   }
