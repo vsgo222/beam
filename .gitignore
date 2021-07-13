@@ -3,6 +3,8 @@
 /build/**
 /log-path_IS_UNDEFINED/**
 
+*.log
+
 /output/**
 
 /input_scenarios/**
