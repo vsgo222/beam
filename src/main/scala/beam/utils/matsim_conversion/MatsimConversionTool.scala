@@ -36,7 +36,7 @@ object MatsimConversionTool extends App {
     new MatsimNetworkReader(network).readFile(conversionConfig.matsimNetworkFile)
 
     MatsimPlanConversion.generateScenarioData(conversionConfig)
-    generateTazDefaults(conversionConfig, network)
+//    generateTazDefaults(conversionConfig, network)
     generateOsmFilteringCommand(conversionConfig, network)
 
     val r5OutputFolder = conversionConfig.scenarioDirectory + "/r5"
