@@ -23,6 +23,8 @@ The network initially needs to be in MATSim format, which is a format similar to
 		</links>
 	</network>
 
+This format follows the network_v2.dtd, and needs this DOCTYPE declaration:
+`<!DOCTYPE network SYSTEM "http://www.matsim.org/files/dtd/network_v2.dtd">`
 
 Converting to PBF
 --------------------
