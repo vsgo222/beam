@@ -4,6 +4,7 @@
 /log-path_IS_UNDEFINED/**
 
 *.log
+*.Rhistory
 
 /output/**
 
