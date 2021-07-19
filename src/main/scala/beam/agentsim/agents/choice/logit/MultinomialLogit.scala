@@ -17,6 +17,7 @@ import com.typesafe.scalalogging.LazyLogging
 class MultinomialLogit[A, T](
   val utilityFunctions: A => Option[Map[T, UtilityFunctionOperation]],
   common: Map[T, UtilityFunctionOperation],
+  val tourType: String,
   scale_factor: Double = 1.0
 ) extends LazyLogging {
 
@@ -191,21 +192,30 @@ object MultinomialLogit {
   )
 
   def apply[A, T](utilityFunctions: Map[A, Map[T, UtilityFunctionOperation]]): MultinomialLogit[A, T] = {
-    new MultinomialLogit(utilityFunctions.get, Map.empty)
+    new MultinomialLogit(utilityFunctions.get, Map.empty, "")
   }
 
   def apply[A, T](
     utilityFunctions: Map[A, Map[T, UtilityFunctionOperation]],
     commonUtilityFunction: Map[T, UtilityFunctionOperation]
   ): MultinomialLogit[A, T] = {
-    new MultinomialLogit(utilityFunctions.get, commonUtilityFunction, 1.0)
+    new MultinomialLogit(utilityFunctions.get, commonUtilityFunction,"", 1.0)
   }
 
   def apply[A, T](
     utilityFunctions: Map[A, Map[T, UtilityFunctionOperation]],
     commonUtilityFunction: Map[T, UtilityFunctionOperation],
+    tourType: String,
+  ): MultinomialLogit[A, T] = {
+    new MultinomialLogit(utilityFunctions.get, commonUtilityFunction,tourType, 1.0)
+  }
+
+  def apply[A, T](
+    utilityFunctions: Map[A, Map[T, UtilityFunctionOperation]],
+    commonUtilityFunction: Map[T, UtilityFunctionOperation],
+    tourType:String,
     scale_factor: Double
   ): MultinomialLogit[A, T] = {
-    new MultinomialLogit(utilityFunctions.get, commonUtilityFunction, scale_factor)
+    new MultinomialLogit(utilityFunctions.get, commonUtilityFunction, tourType, scale_factor)
   }
 }
