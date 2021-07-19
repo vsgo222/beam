@@ -370,14 +370,16 @@ class ModeChoiceMultinomialLogit(
   override def utilityOf(
     alternative: EmbodiedBeamTrip,
     attributesOfIndividual: AttributesOfIndividual,
-    destinationActivity: Option[Activity]
+    destinationActivity: Option[Activity],
+    tourPurpose: String
   ): Double = {
     val modeCostTimeTransfer =
       altsToModeCostTimeTransfers(IndexedSeq(alternative), attributesOfIndividual, destinationActivity).head
-    utilityOf(modeCostTimeTransfer)
+    utilityOf(modeCostTimeTransfer,tourPurpose)
   }
 
-  private def utilityOf(mct: ModeCostTimeTransfer): Double = {
+  private def utilityOf(mct: ModeCostTimeTransfer,tourPurpose:String): Double = {
+    val model: MultinomialLogit[EmbodiedBeamTrip, String] = modelList.filter(_.tourType.equals(tourPurpose)).head
     model
       .getUtilityOfAlternative(mct.embodiedBeamTrip, attributes(mct.cost, mct.transitOccupancyLevel, mct.numTransfers))
       .getOrElse(0)

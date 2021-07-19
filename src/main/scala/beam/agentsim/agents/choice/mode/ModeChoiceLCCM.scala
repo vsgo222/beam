@@ -1,7 +1,6 @@
 package beam.agentsim.agents.choice.mode
 
 import java.util.Random
-
 import beam.agentsim.agents.choice.logit.LatentClassChoiceModel.{Mandatory, TourType}
 import beam.agentsim.agents.choice.logit.MultinomialLogit.MNLSample
 import beam.agentsim.agents.choice.logit.LatentClassChoiceModel
@@ -13,10 +12,12 @@ import beam.router.model.EmbodiedBeamTrip
 import beam.sim.config.BeamConfig
 import beam.sim.{BeamServices, MapStringDouble}
 import beam.sim.population.AttributesOfIndividual
+import kamon.trace.Span.Empty
 import org.matsim.api.core.v01.population.Activity
 import org.matsim.api.core.v01.population.Person
 
 import scala.collection.JavaConverters._
+import scala.collection.immutable.List
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -284,7 +285,8 @@ class ModeChoiceLCCM(
   override def utilityOf(
     alternative: EmbodiedBeamTrip,
     attributesOfIndividual: AttributesOfIndividual,
-    destinationActivity: Option[Activity]
+    destinationActivity: Option[Activity],
+    tourPurpose: String
   ): Double = 0.0
 
   override def computeAllDayUtility(
@@ -304,7 +306,7 @@ class ModeChoiceLCCM(
       .toMap
       .mapValues(
         modeChoiceCalculatorForStyle =>
-          trips.map(trip => modeChoiceCalculatorForStyle.utilityOf(trip, attributesOfIndividual, None)).sum
+          trips.map(trip => modeChoiceCalculatorForStyle.utilityOf(trip, attributesOfIndividual, None, "")).sum
       )
       .toArray
       .toMap // to force computation DO NOT TOUCH IT, because here is call-by-name and it's lazy which will hold a lot of memory !!! :)
