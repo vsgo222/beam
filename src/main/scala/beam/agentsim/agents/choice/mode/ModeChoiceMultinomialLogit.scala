@@ -403,11 +403,12 @@ class ModeChoiceMultinomialLogit(
     )
   }
 
+  //find a way to use correct tourPurpose value and not just first one
   override def computeAllDayUtility(
     trips: ListBuffer[EmbodiedBeamTrip],
     person: Person,
     attributesOfIndividual: AttributesOfIndividual
-  ): Double = trips.map(utilityOf(_, attributesOfIndividual, None)).sum // TODO: Update with destination activity
+  ): Double = trips.map(utilityOf(_, attributesOfIndividual, None, attributesOfIndividual.tourPurposes(0))).sum // TODO: Update with destination & origin activity
 }
 
 object ModeChoiceMultinomialLogit {
@@ -459,12 +460,12 @@ object ModeChoiceMultinomialLogit {
     (
       new logit.MultinomialLogit(
         trip => mnlUtilityFunctions.get(trip.tripClassifier.value),
-        commonUtility,
+        commonUtility, "",
         scale_factor
       ),
       new logit.MultinomialLogit(
         mode => mnlUtilityFunctions.get(mode.value),
-        commonUtility,
+        commonUtility, "",
         scale_factor
       )
     )

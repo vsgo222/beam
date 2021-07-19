@@ -2,7 +2,6 @@ package beam.replanning.utilitybased
 
 import java.util
 import java.util.Collections
-
 import beam.agentsim.agents.Population
 import beam.agentsim.agents.choice.mode.TransitFareDefaults
 import beam.agentsim.agents.modalbehaviors.ModeChoiceCalculator
@@ -20,9 +19,11 @@ import org.matsim.core.population.PersonUtils
 import org.matsim.core.population.algorithms.PlanAlgorithm
 import org.matsim.core.router.TripStructureUtils.Subtour
 import org.matsim.core.router.{CompositeStageActivityTypes, TripRouter, TripStructureUtils}
+import org.matsim.utils.objectattributes.attributable.Attributes
 
 import scala.collection.JavaConverters._
-import scala.collection.{mutable, JavaConverters}
+import scala.collection.immutable.List
+import scala.collection.{JavaConverters, mutable}
 import scala.util.Random
 
 class ChangeModeForTour(

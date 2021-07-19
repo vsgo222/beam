@@ -49,7 +49,7 @@ class SupplementaryTripGenerator(
     ] =
       MultinomialLogit(
         Map.empty,
-        destinationChoiceModel.DefaultMNLParameters,
+        destinationChoiceModel.DefaultMNLParameters, "",
         beamServices.beamConfig.beam.agentsim.agents.tripBehaviors.mulitnomialLogit.mode_nest_scale_factor
       )
 
@@ -59,14 +59,14 @@ class SupplementaryTripGenerator(
     ] =
       MultinomialLogit(
         Map.empty,
-        destinationChoiceModel.TripMNLParameters,
+        destinationChoiceModel.TripMNLParameters, "",
         beamServices.beamConfig.beam.agentsim.agents.tripBehaviors.mulitnomialLogit.destination_nest_scale_factor
       )
 
     val tripMNL: MultinomialLogit[Boolean, DestinationChoiceModel.TripParameters] =
       MultinomialLogit(
         Map.empty,
-        destinationChoiceModel.TripMNLParameters,
+        destinationChoiceModel.TripMNLParameters, "",
         beamServices.beamConfig.beam.agentsim.agents.tripBehaviors.mulitnomialLogit.trip_nest_scale_factor
       )
 
