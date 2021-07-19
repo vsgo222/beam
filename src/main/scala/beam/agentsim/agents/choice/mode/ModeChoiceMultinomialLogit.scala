@@ -28,7 +28,7 @@ import org.matsim.core.api.experimental.events.EventsManager
   */
 class ModeChoiceMultinomialLogit(
   val beamServices: BeamServices,
-  val model: MultinomialLogit[EmbodiedBeamTrip, String],
+  val modelList: List[MultinomialLogit[EmbodiedBeamTrip, String]],
   val modeModel: MultinomialLogit[BeamMode, String],
   beamConfigHolder: BeamConfigHolder,
   transitCrowding: TransitCrowdingSkims,
@@ -51,13 +51,15 @@ class ModeChoiceMultinomialLogit(
     destinationActivity: Option[Activity],
     person: Option[Person] = None
   ): Option[EmbodiedBeamTrip] = {
+    val purp = originActivity.getAttributes.getAttribute("primary_purpose").toString
+    val model: MultinomialLogit[EmbodiedBeamTrip, String] = modelList.filter(model => model.tourType.equals(purp)).head
     if (alternatives.isEmpty) {
       None
     } else {
       val modeCostTimeTransfers = altsToModeCostTimeTransfers(alternatives, attributesOfIndividual, destinationActivity)
 
       val bestInGroup = modeCostTimeTransfers groupBy (_.embodiedBeamTrip.tripClassifier) map {
-        case (_, group) => findBestIn(group)
+        case (_, group) => findBestIn(group,model)
       }
       val inputData = bestInGroup.map { mct =>
         val theParams: Map[String, Double] =
@@ -70,6 +72,7 @@ class ModeChoiceMultinomialLogit(
         (mct.embodiedBeamTrip, theParams ++ transferParam)
       }.toMap
 
+      //val alternativesWithTourPurposeUtility = model.calcAlternativesWithTourPurposeUtility(inputData)
       val alternativesWithUtility = model.calcAlternativesWithUtility(inputData)
       val chosenModeOpt = model.sampleAlternative(alternativesWithUtility, random)
 
@@ -116,7 +119,7 @@ class ModeChoiceMultinomialLogit(
     }
   }
 
-  private def findBestIn(group: IndexedSeq[ModeCostTimeTransfer]): ModeCostTimeTransfer = {
+  private def findBestIn(group: IndexedSeq[ModeCostTimeTransfer],model: MultinomialLogit[EmbodiedBeamTrip, String]): ModeCostTimeTransfer = {
     if (group.size == 1) {
       group.head
     } else if (group.head.embodiedBeamTrip.tripClassifier.isTransit) {
