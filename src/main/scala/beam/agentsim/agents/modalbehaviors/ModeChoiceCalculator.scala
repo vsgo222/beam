@@ -1,7 +1,7 @@
 package beam.agentsim.agents.modalbehaviors
 
-import beam.agentsim.agents.choice.logit.LatentClassChoiceModel
-import beam.agentsim.agents.choice.logit.LatentClassChoiceModel.Mandatory
+import beam.agentsim.agents.choice.logit.{LatentClassChoiceModel, MultinomialLogit}
+import beam.agentsim.agents.choice.logit.LatentClassChoiceModel.{Mandatory, NonMandatory}
 import beam.agentsim.agents.choice.mode._
 import beam.router.Modes.BeamMode
 import beam.router.Modes.BeamMode._
@@ -133,11 +133,11 @@ object ModeChoiceCalculator {
         val lccm = new LatentClassChoiceModel(beamServices)
         (attributesOfIndividual: AttributesOfIndividual) =>
           attributesOfIndividual match {
-            case AttributesOfIndividual(_, Some(modalityStyle), _, _, _, _, _) =>
+            case AttributesOfIndividual(_, _,Some(modalityStyle), _, _, _, _, _) =>
               val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(modalityStyle)
               new ModeChoiceMultinomialLogit(
                 beamServices,
-                model,
+                List(model),
                 modeModel,
                 configHolder,
                 beamServices.skims.tc_skimmer,
@@ -145,6 +145,29 @@ object ModeChoiceCalculator {
               )
             case _ =>
               throw new RuntimeException("LCCM needs people to have modality styles")
+          }
+      case "ModeChoiceASIM" =>
+        val lccm = new LatentClassChoiceModel(beamServices)
+        (attributesOfIndividual: AttributesOfIndividual) =>
+          attributesOfIndividual match {
+            case AttributesOfIndividual(_,tourPurposes,_, _, _, _, _, _) =>
+              val modelList = new ListBuffer[MultinomialLogit[EmbodiedBeamTrip, String]]
+              val modeModelList = new ListBuffer[MultinomialLogit[BeamMode, String]]
+                for(i <- 0 to tourPurposes.length -1){
+                  var(model,modeModel) = lccm.modeChoiceModels(Mandatory)(tourPurposes(i))
+                  modelList += model
+                  modeModelList += modeModel
+                }
+              new ModeChoiceMultinomialLogit(
+                beamServices,
+                modelList.toList,
+                modeModelList.head,
+                configHolder,
+                beamServices.skims.tc_skimmer,
+                eventsManager
+              )
+            case _ =>
+              throw new RuntimeException("ASIM needs people to have tour purpose activity attributes")
           }
       case "ModeChoiceTransitIfAvailable" =>
         _ =>
@@ -163,7 +186,7 @@ object ModeChoiceCalculator {
         _ =>
           new ModeChoiceMultinomialLogit(
             beamServices,
-            routeLogit,
+            List(routeLogit),
             modeLogit,
             configHolder,
             beamServices.skims.tc_skimmer,
