@@ -117,7 +117,8 @@ object LatentClassChoiceModel {
     Vector[TourType](Mandatory, NonMandatory).map { theTourType: TourType =>
       val theTourTypeData = modeChoiceData.filter(_.tourType.equalsIgnoreCase(theTourType.toString))
       theTourType -> uniqueClasses.map { theLatentClass =>
-        val theData = theTourTypeData.filter(_.latentClass.equalsIgnoreCase(theLatentClass))
+        val theData = theTourTypeData.filter(_.latentClass.contains(theLatentClass))
+          //.equalsIgnoreCase(theLatentClass))
 
         val utilityFunctions: Iterable[(String, Map[String, UtilityFunctionOperation])] = for {
           data          <- theData
@@ -129,9 +130,9 @@ object LatentClassChoiceModel {
 
         theLatentClass -> (new MultinomialLogit[EmbodiedBeamTrip, String](
           trip => utilityFunctionMap.get(trip.tripClassifier.value),
-          Map.empty
+          Map.empty, theLatentClass
         ),
-        new MultinomialLogit[BeamMode, String](mode => utilityFunctionMap.get(mode.value), Map.empty))
+        new MultinomialLogit[BeamMode, String](mode => utilityFunctionMap.get(mode.value), Map.empty, theLatentClass))
       }.toMap
     }.toMap
   }
