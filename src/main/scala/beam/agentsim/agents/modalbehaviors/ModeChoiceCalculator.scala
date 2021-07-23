@@ -137,7 +137,7 @@ object ModeChoiceCalculator {
               val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(modalityStyle)
               new ModeChoiceMultinomialLogit(
                 beamServices,
-                List(model),
+                Map("" -> model),
                 modeModel,
                 configHolder,
                 beamServices.skims.tc_skimmer,
@@ -151,16 +151,16 @@ object ModeChoiceCalculator {
         (attributesOfIndividual: AttributesOfIndividual) =>
           attributesOfIndividual match {
             case AttributesOfIndividual(_,tourPurposes,_, _, _, _, _, _) =>
-              val modelList = new ListBuffer[MultinomialLogit[EmbodiedBeamTrip, String]]
+              var modelList: Map[String, MultinomialLogit[EmbodiedBeamTrip, String]] = Map()
               val modeModelList = new ListBuffer[MultinomialLogit[BeamMode, String]]
                 for(i <- 0 to tourPurposes.length -1){
-                  var(model,modeModel) = lccm.modeChoiceModels(Mandatory)(tourPurposes(i))
-                  modelList += model
+                  var (model,modeModel) = lccm.modeChoiceModels(Mandatory)(tourPurposes(i))
+                  modelList += (tourPurposes(i) -> model)
                   modeModelList += modeModel
                 }
               new ModeChoiceMultinomialLogit(
                 beamServices,
-                modelList.toList,
+                modelList,
                 modeModelList.head,
                 configHolder,
                 beamServices.skims.tc_skimmer,
@@ -186,7 +186,7 @@ object ModeChoiceCalculator {
         _ =>
           new ModeChoiceMultinomialLogit(
             beamServices,
-            List(routeLogit),
+            Map("" -> routeLogit),
             modeLogit,
             configHolder,
             beamServices.skims.tc_skimmer,

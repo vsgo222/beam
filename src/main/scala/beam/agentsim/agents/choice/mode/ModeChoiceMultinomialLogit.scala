@@ -28,7 +28,7 @@ import org.matsim.core.api.experimental.events.EventsManager
   */
 class ModeChoiceMultinomialLogit(
   val beamServices: BeamServices,
-  val modelList: List[MultinomialLogit[EmbodiedBeamTrip, String]],
+  val modelList: Map[String,MultinomialLogit[EmbodiedBeamTrip, String]],
   val modeModel: MultinomialLogit[BeamMode, String],
   beamConfigHolder: BeamConfigHolder,
   transitCrowding: TransitCrowdingSkims,
@@ -52,7 +52,7 @@ class ModeChoiceMultinomialLogit(
     person: Option[Person] = None
   ): Option[EmbodiedBeamTrip] = {
     val purp = originActivity.getAttributes.getAttribute("primary_purpose").toString
-    val model: MultinomialLogit[EmbodiedBeamTrip, String] = modelList.filter(model => model.tourType.equals(purp)).head
+    val model: MultinomialLogit[EmbodiedBeamTrip, String] = modelList.get(purp).get
     if (alternatives.isEmpty) {
       None
     } else {
@@ -382,7 +382,7 @@ class ModeChoiceMultinomialLogit(
   }
 
   private def utilityOf(mct: ModeCostTimeTransfer,tourPurpose:String): Double = {
-    val model: MultinomialLogit[EmbodiedBeamTrip, String] = modelList.filter(_.tourType.equals(tourPurpose)).head
+    val model: MultinomialLogit[EmbodiedBeamTrip, String] = modelList.get(tourPurpose).get
     model
       .getUtilityOfAlternative(mct.embodiedBeamTrip, attributes(mct.cost, mct.transitOccupancyLevel, mct.numTransfers))
       .getOrElse(0)
