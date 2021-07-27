@@ -145,6 +145,26 @@ object ModeChoiceCalculator {
             case _ =>
               throw new RuntimeException("LCCM needs people to have modality styles")
           }
+      case "ModeChoiceASIM" =>
+        val lccm = new LatentClassChoiceModel(beamServices)
+        (attributesOfIndividual: AttributesOfIndividual) =>
+          attributesOfIndividual match {
+            case AttributesOfIndividual(_, _, _, _, _, _, _) =>
+                val tourPurposes:List[String] = List("Work","work","univ","school","escort","shopping","escort","shopping","eatout","othmaint","social","othdiscr","atwork")
+                val random = new Random
+                val purpose = tourPurposes(random.nextInt(tourPurposes.length))
+              val (model, modeModel) = lccm.modeChoiceTourModels(Mandatory)(purpose)
+              new ModeChoiceMultinomialLogit(
+                beamServices,
+                model,
+                modeModel,
+                configHolder,
+                beamServices.skims.tc_skimmer,
+                eventsManager
+              )
+            case _ =>
+              throw new RuntimeException("ASIM needs tour purpose attribute")
+          }
       case "ModeChoiceTransitIfAvailable" =>
         _ => new ModeChoiceTransitIfAvailable(beamServices)
       case "ModeChoiceDriveIfAvailable" =>
