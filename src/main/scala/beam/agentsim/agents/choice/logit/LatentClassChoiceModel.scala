@@ -33,6 +33,11 @@ class LatentClassChoiceModel(val beamServices: BeamServices) {
     LatentClassChoiceModel.extractModeChoiceModels(lccmData)
   }
 
+  val modeChoiceTourModels
+  : Map[TourType, Map[String, (MultinomialLogit[EmbodiedBeamTrip, String], MultinomialLogit[BeamMode, String])]] = {
+    LatentClassChoiceModel.extractModeChoiceTourModels(lccmData)
+  }
+
   private def parseModeChoiceParams(lccmParamsFileName: String): Seq[LccmData] = {
     val beanReader = new CsvBeanReader(
       IOUtils.getBufferedReader(lccmParamsFileName),
@@ -121,7 +126,6 @@ object LatentClassChoiceModel {
 
         val utilityFunctions: Iterable[(String, Map[String, UtilityFunctionOperation])] = for {
           data          <- theData
-          //alternativeId <- data.alternative
         } yield {
           (data.alternative, Map(data.variable -> UtilityFunctionOperation(data.variable, data.value)))
         }
@@ -132,6 +136,32 @@ object LatentClassChoiceModel {
           Map.empty
         ),
         new MultinomialLogit[BeamMode, String](mode => utilityFunctionMap.get(mode.value), Map.empty))
+      }.toMap
+    }.toMap
+  }
+
+  def extractModeChoiceTourModels(
+    lccmData: Seq[LccmData]
+  ): Map[TourType, Map[String, (MultinomialLogit[EmbodiedBeamTrip, String], MultinomialLogit[BeamMode, String])]] = {
+    val uniqueClasses = lccmData.map(_.latentClass).distinct
+    val modeChoiceData = lccmData.filter(_.model == "modeChoice")
+    Vector[TourType](Mandatory, NonMandatory).map { theTourType: TourType =>
+      val theTourTypeData = modeChoiceData.filter(_.tourType.equalsIgnoreCase(theTourType.toString))
+      theTourType -> uniqueClasses.map { theTourMode =>
+        val theData = theTourTypeData.filter(_.latentClass.equalsIgnoreCase(theTourMode))
+
+        val utilityFunctions: Iterable[(String, Map[String, UtilityFunctionOperation])] = for {
+          data          <- theData
+        } yield {
+          (data.alternative, Map(data.variable -> UtilityFunctionOperation(data.variable, data.value)))
+        }
+        val utilityFunctionMap = utilityFunctions.toMap
+
+        theTourMode -> (new MultinomialLogit[EmbodiedBeamTrip, String](
+          trip => utilityFunctionMap.get(trip.tripClassifier.value),
+          Map.empty
+        ),
+          new MultinomialLogit[BeamMode, String](mode => utilityFunctionMap.get(mode.value), Map.empty))
       }.toMap
     }.toMap
   }
