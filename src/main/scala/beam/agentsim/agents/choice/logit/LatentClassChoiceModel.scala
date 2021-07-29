@@ -148,8 +148,8 @@ object LatentClassChoiceModel {
     val modeChoiceData = lccmData.filter(_.model == "modeChoice")
     Vector[TourType](Mandatory, NonMandatory).map { theTourType: TourType =>
       val theTourTypeData = modeChoiceData.filter(_.tourType.equalsIgnoreCase(theTourType.toString))
-      theTourType -> uniqueClasses.map { theTourMode =>
-        val theData = theTourTypeData.filter(_.latentClass.equalsIgnoreCase(theTourMode))
+      theTourType -> uniqueClasses.map { theTourPurpose =>
+        val theData = theTourTypeData.filter(_.latentClass.equalsIgnoreCase(theTourPurpose))
 
         val utilityFunctions: Iterable[(String, Map[String, UtilityFunctionOperation])] = for {
           data          <- theData
@@ -158,7 +158,7 @@ object LatentClassChoiceModel {
         }
         val utilityFunctionMap = utilityFunctions.toMap
 
-        theTourMode -> (new MultinomialLogit[EmbodiedBeamTrip, String](
+        theTourPurpose -> (new MultinomialLogit[EmbodiedBeamTrip, String](
           trip => utilityFunctionMap.get(trip.tripClassifier.value),
           Map.empty
         ),
