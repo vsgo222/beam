@@ -16,7 +16,7 @@ class BeamPrepareForSim @Inject()(scenario: Scenario) extends PrepareForSim {
 
   override def run(): Unit = {
 //    keepOnlyActivities()
-    assignInitialModalityStyles()
+//    assignInitialModalityStyles()
 
   }
 
