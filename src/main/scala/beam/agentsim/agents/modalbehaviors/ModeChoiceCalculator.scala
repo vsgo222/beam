@@ -60,10 +60,12 @@ trait ModeChoiceCalculator {
   def utilityOf(
     alternative: EmbodiedBeamTrip,
     attributesOfIndividual: AttributesOfIndividual,
-    destinationActivity: Option[Activity]
+    destinationActivity: Option[Activity],
+    person: Person
   ): Double
 
   def utilityOf(
+    person: Person,
     mode: BeamMode,
     cost: Double,
     time: Double,

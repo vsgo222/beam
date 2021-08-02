@@ -76,6 +76,7 @@ class ChangeModeForTour(
             getCostAndTimeForMode(alt, trip.getOriginActivity, trip.getDestinationActivity)
           if (alt.isTransit) {
             modeChoiceCalculator.utilityOf(
+              person,
               if (alternativesForTour.contains(CAR)) DRIVE_TRANSIT
               else WALK_TRANSIT,
               timeDist._1,
@@ -83,7 +84,7 @@ class ChangeModeForTour(
               numTransfers = rng.nextInt(4) + 1
             )
           } else {
-            modeChoiceCalculator.utilityOf(alt, timeDist._1, timeDist._2)
+            modeChoiceCalculator.utilityOf(person, alt, timeDist._1, timeDist._2)
           }
         })
         .sum
