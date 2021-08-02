@@ -144,6 +144,16 @@ object ModeChoiceCalculator {
             case _ =>
               throw new RuntimeException("LCCM needs people to have modality styles")
           }
+      case "ModeChoiceTest" =>
+        val lccm = new LatentClassChoiceModel(beamServices)
+        (attributesOfIndividual: AttributesOfIndividual) =>
+        new ModeChoiceTest(
+          beamServices,
+          lccm,
+          configHolder,
+          beamServices.skims.tc_skimmer,
+          eventsManager
+        )
       case "ModeChoiceASIM" =>
         val lccm = new LatentClassChoiceModel(beamServices)
         (attributesOfIndividual: AttributesOfIndividual) =>
