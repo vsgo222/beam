@@ -426,6 +426,10 @@ class PersonAgent(
     }
   }
 
+  def getNumOfActivities()= {
+    _experiencedBeamPlan.activities.length
+  }
+
   def findFirstCarLegOfTrip(data: BasePersonData): Option[EmbodiedBeamLeg] = {
     @tailrec
     def _find(remaining: IndexedSeq[EmbodiedBeamLeg]): Option[EmbodiedBeamLeg] = {
