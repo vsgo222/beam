@@ -77,20 +77,28 @@ class ModeChoiceTest(
     val types: List[String] = activities.map(_.getType)
     if (types.contains("Work")) {
       "Work"
-    } else("Nonwork")
+    } else("social")
   }
+
+  private def determineTourPurpose(
+    originActivity: Activity
+  ) : String = {
+    val tourPurpose = originActivity.getAttributes.getAttribute("primary_purpose").toString
+    tourPurpose
+  }
+
 
   private def choose(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
     person: Option[Person],
-    workStyle: String
+    purpose: String
   ): Option[EmbodiedBeamTrip] = {
     if (alternatives.isEmpty) {
       None
     } else {
-      val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(workStyle)
+      val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(purpose)
 
       val modeCostTimeTransfers = altsToModeCostTimeTransfers(alternatives, attributesOfIndividual, destinationActivity)
 
@@ -327,14 +335,38 @@ class ModeChoiceTest(
      alternative: EmbodiedBeamTrip,
      attributesOfIndividual: AttributesOfIndividual,
      destinationActivity: Option[Activity],
-     person: Person
+     tourPurpose: String
   ): Double = {
     val modeCostTimeTransfer =
       altsToModeCostTimeTransfers(IndexedSeq(alternative), attributesOfIndividual, destinationActivity).head
-    utilityOf(modeCostTimeTransfer,person)
+    utilityOf(modeCostTimeTransfer, tourPurpose)
   }
 
-  private def utilityOf(mct: ModeCostTimeTransfer,person: Person): Double = {
+  override def utilityOf(
+    alternative: EmbodiedBeamTrip,
+    attributesOfIndividual: AttributesOfIndividual,
+    destinationActivity: Option[Activity],
+    person: Person
+  ): Double = {
+    val modeCostTimeTransfer =
+      altsToModeCostTimeTransfers(IndexedSeq(alternative), attributesOfIndividual, destinationActivity).head
+    utilityOf2(modeCostTimeTransfer, person)
+  }
+
+  private def utilityOf(
+     mct: ModeCostTimeTransfer,
+     tourPurpose: String
+  ): Double = {
+    val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(tourPurpose)
+    model
+      .getUtilityOfAlternative(mct.embodiedBeamTrip, attributes(mct.cost, mct.transitOccupancyLevel, mct.numTransfers))
+      .getOrElse(0)
+  }
+
+  private def utilityOf2(
+    mct: ModeCostTimeTransfer,
+    person: Person
+  ): Double = {
     val workStyle = determineWorkStyle(person)
     val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(workStyle)
     model
@@ -351,6 +383,7 @@ class ModeChoiceTest(
     transitOccupancyLevel: Double
   ): Double = {
     val workStyle = determineWorkStyle(person)
+    //val tourPurpose = determineTourPurpose(originActivity)
     val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(workStyle)
     modeModel.getUtilityOfAlternative(mode, attributes(cost, transitOccupancyLevel, numTransfers)).getOrElse(0)
   }
@@ -359,7 +392,7 @@ class ModeChoiceTest(
     trips: ListBuffer[EmbodiedBeamTrip],
     person: Person,
     attributesOfIndividual: AttributesOfIndividual
-  ): Double = trips.map(utilityOf(_, attributesOfIndividual, None, person)).sum // TODO: Update with destination activity
+  ): Double = trips.map(utilityOf(_, attributesOfIndividual, None, person)).sum // TODO: Update with destination & origin activity
 
   case class ModeCostTimeTransfer(
     embodiedBeamTrip: EmbodiedBeamTrip,
