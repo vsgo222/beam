@@ -54,6 +54,7 @@ trait ModeChoiceCalculator {
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
+    tourType: String,
     person: Option[Person] = None
   ): Option[EmbodiedBeamTrip]
 

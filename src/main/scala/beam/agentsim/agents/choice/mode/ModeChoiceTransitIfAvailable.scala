@@ -25,6 +25,7 @@ class ModeChoiceTransitIfAvailable(val beamServices: BeamServices) extends ModeC
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
+    tourPurpose: String,
     person: Option[Person] = None
   ): Option[EmbodiedBeamTrip] = {
     val containsTransitAlt = alternatives.zipWithIndex.collect {

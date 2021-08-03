@@ -1098,6 +1098,12 @@ trait ChoosesMode {
     }
   }
 
+  def getTourPurpose(data: ChoosesModeData): String = {
+    val currentAct = currentActivity(data.personData)
+    val tourPurp = currentAct.getAttributes.getAttribute("primary_purpose").toString
+    tourPurp
+  }
+
   def completeChoiceIfReady: PartialFunction[State, State] = {
     case FSM.State(
         _,
@@ -1220,10 +1226,14 @@ trait ChoosesMode {
           .asInstanceOf[AttributesOfIndividual]
       val availableAlts = Some(filteredItinerariesForChoice.map(_.tripClassifier).mkString(":"))
 
+      val tourPurpose = getTourPurpose(choosesModeData)
+      logger.warn("The current tour purpose is " + tourPurpose)
+
       modeChoiceCalculator(
         filteredItinerariesForChoice,
         attributesOfIndividual,
         nextActivity(choosesModeData.personData),
+        tourPurpose,
         Some(matsimPlan.getPerson)
       ) match {
         case Some(chosenTrip) =>
