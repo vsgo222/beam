@@ -1098,6 +1098,12 @@ trait ChoosesMode {
     }
   }
 
+  def getWorkType(personData: BasePersonData) = {
+    val worktype = currentActivity(personData).getType
+    if (worktype == "Work"){"Work"}
+    else {"Nonwork"}
+  }
+
   def completeChoiceIfReady: PartialFunction[State, State] = {
     case FSM.State(
         _,
@@ -1220,11 +1226,14 @@ trait ChoosesMode {
           .asInstanceOf[AttributesOfIndividual]
       val availableAlts = Some(filteredItinerariesForChoice.map(_.tripClassifier).mkString(":"))
 
+      val workType = getWorkType(choosesModeData.personData)
+
       modeChoiceCalculator(
         filteredItinerariesForChoice,
         attributesOfIndividual,
         nextActivity(choosesModeData.personData),
-        Some(matsimPlan.getPerson)
+        Some(matsimPlan.getPerson),
+        workType
       ) match {
         case Some(chosenTrip) =>
           goto(FinishingModeChoice) using choosesModeData.copy(
