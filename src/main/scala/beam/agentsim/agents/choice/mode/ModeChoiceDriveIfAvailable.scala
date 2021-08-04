@@ -22,7 +22,8 @@ class ModeChoiceDriveIfAvailable(val beamServices: BeamServices) extends ModeCho
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
-    person: Option[Person] = None
+    person: Option[Person] = None,
+    workType: String = "work"
   ): Option[EmbodiedBeamTrip] = {
     val containsDriveAlt = alternatives.zipWithIndex.collect {
       case (trip, idx) if trip.tripClassifier == CAR => idx

@@ -48,7 +48,8 @@ class ModeChoiceMultinomialLogit(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
-    person: Option[Person] = None
+    person: Option[Person] = None,
+    workType: String = "work"
   ): Option[EmbodiedBeamTrip] = {
     if (alternatives.isEmpty) {
       None

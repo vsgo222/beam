@@ -54,7 +54,8 @@ trait ModeChoiceCalculator {
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
-    person: Option[Person] = None
+    person: Option[Person] = None,
+    workType: String = "nada"
   ): Option[EmbodiedBeamTrip]
 
   def utilityOf(

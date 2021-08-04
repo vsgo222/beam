@@ -62,10 +62,11 @@ class ModeChoiceTest(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
-    person: Option[Person] = None
+    person: Option[Person] = None,
+    workType : String = "nada"
   ): Option[EmbodiedBeamTrip] = {
     val workStyle = determineWorkStyle(person.get)
-    choose(alternatives, attributesOfIndividual, destinationActivity, person, workStyle)
+    choose(alternatives, attributesOfIndividual, destinationActivity, person, workType)
   }
 
   private def determineWorkStyle(
