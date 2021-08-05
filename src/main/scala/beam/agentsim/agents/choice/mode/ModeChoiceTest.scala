@@ -76,16 +76,8 @@ class ModeChoiceTest(
     val types: List[String] = activities.map(_.getType)
     if (types.contains("Work")) {
       "Work"
-    } else("social")
+    } else("Nonwork")
   }
-
-  private def determineTourPurpose(
-    originActivity: Activity
-  ) : String = {
-    val tourPurpose = originActivity.getAttributes.getAttribute("primary_purpose").toString
-    tourPurpose
-  }
-
 
   private def choose(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
@@ -366,8 +358,8 @@ class ModeChoiceTest(
     mct: ModeCostTimeTransfer,
     person: Person
   ): Double = {
-    val workStyle = determineWorkStyle(person)
-    val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(workStyle)
+    val planPurpose = determinePlanPurpose(person)
+    val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(planPurpose)
     model
       .getUtilityOfAlternative(mct.embodiedBeamTrip, attributes(mct.cost, mct.transitOccupancyLevel, mct.numTransfers))
       .getOrElse(0)
@@ -381,9 +373,8 @@ class ModeChoiceTest(
     numTransfers: Int = 0,
     transitOccupancyLevel: Double
   ): Double = {
-    val workStyle = determineWorkStyle(person)
-    //val tourPurpose = determineTourPurpose(originActivity)
-    val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(workStyle)
+    val planPurpose = determinePlanPurpose(person)
+    val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(planPurpose)
     modeModel.getUtilityOfAlternative(mode, attributes(cost, transitOccupancyLevel, numTransfers)).getOrElse(0)
   }
 
