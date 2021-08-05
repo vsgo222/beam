@@ -63,13 +63,12 @@ class ModeChoiceTest(
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
     person: Option[Person] = None,
-    workType : String = "nada"
+    tourPurpose: String = "Work"
   ): Option[EmbodiedBeamTrip] = {
-    val workStyle = determineWorkStyle(person.get)
-    choose(alternatives, attributesOfIndividual, destinationActivity, person, workType)
+    choose(alternatives, attributesOfIndividual, destinationActivity, person, tourPurpose)
   }
 
-  private def determineWorkStyle(
+  private def determinePlanPurpose(
     person : Person
   ) : String = {
     val activities: List[Activity] = person.getSelectedPlan.getPlanElements.asScala
@@ -85,12 +84,12 @@ class ModeChoiceTest(
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
     person: Option[Person],
-    workStyle: String
+    tourPurpose: String
   ): Option[EmbodiedBeamTrip] = {
     if (alternatives.isEmpty) {
       None
     } else {
-      val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(workStyle)
+      val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(tourPurpose)
 
       val modeCostTimeTransfers = altsToModeCostTimeTransfers(alternatives, attributesOfIndividual, destinationActivity)
 
@@ -335,8 +334,8 @@ class ModeChoiceTest(
   }
 
   private def utilityOf(mct: ModeCostTimeTransfer,person: Person): Double = {
-    val workStyle = determineWorkStyle(person)
-    val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(workStyle)
+    val planPurpose = determinePlanPurpose(person)
+    val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(planPurpose)
     model
       .getUtilityOfAlternative(mct.embodiedBeamTrip, attributes(mct.cost, mct.transitOccupancyLevel, mct.numTransfers))
       .getOrElse(0)
@@ -350,8 +349,8 @@ class ModeChoiceTest(
     numTransfers: Int = 0,
     transitOccupancyLevel: Double
   ): Double = {
-    val workStyle = determineWorkStyle(person)
-    val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(workStyle)
+    val planPurpose = determinePlanPurpose(person)
+    val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(planPurpose)
     modeModel.getUtilityOfAlternative(mode, attributes(cost, transitOccupancyLevel, numTransfers)).getOrElse(0)
   }
 

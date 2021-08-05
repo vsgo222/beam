@@ -24,7 +24,7 @@ class ModeChoiceRideHailIfAvailable(val beamServices: BeamServices) extends Mode
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
     person: Option[Person] = None,
-    workType: String = "work"
+    tourPurpose: String = "Work"
   ): Option[EmbodiedBeamTrip] = {
     val containsRideHailAlt = alternatives.zipWithIndex.collect {
       case (trip, idx) if trip.tripClassifier == RIDE_HAIL => idx

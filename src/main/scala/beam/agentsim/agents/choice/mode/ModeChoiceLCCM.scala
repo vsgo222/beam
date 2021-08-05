@@ -56,7 +56,7 @@ class ModeChoiceLCCM(
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
     person: Option[Person] = None,
-    workType: String = "work"
+    tourPurpose: String = "Work"
   ): Option[EmbodiedBeamTrip] = {
     choose(alternatives, attributesOfIndividual, Mandatory)
   }
