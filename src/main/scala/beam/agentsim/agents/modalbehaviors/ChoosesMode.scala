@@ -1098,10 +1098,12 @@ trait ChoosesMode {
     }
   }
 
-  def getTourPurpose(data: ChoosesModeData): String = {
-    val currentAct = currentActivity(data.personData)
-    val tourPurp = currentAct.getAttributes.getAttribute("primary_purpose").toString
-    tourPurp
+  //when new plans are written, the activity attributes get left behind. We need to find a way to keep them across each iteration
+  //another idea would be to determine the tour purpose within BEAM itself based on the tour attributes -- we're doing this for now
+  def getTourPurpose(personData: BasePersonData) = {
+    val tour = currentTour(personData)
+    val tourType = currentTourType(personData)
+    tourType
   }
 
   def completeChoiceIfReady: PartialFunction[State, State] = {
@@ -1226,15 +1228,15 @@ trait ChoosesMode {
           .asInstanceOf[AttributesOfIndividual]
       val availableAlts = Some(filteredItinerariesForChoice.map(_.tripClassifier).mkString(":"))
 
-      val tourPurpose = getTourPurpose(choosesModeData)
+      val tourPurpose = getTourPurpose(choosesModeData.personData)
       logger.warn("The current tour purpose is " + tourPurpose)
 
       modeChoiceCalculator(
         filteredItinerariesForChoice,
         attributesOfIndividual,
         nextActivity(choosesModeData.personData),
-        tourPurpose,
-        Some(matsimPlan.getPerson)
+        Some(matsimPlan.getPerson),
+        tourPurpose
       ) match {
         case Some(chosenTrip) =>
           goto(FinishingModeChoice) using choosesModeData.copy(
