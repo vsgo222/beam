@@ -62,14 +62,13 @@ class ModeChoiceTest(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
-    tourPurpose: String,
-    person: Option[Person] = None
+    person: Option[Person] = None,
+    tourPurpose : String = "Work"
   ): Option[EmbodiedBeamTrip] = {
-    val workStyle = determineWorkStyle(person.get)
     choose(alternatives, attributesOfIndividual, destinationActivity, person, tourPurpose)
   }
 
-  private def determineWorkStyle(
+  private def determinePlanPurpose(
     person : Person
   ) : String = {
     val activities: List[Activity] = person.getSelectedPlan.getPlanElements.asScala
