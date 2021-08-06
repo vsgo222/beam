@@ -1098,12 +1098,9 @@ trait ChoosesMode {
     }
   }
 
-  //when new plans are written, the activity attributes get left behind. We need to find a way to keep them across each iteration
-  //another idea would be to determine the tour purpose within BEAM itself based on the tour attributes -- we're doing this for now
   def getTourPurpose(personData: BasePersonData) = {
-    val tour = currentTour(personData)
-    val tourType = currentTourType(personData)
-    tourType
+    val tourPurp = currentActivity(personData).getAttributes.getAttribute("primary_purpose").toString
+    tourPurp
   }
 
   def completeChoiceIfReady: PartialFunction[State, State] = {
