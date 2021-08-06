@@ -75,9 +75,10 @@ class ChangeModeForTour(
         .map(trip => {
           val timeDist =
             getCostAndTimeForMode(alt, trip.getOriginActivity, trip.getDestinationActivity)
+          val tourPurpose = trip.getOriginActivity.getAttributes.getAttribute("primary_purpose").toString
           if (alt.isTransit) {
             modeChoiceCalculator.utilityOf(
-              person,
+              tourPurpose,
               if (alternativesForTour.contains(CAR)) DRIVE_TRANSIT
               else WALK_TRANSIT,
               timeDist._1,
@@ -85,7 +86,7 @@ class ChangeModeForTour(
               numTransfers = rng.nextInt(4) + 1
             )
           } else {
-            modeChoiceCalculator.utilityOf(person, alt, timeDist._1, timeDist._2)
+            modeChoiceCalculator.utilityOf(tourPurpose, alt, timeDist._1, timeDist._2)
           }
         })
         .sum
