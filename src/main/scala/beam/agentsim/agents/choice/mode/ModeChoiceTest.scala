@@ -330,7 +330,7 @@ class ModeChoiceTest(
   ): Double = {
     val modeCostTimeTransfer =
       altsToModeCostTimeTransfers(IndexedSeq(alternative), attributesOfIndividual, destinationActivity).head
-    utilityOf(modeCostTimeTransfer, tourPurpose)
+    utilityOfWithPurpose(modeCostTimeTransfer, tourPurpose)
   }
 
   override def utilityOf(
@@ -341,10 +341,10 @@ class ModeChoiceTest(
   ): Double = {
     val modeCostTimeTransfer =
       altsToModeCostTimeTransfers(IndexedSeq(alternative), attributesOfIndividual, destinationActivity).head
-    utilityOf2(modeCostTimeTransfer, person)
+    utilityOfWithPerson(modeCostTimeTransfer, person)
   }
 
-  private def utilityOf(
+  private def utilityOfWithPurpose(
      mct: ModeCostTimeTransfer,
      tourPurpose: String
   ): Double = {
@@ -354,7 +354,7 @@ class ModeChoiceTest(
       .getOrElse(0)
   }
 
-  private def utilityOf2(
+  private def utilityOfWithPerson(
     mct: ModeCostTimeTransfer,
     person: Person
   ): Double = {
