@@ -52,7 +52,7 @@ class ModeChoiceDriveIfAvailable(val beamServices: BeamServices) extends ModeCho
   ): Double = 0.0
 
   override def utilityOf(
-    person: Person,
+    tourPurpose: String = "Work",
     mode: Modes.BeamMode,
     cost: Double,
     time: Double,

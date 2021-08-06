@@ -148,7 +148,7 @@ class ModeChoiceLCCM(
   }
 
   def utilityOf(
-    person: Person,
+    tourPurpose: String,
     mode: BeamMode,
     cost: Double,
     time: Double,
@@ -179,12 +179,12 @@ class ModeChoiceLCCM(
   def utilityAcrossModalityStyles(
     embodiedBeamTrip: EmbodiedBeamTrip,
     tourType: TourType,
-    person: Person
+    tourPurpose: String
   ): Map[String, Double] = {
     lccm
       .classMembershipModelMaps(tourType)
       .keySet
-      .map(theStyle => (theStyle, utilityOf(embodiedBeamTrip, theStyle, tourType, person)))
+      .map(theStyle => (theStyle, utilityOf(embodiedBeamTrip, theStyle, tourType, tourPurpose)))
       .toMap
   }
 
@@ -192,12 +192,12 @@ class ModeChoiceLCCM(
     embodiedBeamTrip: EmbodiedBeamTrip,
     conditionedOnModalityStyle: String,
     tourType: TourType,
-    person: Person
+    tourPurpose: String
   ): Double = {
     val best = altsToBestInGroup(Vector(embodiedBeamTrip), tourType).head
 
     utilityOf(
-      person,
+      tourPurpose,
       best.mode,
       conditionedOnModalityStyle,
       tourType,
@@ -272,7 +272,7 @@ class ModeChoiceLCCM(
   }
 
   def utilityOf(
-    person: Person,
+    tourPurpose: String,
     mode: BeamMode,
     conditionedOnModalityStyle: String,
     tourType: TourType,

@@ -43,7 +43,7 @@ class ModeChoiceUniformRandom(val beamConfig: BeamConfig) extends ModeChoiceCalc
   ): Double = 0.0
 
   override def utilityOf(
-    person: Person,
+    tourPurpose: String = "Work",
     mode: Modes.BeamMode,
     cost: Double,
     time: Double,
