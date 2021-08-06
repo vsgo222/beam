@@ -381,7 +381,24 @@ class ModeChoiceTest(
     trips: ListBuffer[EmbodiedBeamTrip],
     person: Person,
     attributesOfIndividual: AttributesOfIndividual
-  ): Double = trips.map(utilityOf(_, attributesOfIndividual, None, person)).sum // TODO: Update with destination & origin activity
+  ): Double = {
+    val scoreList = new ListBuffer[Double]
+    trips.zipWithIndex map { tripWithIndex =>
+      val (trip, tripIndex) = tripWithIndex
+      val tripPurpose = person.getSelectedPlan.getPlanElements.asScala
+        .filter(_.isInstanceOf[Activity])
+        .map(_.asInstanceOf[Activity])
+        .lift(tripIndex + 1)
+      val tourPurpose = person.getSelectedPlan.getPlanElements.asScala
+        .filter(_.isInstanceOf[Activity])
+        .map(_.asInstanceOf[Activity])
+        .lift(tripIndex).get
+        .getAttributes.getAttribute("primary_purpose")
+        .toString
+      scoreList += utilityOf(trip, attributesOfIndividual, tripPurpose, tourPurpose)
+    }
+    scoreList.sum
+  }
 
   case class ModeCostTimeTransfer(
     embodiedBeamTrip: EmbodiedBeamTrip,
