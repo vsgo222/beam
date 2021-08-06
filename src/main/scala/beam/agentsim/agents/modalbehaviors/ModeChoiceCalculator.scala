@@ -73,7 +73,7 @@ trait ModeChoiceCalculator {
   ): Double
 
   def utilityOf(
-    person: Person,
+    tourPurpose: String = "Work",
     mode: BeamMode,
     cost: Double,
     time: Double,

@@ -366,15 +366,14 @@ class ModeChoiceTest(
   }
 
   override def utilityOf(
-    person: Person,
+    tourPurpose : String = "Work",
     mode: BeamMode,
     cost: Double,
     time: Double,
     numTransfers: Int = 0,
     transitOccupancyLevel: Double
   ): Double = {
-    val planPurpose = determinePlanPurpose(person)
-    val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(planPurpose)
+    val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(tourPurpose)
     modeModel.getUtilityOfAlternative(mode, attributes(cost, transitOccupancyLevel, numTransfers)).getOrElse(0)
   }
 
