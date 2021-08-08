@@ -271,7 +271,7 @@ object PopulationAdjustment extends LazyLogging {
       .collect{ case activity: Activity => activity }
       .toList
     if (activities.length < 2){
-      activities.map(_.getAttributes.putAttribute("primary_purpose","Nonwork"))
+      activities.map(_.getAttributes.putAttribute("primary_purpose","none"))
     }
     val attributes: List[Attributes] = activities.map(_.getAttributes)
     val purposes: Array[String] = attributes.map(_.getAttribute("primary_purpose").toString)
