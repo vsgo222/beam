@@ -1,7 +1,6 @@
 package beam.sim.population
 
 import java.util.Random
-
 import beam.agentsim
 import beam.replanning.SwitchModalityStyle
 import beam.router.Modes.BeamMode
@@ -9,10 +8,11 @@ import beam.sim.{BeamScenario, BeamServices}
 import beam.utils.plan.sampling.AvailableModeUtils
 import beam.{agentsim, sim}
 import com.typesafe.scalalogging.LazyLogging
-import org.matsim.api.core.v01.population.{Person, Population => MPopulation}
+import org.matsim.api.core.v01.population.{Activity, Person, Population => MPopulation}
 import org.matsim.api.core.v01.{Id, Scenario}
 import org.matsim.core.population.PersonUtils
 import org.matsim.households.Household
+import org.matsim.utils.objectattributes.attributable.Attributes
 
 import java.util.Random
 import scala.collection.JavaConverters._
@@ -232,6 +232,7 @@ object PopulationAdjustment extends LazyLogging {
 
   // create a map to store each person's id and modality style
   var peeps = Map[String,Option[String]]()
+  var purps = Map[String,Array[String]]()
 
   def createAttributesOfIndividual(
     beamScenario: BeamScenario,
@@ -263,6 +264,19 @@ object PopulationAdjustment extends LazyLogging {
     val income = Option(personAttributes.getAttribute(person.getId.toString, "income"))
       .map(_.asInstanceOf[Double])
       .getOrElse(0D)
+    //tour purpose stuff
+      //all activity attributes are used; if only one activity exists in the plan, it means no trips
+      //are taken, so a default value is given so the code doesn't break
+    val activities: List[Activity] = person.getSelectedPlan.getPlanElements.asScala
+      .collect{ case activity: Activity => activity }
+      .toList
+    if (activities.length < 2){
+      activities.map(_.getAttributes.putAttribute("primary_purpose","Nonwork"))
+    }
+    val attributes: List[Attributes] = activities.map(_.getAttributes)
+    val purposes: Array[String] = attributes.map(_.getAttribute("primary_purpose").toString)
+      .toSet.toArray
+    purps += (person.getId.toString -> purposes)
     //modality style stuff
     val modalityStyle =
       Option(person.getSelectedPlan)
@@ -308,5 +322,8 @@ object PopulationAdjustment extends LazyLogging {
 
   def getModalityStyle(personId: String): Option[String] = {
     peeps(personId)
+  }
+  def getTourPurposes(personId: String): Array[String] = {
+    purps(personId)
   }
 }
