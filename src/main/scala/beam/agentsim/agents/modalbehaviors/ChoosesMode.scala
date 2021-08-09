@@ -1225,9 +1225,11 @@ trait ChoosesMode {
           .asInstanceOf[AttributesOfIndividual]
       val availableAlts = Some(filteredItinerariesForChoice.map(_.tripClassifier).mkString(":"))
 
-      val tourPurpose = getTourPurpose(choosesModeData.personData)
-      logger.warn("The current tour purpose is " + tourPurpose)
-
+      var tourPurpose = "None"
+      if ("ModeChoiceTourPurpose".equals(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
+        tourPurpose = getTourPurpose(choosesModeData.personData)
+        logger.warn("The current tour purpose is " + tourPurpose)
+      }
       modeChoiceCalculator(
         filteredItinerariesForChoice,
         attributesOfIndividual,

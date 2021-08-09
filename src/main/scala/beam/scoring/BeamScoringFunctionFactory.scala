@@ -196,12 +196,15 @@ class BeamScoringFunctionFactory @Inject()(
             .filter(_.isInstanceOf[Activity])
             .map(_.asInstanceOf[Activity])
             .lift(tripIndex + 1)
-          val tripOriginPurpose = person.getSelectedPlan.getPlanElements.asScala
-            .filter(_.isInstanceOf[Activity])
-            .map(_.asInstanceOf[Activity])
-            .lift(tripIndex).get
-            .getAttributes.getAttribute("primary_purpose")
-            .toString
+          var tripOriginPurpose = "None"
+          if ("ModeChoiceTourPurpose".equals(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
+            tripOriginPurpose = person.getSelectedPlan.getPlanElements.asScala
+              .filter(_.isInstanceOf[Activity])
+              .map(_.asInstanceOf[Activity])
+              .lift(tripIndex).get
+              .getAttributes.getAttribute("primary_purpose")
+              .toString
+          }
           val departureTime = trip.legs.headOption.map(_.beamLeg.startTime.toString).getOrElse("")
           val totalTravelTimeInSecs = trip.totalTravelTimeInSecs
           val mode = trip.tripClassifier

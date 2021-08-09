@@ -270,11 +270,9 @@ object PopulationAdjustment extends LazyLogging {
     val activities: List[Activity] = person.getSelectedPlan.getPlanElements.asScala
       .collect{ case activity: Activity => activity }
       .toList
-    if (activities.length < 2){
-      activities.map(_.getAttributes.putAttribute("primary_purpose","none"))
-    }
-    val attributes: List[Attributes] = activities.map(_.getAttributes)
-    val purposes: Array[String] = attributes.map(_.getAttribute("primary_purpose").toString)
+    if (activities.length < 2){ activities.map(_.getAttributes.putAttribute("primary_purpose","none")) }
+    val purposes : Array[String] = activities
+      .flatMap(act => Option(act.getAttributes.getAttribute("primary_purpose")).map(_.toString))
       .toSet.toArray
     purps += (person.getId.toString -> purposes)
     //modality style stuff
