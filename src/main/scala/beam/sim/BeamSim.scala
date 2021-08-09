@@ -450,7 +450,7 @@ class BeamSim @Inject() (
           modalityStyleStats.processData(scenario.getPopulation, event)
           modalityStyleStats.buildModalityStyleGraph(event.getServices.getControlerIO)
         }
-        if ("ModeChoiceTest".equals(beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
+        if ("ModeChoiceTourPurpose".equals(beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
           tourPurposeStats.processData(scenario.getPopulation, event)
           tourPurposeStats.buildTourPurposeGraph(event.getServices.getControlerIO)
         }

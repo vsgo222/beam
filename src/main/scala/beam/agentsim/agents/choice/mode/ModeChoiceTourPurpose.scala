@@ -41,7 +41,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
-class ModeChoiceTest(
+class ModeChoiceTourPurpose(
    val beamServices: BeamServices,
    val lccm: LatentClassChoiceModel,
    beamConfigHolder: BeamConfigHolder,
