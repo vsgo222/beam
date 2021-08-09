@@ -38,7 +38,9 @@ object ReplanningUtil {
         case (plannedActivity: Activity, experiencedActivity: Activity) =>
           experiencedActivity.setCoord(plannedActivity.getCoord)
           experiencedActivity.setEndTime(plannedActivity.getEndTime)
-          experiencedActivity.getAttributes.putAttribute("primary_purpose", plannedActivity.getAttributes.getAttribute("primary_purpose"))
+          val purpose = if ( plannedActivity.getAttributes.getAttribute("primary_purpose") == null ) { "None" } else {
+            plannedActivity.getAttributes.getAttribute("primary_purpose").toString }
+          experiencedActivity.getAttributes.putAttribute("primary_purpose", purpose)
         case (_, _) =>
       }
       val attributes = experiencedPlan.getAttributes
