@@ -57,9 +57,6 @@ public class TourPurposeStats {
         Set entries = population.getPersons().keySet();
         for (Object entry : entries) {
             String key = entry.toString();
-            //for some reason the population value that gets passed into this class is not updated.
-            // As a result, we take the updated population modality styles form the PopulationAdjustment
-            // class. One day I hope to just update the population value in BeamSeam#L351
             String[] purposes= PopulationAdjustment.getTourPurposes(key);
             for (String purpose: purposes){
                 className.add(purpose);
