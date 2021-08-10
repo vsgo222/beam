@@ -120,7 +120,7 @@ object PhyssymXmlToOsmConverter extends StrictLogging {
     val capacity = startElement.getAttributeByName(new QName("capacity"))
     val permLanes = startElement.getAttributeByName(new QName("permlanes"))
     val oneway = startElement.getAttributeByName(new QName("oneway"))
-   // val highway = startElement.getAttributeByName(new QName("type"))
+    val highway = startElement.getAttributeByName(new QName("type"))
     val modes = startElement.getAttributeByName(new QName("modes")).getValue
 
     val result: Seq[(String, String)] = buildSequenceForNonNullValues(
@@ -129,7 +129,7 @@ object PhyssymXmlToOsmConverter extends StrictLogging {
       "oneway"   -> (if (Seq("1", "true").contains(oneway.getValue.toLowerCase)) "yes" else "no"),
       "capacity" -> capacity.getValue,
       "maxspeed" -> metersPerSecondToKilometersPerHour(freeSpeedy.getValue),
-      // "highway"  -> highway.getValue
+      "highway"  -> highway.getValue
     ) ++ toMultipleInnerTags(modes)
     new ArrayBuffer() ++ result
   }
@@ -159,7 +159,7 @@ object PhyssymXmlToOsmConverter extends StrictLogging {
     val y = startElement.getAttributeByName(new QName("y"))
     val wgsCoordinate = WgsCoordinate.fromUtm(
       longitude = x.getValue.toDouble,
-      latitude = y.getValue.toDouble,
+      latitude = y.getValue.toDouble
     )
     Node(id.getValue, wgsCoordinate)
   }
