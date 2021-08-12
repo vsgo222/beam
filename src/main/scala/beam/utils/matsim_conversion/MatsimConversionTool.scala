@@ -32,7 +32,7 @@ object MatsimConversionTool extends App {
     val conversionConfig = ConversionConfig(config)
 
     val network = NetworkUtils.createNetwork()
-//    println(s"Network file ${conversionConfig.matsimNetworkFile}")
+    println(s"Network file ${conversionConfig.matsimNetworkFile}")
     new MatsimNetworkReader(network).readFile(conversionConfig.matsimNetworkFile)
 
     MatsimPlanConversion.generateScenarioData(conversionConfig)

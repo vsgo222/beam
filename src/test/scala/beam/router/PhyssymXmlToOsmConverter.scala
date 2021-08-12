@@ -159,7 +159,7 @@ object PhyssymXmlToOsmConverter extends StrictLogging {
     val y = startElement.getAttributeByName(new QName("y"))
     val wgsCoordinate = WgsCoordinate.fromUtm(
       longitude = x.getValue.toDouble,
-      latitude = y.getValue.toDouble,
+      latitude = y.getValue.toDouble
     )
     Node(id.getValue, wgsCoordinate)
   }
