@@ -1,6 +1,6 @@
 /.gradle/**
 /.idea/**
-#/build/**
+/build/**
 /log-path_IS_UNDEFINED/**
 
 *.log
