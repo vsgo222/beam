@@ -1,0 +1,26 @@
+products:
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\jmh\beam\agentsim\infrastructure\GeometryPerformance$.class
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\jmh\beam\agentsim\infrastructure\GeometryPerformance.class
+binary dependencies:
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\.gradle\caches\modules-2\files-2.1\com.github.wrashid.matsim\matsim\0.10.1-beam-15\3598b2b71f9858aade56908ff8b93154a0d8730c\matsim-0.10.1-beam-15.jar
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\.gradle\caches\modules-2\files-2.1\com.vividsolutions\jts\1.13\3ccfb9b60f04d71add996a666ceb8902904fd805\jts-1.13.jar
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\.gradle\caches\modules-2\files-2.1\org.openjdk.jmh\jmh-core\1.23\eb242d3261f3795c8bf09818d17c3241191284a0\jmh-core-1.23.jar
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\.gradle\caches\modules-2\files-2.1\org.scala-lang\scala-library\2.12.13\c4a2c5f551238795136cb583feef73ae78651e07\scala-library-2.12.13.jar
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\.jdks\adopt-openjdk-1.8.0_292\jre\lib\rt.jar
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\main\beam\agentsim\infrastructure\ParallelParkingManager$.class
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\main\beam\agentsim\infrastructure\ZonalParkingManager$.class
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\main\beam\agentsim\infrastructure\parking\GeoLevel$.class
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\main\beam\agentsim\infrastructure\parking\GeoLevel.class
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\main\beam\agentsim\infrastructure\parking\ParkingZone.class
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\main\beam\agentsim\infrastructure\parking\ParkingZoneSearch$.class
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\main\beam\agentsim\infrastructure\taz\TAZ$.class
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\main\beam\agentsim\infrastructure\taz\TAZ.class
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\main\beam\agentsim\infrastructure\taz\TAZTreeMap$.class
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\main\beam\agentsim\infrastructure\taz\TAZTreeMap.class
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\main\beam\utils\matsim_conversion\ShapeUtils$.class
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> C:\Users\shayd\Documents\RA_Microtransit\MERGE\build\classes\scala\main\beam\utils\matsim_conversion\ShapeUtils.class
+source dependencies:
+external dependencies:
+class names:
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> beam.agentsim.infrastructure.GeometryPerformance
+   C:\Users\shayd\Documents\RA_Microtransit\MERGE\src\jmh\scala\beam\agentsim\infrastructure\GeometryPerformance.scala -> beam.agentsim.infrastructure.GeometryPerformance$
