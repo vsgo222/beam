@@ -137,28 +137,19 @@ object ModeChoiceCalculator {
     eventsManager: EventsManager
   ): ModeChoiceCalculatorFactory = {
     classname match {
+      case "ModeChoiceTourPurpose" =>
+        val lccm = new LatentClassChoiceModel(beamServices)
+        (attributesOfIndividual: AttributesOfIndividual) =>
+          new ModeChoiceTPCM(beamServices, lccm)
       case "ModeChoiceLCCM" =>
         val lccm = new LatentClassChoiceModel(beamServices)
         (attributesOfIndividual: AttributesOfIndividual) =>
           attributesOfIndividual match {
             case AttributesOfIndividual(_, Some(modalityStyle), _, _, _, _, _) =>
-              new ModeChoiceLCCM(
-                beamServices,
-                lccm
-              )
+              new ModeChoiceLCCM(beamServices, lccm)
             case _ =>
               throw new RuntimeException("LCCM needs people to have modality styles")
           }
-      case "ModeChoiceTourPurpose" =>
-        val lccm = new LatentClassChoiceModel(beamServices)
-        (attributesOfIndividual: AttributesOfIndividual) =>
-        new ModeChoiceTourPurpose(
-          beamServices,
-          lccm,
-          configHolder,
-          beamServices.skims.tc_skimmer,
-          eventsManager
-        )
       case "ModeChoiceTransitIfAvailable" =>
         _ =>
           new ModeChoiceTransitIfAvailable(beamServices)
