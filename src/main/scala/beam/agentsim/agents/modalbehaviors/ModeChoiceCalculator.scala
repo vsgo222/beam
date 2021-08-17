@@ -142,14 +142,9 @@ object ModeChoiceCalculator {
         (attributesOfIndividual: AttributesOfIndividual) =>
           attributesOfIndividual match {
             case AttributesOfIndividual(_, Some(modalityStyle), _, _, _, _, _) =>
-              val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(modalityStyle)
-              new ModeChoiceMultinomialLogit(
+              new ModeChoiceLCCM(
                 beamServices,
-                model,
-                modeModel,
-                configHolder,
-                beamServices.skims.tc_skimmer,
-                eventsManager
+                lccm
               )
             case _ =>
               throw new RuntimeException("LCCM needs people to have modality styles")
