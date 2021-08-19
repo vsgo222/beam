@@ -126,9 +126,6 @@ class ModeChoiceLCCM(
             "Was unable to sample from modality styles, check attributes of alternatives"
           )
         case Some(chosenClass) =>
-          val bigboy = lccm
-            .modeChoiceModels(tourType)(chosenClass.alternativeType)
-            ._2
           val chosenModeOpt = lccm
             .modeChoiceModels(tourType)(chosenClass.alternativeType)
             ._2
