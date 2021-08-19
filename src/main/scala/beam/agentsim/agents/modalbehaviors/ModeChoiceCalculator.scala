@@ -141,13 +141,19 @@ object ModeChoiceCalculator {
       case "ModeChoiceTourPurpose" =>
         val lccm = new LatentClassChoiceModel(beamServices)
         (attributesOfIndividual: AttributesOfIndividual) =>
-          new ModeChoiceTPCM(beamServices, lccm)
+          new ModeChoiceTPCM(
+            beamServices,
+            lccm,
+            beamServices.skims.tc_skimmer)
       case "ModeChoiceLCCM" =>
         val lccm = new LatentClassChoiceModel(beamServices)
         (attributesOfIndividual: AttributesOfIndividual) =>
           attributesOfIndividual match {
             case AttributesOfIndividual(_, Some(modalityStyle), _, _, _, _, _) =>
-              new ModeChoiceLCCM(beamServices, lccm)
+              new ModeChoiceLCCM(
+                beamServices,
+                lccm,
+                beamServices.skims.tc_skimmer)
             case _ =>
               throw new RuntimeException("LCCM needs people to have modality styles")
           }
