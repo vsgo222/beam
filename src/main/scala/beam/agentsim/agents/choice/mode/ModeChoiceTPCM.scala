@@ -18,7 +18,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
 /**
-  * ModeChoiceLCCM
+  * ModeChoiceTPCM
   *
   * Data used by mode choice model:
   * --vehicleTime
@@ -27,27 +27,17 @@ import scala.collection.mutable.ListBuffer
   * --waitTime
   * --cost
   *
-  * Data used by class membership model:
-  * --surplus
-  * --income
-  * --householdSize
-  * --male
-  * --numCars
-  * --numBikes
-  *
-  * The LCCM models are structured to differentiate between Mandatory and Nonmandatory trips, but for this preliminary
+  * The TPCM models are structured to differentiate between Mandatory and Nonmandatory trips, but for this preliminary
   * implementation only the Mandatory models is used...
   * TODO pass TourType so correct model can be applied
   */
-class ModeChoiceLCCM(
+class ModeChoiceTPCM(
   val beamServices: BeamServices,
   val lccm: LatentClassChoiceModel
 ) extends ModeChoiceCalculator {
 
   override lazy val beamConfig: BeamConfig = beamServices.beamConfig
-
   var expectedMaximumUtility: Double = Double.NaN
-  var classMembershipDistribution: Map[String, Double] = Map()
 
   override def apply(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
@@ -56,18 +46,20 @@ class ModeChoiceLCCM(
     person: Option[Person] = None,
     tourPurpose : String = "Work"
   ): Option[EmbodiedBeamTrip] = {
-    choose(alternatives, attributesOfIndividual, Mandatory)
+    choose(alternatives, attributesOfIndividual, destinationActivity, person, tourPurpose)
   }
 
   private def choose(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
-    tourType: TourType
+    destinationActivity: Option[Activity],
+    person: Option[Person],
+    purpose: String
   ): Option[EmbodiedBeamTrip] = {
     if (alternatives.isEmpty) {
       None
     } else {
-      val bestInGroup = altsToBestInGroup(alternatives, tourType)
+      val bestInGroup = altsToBestInGroup(alternatives, Mandatory)
       /*
        * Fill out the input data structures required by the MNL models
        */
@@ -79,69 +71,33 @@ class ModeChoiceLCCM(
         (alt.mode, theParams)
       }.toMap
 
-      val attribIndivData: Map[String, Map[String, Double]] = {
-        val theParams: Map[String, Double] = Map(
-          "income"        -> attributesOfIndividual.householdAttributes.householdIncome,
-          "householdSize" -> attributesOfIndividual.householdAttributes.householdSize,
-          "male" -> (if (attributesOfIndividual.isMale) {
-                       1.0
-                     } else {
-                       0.0
-                     }),
-          "numCars"  -> attributesOfIndividual.householdAttributes.numCars,
-          "numBikes" -> attributesOfIndividual.householdAttributes.numBikes
-        )
-        Map("dummy" -> theParams)
-      }
-
-      val classMembershipInputData =
-        lccm.classMembershipModelMaps.head._2.keySet.map { theClassName =>
-          val modeChoiceExpectedMaxUtility = lccm
-            .modeChoiceModels(tourType)(theClassName)
-            ._2
-            .getExpectedMaximumUtility(modeChoiceInputData)
-          val surplusAttrib: Map[String, Double] =
-            Map("surplus" -> modeChoiceExpectedMaxUtility.getOrElse(0))
-          (theClassName, attribIndivData.head._2 ++ surplusAttrib)
-        }.toMap
-
       /*
-       * Evaluate and sample from classmembership, then sample from corresponding mode choice model
+       * Evaluate and sample from mode choice model
        */
 
-      val chosenClassOpt = lccm
-        .classMembershipModels(tourType)
-        .sampleAlternative(classMembershipInputData, random)
+      val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(purpose)
 
-      chosenClassOpt match {
-        case None =>
-          throw new IllegalArgumentException(
-            "Was unable to sample from modality styles, check attributes of alternatives"
-          )
-        case Some(chosenClass) =>
-          val chosenModeOpt = lccm
-            .modeChoiceModels(tourType)(chosenClass.alternativeType)
-            ._2
-            .sampleAlternative(modeChoiceInputData, new Random())
-          expectedMaximumUtility = lccm
-            .modeChoiceModels(tourType)(chosenClass.alternativeType)
-            ._2
-            .getExpectedMaximumUtility(modeChoiceInputData)
-            .getOrElse(0)
+      //only the modeModel utility values is being used. Those are the ones having to do with time. Figure out how to use ALL utility parameter values
+      // when calculating the utility values. This happens both in sampleAlternative and getExpectedMaximumUtility.
+      val chosenModeOpt = modeModel
+        .sampleAlternative(modeChoiceInputData, new Random())
+      expectedMaximumUtility = modeModel
+        .getExpectedMaximumUtility(modeChoiceInputData)
+        .getOrElse(0)
 
-          chosenModeOpt match {
-            case Some(chosenMode) =>
-              val chosenAlt =
-                bestInGroup.filter(_.mode.value.equalsIgnoreCase(chosenMode.alternativeType.value))
-              if (chosenAlt.isEmpty) {
-                None
-              } else {
-                Some(alternatives(chosenAlt.head.index))
-              }
-            case None =>
-              None
+      chosenModeOpt match {
+        case Some(chosenMode) =>
+          val chosenAlt =
+            bestInGroup.filter(_.mode.value.equalsIgnoreCase(chosenMode.alternativeType.value))
+          if (chosenAlt.isEmpty) {
+            None
+          } else {
+            Some(alternatives(chosenAlt.head.index))
           }
+        case None =>
+          None
       }
+      None
     }
   }
 
@@ -361,7 +317,7 @@ class ModeChoiceLCCM(
 
 }
 
-object ModeChoiceLCCM {
+object ModeChoiceTPCM {
 
   case class ModeChoiceData(
     mode: BeamMode,
