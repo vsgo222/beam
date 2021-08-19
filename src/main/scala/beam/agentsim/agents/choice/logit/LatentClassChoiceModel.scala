@@ -114,9 +114,9 @@ object LatentClassChoiceModel {
   //method where common utility values can be specified
   def getCommonUtility: Map[String, UtilityFunctionOperation] = {
     Map(
-      "cost" -> UtilityFunctionOperation("multiplier", -1),
-      "time" -> UtilityFunctionOperation("multiplier", -.001),
-      "transfer" -> UtilityFunctionOperation("multiplier", -2)
+      "cost" -> UtilityFunctionOperation("multiplier", 0),
+      "time" -> UtilityFunctionOperation("multiplier", 0),
+      "transfer" -> UtilityFunctionOperation("multiplier", 0)
     )
   }
 
