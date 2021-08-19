@@ -28,6 +28,8 @@ import scala.collection.mutable.ListBuffer
   * --walkTime
   * --bikeTime
   * --waitTime
+  * --transfer
+  * --transitOccupancy
   * --cost
   *
   * The TPCM models are structured to differentiate between Mandatory and Nonmandatory trips, but for this preliminary
@@ -63,17 +65,17 @@ class ModeChoiceTPCM(
       val bestInGroup = altsToBestInGroup(alternatives, Mandatory)
       // Fill out the input data structures required by the MNL models
       val modeChoiceInputData = bestInGroup.map { alt =>
-        val theParams = Map(
-          "cost" -> alt.cost,
-          "time" -> (alt.walkTime + alt.bikeTime + alt.vehicleTime + alt.waitTime),
-          "transfer" -> alt.numTransfers,
-          "transitOccupancy" -> alt.occupancyLevel
+        val theParams = attributes(
+          alt.cost,
+          alt.walkTime + alt.bikeTime + alt.vehicleTime + alt.waitTime,
+          alt.numTransfers,
+          alt.occupancyLevel
         )
         (alt.mode, theParams)
       }.toMap
 
       // Evaluate and sample from mode choice model
-      val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(purpose)
+      val (model, modeModel) = lccm.modeChoiceTourModels(Mandatory)(purpose)
       val chosenModeOpt = modeModel.sampleAlternative(modeChoiceInputData, new Random())
       expectedMaximumUtility = modeModel.getExpectedMaximumUtility(modeChoiceInputData).getOrElse(0)
 
@@ -91,65 +93,12 @@ class ModeChoiceTPCM(
     }
   }
 
-  def utilityOf(
-    tourPurpose: String,
-    mode: BeamMode,
-    cost: Double,
-    time: Double,
-    numTransfers: Int = 0,
-    transitOccupancyLevel: Double
-  ): Double =
-    0.0
-
-  def sampleMode(
-    alternatives: IndexedSeq[EmbodiedBeamTrip],
-    conditionedOnModalityStyle: String,
-    tourType: TourType
-  ): Option[MNLSample[BeamMode]] = {
-    val bestInGroup = altsToBestInGroup(alternatives, tourType)
-    val modeChoiceInputData = bestInGroup.map { alt =>
-      val theParams = Map(
-        "cost" -> alt.cost,
-        "time" -> (alt.walkTime + alt.bikeTime + alt.vehicleTime + alt.waitTime)
-      )
-      (alt.mode, theParams)
-    }.toMap
-    lccm
-      .modeChoiceModels(tourType)(conditionedOnModalityStyle)
-      ._2
-      .sampleAlternative(modeChoiceInputData, new Random())
-  }
-
-  def utilityAcrossModalityStyles(
-    embodiedBeamTrip: EmbodiedBeamTrip,
-    tourType: TourType,
-    tourPurpose: String
-  ): Map[String, Double] = {
-    lccm
-      .classMembershipModelMaps(tourType)
-      .keySet
-      .map(theStyle => (theStyle, utilityOf(embodiedBeamTrip, theStyle, tourType, tourPurpose)))
-      .toMap
-  }
-
-  def utilityOf(
-    embodiedBeamTrip: EmbodiedBeamTrip,
-    conditionedOnModalityStyle: String,
-    tourType: TourType,
-    tourPurpose: String
-  ): Double = {
-    val best = altsToBestInGroup(Vector(embodiedBeamTrip), tourType).head
-
-    utilityOf(
-      tourPurpose,
-      best.mode,
-      conditionedOnModalityStyle,
-      tourType,
-      best.cost,
-      getGeneralizedTime(
-        best.walkTime + best.waitTime + best.vehicleTime + best.bikeTime,
-        Some(best.mode)
-      ) * beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.defaultValueOfTime
+  private def attributes(cost: Double, time: Double, numTransfers: Double, transitOccupancy: Double) = {
+    Map(
+      "cost"                  -> cost,
+      "time"                  -> time,
+      "transfer"              -> numTransfers.toDouble,
+      "transitOccupancy"      -> transitOccupancy
     )
   }
 
@@ -205,7 +154,9 @@ class ModeChoiceTPCM(
           beamConfig.beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.transit_crowding_percentile
         val occupancyLevel =
           transitCrowding.getTransitOccupancyLevelForPercentile(altAndIdx._1, percentile)
+        val embodiedBeamTrip = altAndIdx._1
         ModeChoiceData(
+          embodiedBeamTrip,
           mode,
           tourType,
           vehicleTime,
@@ -218,7 +169,6 @@ class ModeChoiceTPCM(
           altAndIdx._2
         )
       }
-
     val groupedByMode: Map[BeamMode, Seq[ModeChoiceData]] =
       modeChoiceAlternatives.groupBy(_.mode)
     val bestInGroup = groupedByMode.map {
@@ -237,29 +187,6 @@ class ModeChoiceTPCM(
     bestInGroup.toVector
   }
 
-  def utilityOf(
-    tourPurpose: String,
-    mode: BeamMode,
-    conditionedOnModalityStyle: String,
-    tourType: TourType,
-    cost: Double,
-    time: Double
-  ): Double = {
-    val theParams = Map("cost" -> cost, "time" -> time)
-    lccm
-      .modeChoiceModels(tourType)(conditionedOnModalityStyle)
-      ._2
-      .getUtilityOfAlternative(mode, theParams)
-      .getOrElse(0)
-  }
-
-  override def utilityOf(
-    alternative: EmbodiedBeamTrip,
-    attributesOfIndividual: AttributesOfIndividual,
-    destinationActivity: Option[Activity],
-    tourPurpose: String
-  ): Double = 0.0
-
   override def utilityOf(
     alternative: EmbodiedBeamTrip,
     attributesOfIndividual: AttributesOfIndividual,
@@ -267,72 +194,74 @@ class ModeChoiceTPCM(
     person: Person
   ): Double = 0.0
 
+  override def utilityOf(
+    alternative: EmbodiedBeamTrip,
+    attributesOfIndividual: AttributesOfIndividual,
+    destinationActivity: Option[Activity],
+    tourPurpose: String
+  ): Double = {
+    val mcd = altsToBestInGroup(Vector(alternative), Mandatory).head
+    utilityOf(mcd, tourPurpose)
+  }
+
+  private def utilityOf(
+    mcd: ModeChoiceData,
+    tourPurpose: String
+  ): Double = {
+    val beamTrip = mcd.embodiedBeamTrip
+    val theParams = attributes(
+      mcd.cost,
+      mcd.walkTime + mcd.bikeTime + mcd.vehicleTime + mcd.waitTime,
+      mcd.numTransfers,
+      mcd.occupancyLevel
+    )
+    val (model, modeModel) = lccm.modeChoiceTourModels(Mandatory)(tourPurpose)
+    model.getUtilityOfAlternative(beamTrip, theParams).getOrElse(0)
+  }
+
+  def utilityOf(
+    tourPurpose: String = "Work",
+    mode: BeamMode,
+    cost: Double,
+    time: Double,
+    numTransfers: Int = 0,
+    transitOccupancyLevel: Double
+  ): Double = {
+    val theParams = attributes(
+      cost,
+      time,
+      numTransfers,
+      transitOccupancyLevel
+    )
+    val (model, modeModel) = lccm.modeChoiceTourModels(Mandatory)(tourPurpose)
+    modeModel.getUtilityOfAlternative(mode, theParams).getOrElse(0)
+  }
+
   override def computeAllDayUtility(
     trips: ListBuffer[EmbodiedBeamTrip],
     person: Person,
     attributesOfIndividual: AttributesOfIndividual
   ): Double = {
-    // Compute and log all-day score w.r.t. all modality styles
-    // One of them has many suspicious-looking 0.0 values. Probably something which
-    // should be minus infinity or exception instead.
-    val vectorOfUtilities = List("class1", "class2", "class3", "class4", "class5", "class6")
-      .map { style =>
-        style -> beamServices.modeChoiceCalculatorFactory(
-          attributesOfIndividual.copy(modalityStyle = Some(style))
-        )
-      }
-      .toMap
-      .mapValues(
-        modeChoiceCalculatorForStyle =>
-          trips.map(trip => modeChoiceCalculatorForStyle.utilityOf(trip, attributesOfIndividual, None, person)).sum
-      )
-      .toArray
-      .toMap // to force computation DO NOT TOUCH IT, because here is call-by-name and it's lazy which will hold a lot of memory !!! :)
-
-    person.getSelectedPlan.getAttributes
-      .putAttribute("scores", MapStringDouble(vectorOfUtilities))
-
-    val logsum = Option(
-      math.log(
-        person.getPlans.asScala.view
-          .map(
-            plan =>
-              plan.getAttributes
-                .getAttribute("scores")
-                .asInstanceOf[MapStringDouble]
-                .data(attributesOfIndividual.modalityStyle.get)
-          )
-          .map(score => math.exp(score))
-          .sum
-      )
-    ).filterNot(x => x < -100D).getOrElse(-100D)
-
-    // Score of being in class given this outcome
-    lccm
-      .classMembershipModels(Mandatory)
-      .getUtilityOfAlternative(
-        attributesOfIndividual.modalityStyle.get,
-        Map(
-          "income"        -> attributesOfIndividual.householdAttributes.householdIncome,
-          "householdSize" -> attributesOfIndividual.householdAttributes.householdSize.toDouble,
-          "male" -> (if (attributesOfIndividual.isMale) {
-                       1.0
-                     } else {
-                       0.0
-                     }),
-          "numCars"  -> attributesOfIndividual.householdAttributes.numCars.toDouble,
-          "numBikes" -> attributesOfIndividual.householdAttributes.numBikes.toDouble,
-          "surplus"  -> logsum // not the logsum-thing (yet), but the conditional utility of this actual plan given the class
-        )
-      )
-      .getOrElse(0)
+    val scoreList = new ListBuffer[Double]
+    trips.zipWithIndex map { tripWithIndex =>
+      val (trip, tripIndex) = tripWithIndex
+      val tripPurpose = person.getSelectedPlan.getPlanElements.asScala
+        .filter(_.isInstanceOf[Activity])
+        .map(_.asInstanceOf[Activity])
+        .lift(tripIndex + 1)
+      val tourPurpose = person.getSelectedPlan.getPlanElements.asScala
+        .filter(_.isInstanceOf[Activity])
+        .map(_.asInstanceOf[Activity])
+        .lift(tripIndex).get
+        .getAttributes.getAttribute("primary_purpose")
+        .toString
+      scoreList += utilityOf(trip, attributesOfIndividual, tripPurpose, tourPurpose)
+    }
+    scoreList.sum
   }
 
-}
-
-object ModeChoiceTPCM {
-
   case class ModeChoiceData(
+    embodiedBeamTrip: EmbodiedBeamTrip,
     mode: BeamMode,
     tourType: TourType,
     vehicleTime: Double,
@@ -344,15 +273,4 @@ object ModeChoiceTPCM {
     cost: Double,
     index: Int = -1
   )
-
-  case class ClassMembershipData(
-    tourType: TourType,
-    surplus: Double,
-    income: Double,
-    householdSize: Double,
-    isMale: Double,
-    numCars: Double,
-    numBikes: Double
-  )
-
 }
