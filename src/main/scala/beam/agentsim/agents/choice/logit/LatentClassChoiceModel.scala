@@ -166,6 +166,7 @@ object LatentClassChoiceModel {
     lccmData: Seq[LccmData]
   ): Map[TourType, Map[String, (MultinomialLogit[EmbodiedBeamTrip, String], MultinomialLogit[BeamMode, String])]] = {
     val uniqueClasses = lccmData.map(_.latentClass).distinct
+    val uniqueAlts = lccmData.map(_.alternative).distinct
     val modeChoiceData = lccmData.filter(_.model == "modeChoice")
     Vector[TourType](Mandatory, NonMandatory).map { theTourType: TourType =>
       val theTourTypeData = modeChoiceData.filter(_.tourType.equalsIgnoreCase(theTourType.toString))
@@ -177,13 +178,24 @@ object LatentClassChoiceModel {
         } yield {
           (data.alternative, Map(data.variable -> UtilityFunctionOperation(data.variable, data.value)))
         }
-        val utilityFunctionMap = utilityFunctions.toMap
-
-        theTourPurpose -> (new MultinomialLogit[EmbodiedBeamTrip, String](
-          trip => utilityFunctionMap.get(trip.tripClassifier.value),
-          Map.empty
-        ),
-          new MultinomialLogit[BeamMode, String](mode => utilityFunctionMap.get(mode.value), Map.empty))
+          //group together all utility parameter values for each alternative
+          var utilMap = Map[String, Map[String, UtilityFunctionOperation]]()
+          utilMap -> uniqueAlts.map{ theAlternative =>
+            val theAltData = utilityFunctions.toArray.filter(_._1.equalsIgnoreCase(theAlternative))
+            var altFunction: Map[String,UtilityFunctionOperation] = Map()
+            for { data    <- theAltData } {
+              var (mode, param, value) = (data._1, data._2.head._1, data._2.head._2)
+              altFunction += (param -> value)
+              utilMap += (mode -> altFunction)
+            }
+            theAlternative -> utilMap
+          }
+        val utilityFunctionMap = utilMap
+        val commonUtility = getCommonUtility
+        theTourPurpose -> (
+          new MultinomialLogit[EmbodiedBeamTrip, String](trip => utilityFunctionMap.get(trip.tripClassifier.value), commonUtility),
+          new MultinomialLogit[BeamMode, String](mode => utilityFunctionMap.get(mode.value), commonUtility)
+        )
       }.toMap
     }.toMap
   }
