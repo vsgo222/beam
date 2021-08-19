@@ -1,18 +1,20 @@
 package beam.agentsim.agents.choice.mode
 
 import java.util.Random
-
 import beam.agentsim.agents.choice.logit.LatentClassChoiceModel.{Mandatory, TourType}
 import beam.agentsim.agents.choice.logit.MultinomialLogit.MNLSample
 import beam.agentsim.agents.choice.logit.LatentClassChoiceModel
 import beam.agentsim.agents.choice.mode.ModeChoiceLCCM.ModeChoiceData
 import beam.agentsim.agents.modalbehaviors.ModeChoiceCalculator
+import beam.agentsim.agents.vehicles.BeamVehicle
 import beam.router.Modes.BeamMode
-import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, DRIVE_TRANSIT, RIDE_HAIL, TRANSIT, WALK, WALK_TRANSIT}
+import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, DRIVE_TRANSIT, RIDE_HAIL, RIDE_HAIL_TRANSIT, TRANSIT, WALK, WALK_TRANSIT}
 import beam.router.model.EmbodiedBeamTrip
+import beam.router.skim.readonly.TransitCrowdingSkims
 import beam.sim.config.BeamConfig
 import beam.sim.{BeamServices, MapStringDouble}
 import beam.sim.population.AttributesOfIndividual
+import org.matsim.api.core.v01.Id
 import org.matsim.api.core.v01.population.Activity
 import org.matsim.api.core.v01.population.Person
 
@@ -43,7 +45,8 @@ import scala.collection.mutable.ListBuffer
   */
 class ModeChoiceLCCM(
   val beamServices: BeamServices,
-  val lccm: LatentClassChoiceModel
+  val lccm: LatentClassChoiceModel,
+  transitCrowding: TransitCrowdingSkims,
 ) extends ModeChoiceCalculator {
 
   override lazy val beamConfig: BeamConfig = beamServices.beamConfig
@@ -76,7 +79,9 @@ class ModeChoiceLCCM(
       val modeChoiceInputData = bestInGroup.map { alt =>
         val theParams = Map(
           "cost" -> alt.cost,
-          "time" -> (alt.walkTime + alt.bikeTime + alt.vehicleTime + alt.waitTime)
+          "time" -> (alt.walkTime + alt.bikeTime + alt.vehicleTime + alt.waitTime),
+          "transfer" -> alt.numTransfers,
+          "transitOccupancy" -> alt.occupancyLevel
         )
         (alt.mode, theParams)
       }.toMap
@@ -121,6 +126,9 @@ class ModeChoiceLCCM(
             "Was unable to sample from modality styles, check attributes of alternatives"
           )
         case Some(chosenClass) =>
+          val bigboy = lccm
+            .modeChoiceModels(tourType)(chosenClass.alternativeType)
+            ._2
           val chosenModeOpt = lccm
             .modeChoiceModels(tourType)(chosenClass.alternativeType)
             ._2
@@ -217,7 +225,8 @@ class ModeChoiceLCCM(
       TransitFareDefaults.estimateTransitFares(alternatives)
     val modeChoiceAlternatives: Seq[ModeChoiceData] =
       alternatives.zipWithIndex.map { altAndIdx =>
-        val totalCost = altAndIdx._1.tripClassifier match {
+        val mode = altAndIdx._1.tripClassifier
+        val totalCost = mode match {
           case TRANSIT | WALK_TRANSIT | DRIVE_TRANSIT | BIKE_TRANSIT =>
             (altAndIdx._1.costEstimate + transitFareDefaults(altAndIdx._2)) * beamServices.beamConfig.beam.agentsim.tuning.transitPrice
           case RIDE_HAIL =>
@@ -240,13 +249,35 @@ class ModeChoiceLCCM(
           .map(_.beamLeg.duration)
           .sum
         val waitTime = altAndIdx._1.totalTravelTimeInSecs - walkTime - vehicleTime
+        //TODO verify number of transfers is correct
+        val numTransfers = mode match {
+          case TRANSIT | WALK_TRANSIT | DRIVE_TRANSIT | RIDE_HAIL_TRANSIT | BIKE_TRANSIT =>
+            var nVeh = -1
+            var vehId = Id.create("dummy", classOf[BeamVehicle])
+            altAndIdx._1.legs.foreach { leg =>
+              if (leg.beamLeg.mode.isTransit && leg.beamVehicleId != vehId) {
+                vehId = leg.beamVehicleId
+                nVeh = nVeh + 1
+              }
+            }
+            nVeh
+          case _ =>
+            0
+        }
+        assert(numTransfers >= 0)
+        val percentile =
+          beamConfig.beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.transit_crowding_percentile
+        val occupancyLevel =
+          transitCrowding.getTransitOccupancyLevelForPercentile(altAndIdx._1, percentile)
         ModeChoiceData(
-          altAndIdx._1.tripClassifier,
+          mode,
           tourType,
           vehicleTime,
           walkTime,
           waitTime,
           bikeTime,
+          numTransfers,
+          occupancyLevel,
           totalCost.toDouble,
           altAndIdx._2
         )
@@ -372,6 +403,8 @@ object ModeChoiceLCCM {
     walkTime: Double,
     waitTime: Double,
     bikeTime: Double,
+    numTransfers: Double,
+    occupancyLevel: Double,
     cost: Double,
     index: Int = -1
   )
