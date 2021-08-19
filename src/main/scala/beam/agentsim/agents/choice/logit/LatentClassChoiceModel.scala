@@ -112,10 +112,19 @@ object LatentClassChoiceModel {
 
   case object NonMandatory extends TourType
 
+  //method where common utility values can be specified
+  def getCommonUtility: Map[String, UtilityFunctionOperation] = {
+    Map(
+      "cost" -> UtilityFunctionOperation("multiplier", -1),
+      "time" -> UtilityFunctionOperation("multiplier", -.001),
+      "transfer" -> UtilityFunctionOperation("multiplier", -2)
+    )
+  }
+
   /*
-   * We use presence of ASC to indicate whether an alternative should be added to the MNL model. So even if an alternative is a base alternative,
-   * it should be given an ASC with value of 0.0 in order to be added to the choice set.
-   */
+     * We use presence of ASC to indicate whether an alternative should be added to the MNL model. So even if an alternative is a base alternative,
+     * it should be given an ASC with value of 0.0 in order to be added to the choice set.
+     */
   def extractModeChoiceModels(
     lccmData: Seq[LccmData]
   ): Map[TourType, Map[String, (MultinomialLogit[EmbodiedBeamTrip, String], MultinomialLogit[BeamMode, String])]] = {
@@ -144,9 +153,10 @@ object LatentClassChoiceModel {
             theAlternative -> utilMap
           }
         val utilityFunctionMap = utilMap
+        val commonUtility = getCommonUtility
         theLatentClass -> (
-          new MultinomialLogit[EmbodiedBeamTrip, String] (trip => utilityFunctionMap.get(trip.tripClassifier.value), Map.empty),
-          new MultinomialLogit[BeamMode, String] (mode => utilityFunctionMap.get(mode.value), Map.empty)
+          new MultinomialLogit[EmbodiedBeamTrip, String](trip => utilityFunctionMap.get(trip.tripClassifier.value), commonUtility),
+          new MultinomialLogit[BeamMode, String](mode => utilityFunctionMap.get(mode.value), commonUtility)
         )
       }.toMap
     }.toMap
