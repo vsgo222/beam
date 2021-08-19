@@ -50,14 +50,11 @@ class ModeChoiceTPCM(
     person: Option[Person] = None,
     tourPurpose : String = "Work"
   ): Option[EmbodiedBeamTrip] = {
-    choose(alternatives, attributesOfIndividual, destinationActivity, person, tourPurpose)
+    choose(alternatives, tourPurpose)
   }
 
   private def choose(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
-    attributesOfIndividual: AttributesOfIndividual,
-    destinationActivity: Option[Activity],
-    person: Option[Person],
     purpose: String
   ): Option[EmbodiedBeamTrip] = {
     if (alternatives.isEmpty) {
