@@ -348,8 +348,8 @@ tasks.withType(ScalaCompile) {
     }
 }
 
-mainClassName = 'beam.utils.matsim_conversion.MatsimConversionTool'
-//mainClassName = 'beam.sim.RunBeam'
+//mainClassName = 'beam.utils.matsim_conversion.MatsimConversionTool'
+mainClassName = 'beam.sim.RunBeam'
 
 shadowJar{
     zip64 true
