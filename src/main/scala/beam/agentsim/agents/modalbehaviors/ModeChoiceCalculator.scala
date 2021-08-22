@@ -144,7 +144,8 @@ object ModeChoiceCalculator {
           new ModeChoiceTPCM(
             beamServices,
             lccm,
-            beamServices.skims.tc_skimmer)
+            beamServices.skims.tc_skimmer
+          )
       case "ModeChoiceLCCM" =>
         val lccm = new LatentClassChoiceModel(beamServices)
         (attributesOfIndividual: AttributesOfIndividual) =>
