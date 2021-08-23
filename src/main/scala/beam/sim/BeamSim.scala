@@ -69,7 +69,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
-class BeamSim @Inject()(
+class BeamSim @Inject() (
   private val actorSystem: ActorSystem,
   private val transportNetwork: TransportNetwork,
   private val tollCalculator: TollCalculator,
@@ -105,8 +105,8 @@ class BeamSim @Inject()(
   )
 
   private val maybeRealizedModeChoiceWriter: Option[RealizedModeChoiceWriter] =
-    Option(beamServices.beamConfig.beam.debug.writeRealizedModeChoiceFile).collect {
-      case true => new RealizedModeChoiceWriter(beamServices)
+    Option(beamServices.beamConfig.beam.debug.writeRealizedModeChoiceFile).collect { case true =>
+      new RealizedModeChoiceWriter(beamServices)
     }
 
   private var tncIterationsStatsCollector: Option[RideHailIterationsStatsCollector] = None
@@ -141,7 +141,8 @@ class BeamSim @Inject()(
           beamServices.matsimServices.getControlerIO,
           new StudyAreaTripFilter(beamServices.beamConfig.beam.calibration.studyArea, beamServices.geo),
           "studyarea",
-          treatMismatchAsWarning = false // It is expected that for study area some PathTraversals will be taken, so do not treat it as warning
+          treatMismatchAsWarning =
+            false // It is expected that for study area some PathTraversals will be taken, so do not treat it as warning
         )
       )
     } else {
@@ -208,8 +209,6 @@ class BeamSim @Inject()(
         scenario.getNetwork,
         networkHelper,
         beamServices.geo,
-        scenario,
-        scenario.getTransitVehicles,
         beamServices.fareCalculator,
         tollCalculator,
         eventsManager
@@ -256,9 +255,11 @@ class BeamSim @Inject()(
 
     if (COLLECT_AND_CREATE_BEAM_ANALYSIS_AND_GRAPHS) {
 
-      if (RideHailResourceAllocationManager.requiredRideHailIterationsStatsCollector(
-            beamServices.beamConfig.beam.agentsim.agents.rideHail
-          )) {
+      if (
+        RideHailResourceAllocationManager.requiredRideHailIterationsStatsCollector(
+          beamServices.beamConfig.beam.agentsim.agents.rideHail
+        )
+      ) {
         tncIterationsStatsCollector = Some(
           new RideHailIterationsStatsCollector(
             eventsManager,
@@ -313,7 +314,7 @@ class BeamSim @Inject()(
         abstractSkimmer,
         new FreeFlowTravelTime,
         Array(BeamMode.WALK),
-        withTransit = backgroundODSkimsCreatorConfig.modesToBuild.walk_transit,
+        withTransit = backgroundODSkimsCreatorConfig.modesToBuild.transit,
         buildDirectWalkRoute = backgroundODSkimsCreatorConfig.modesToBuild.walk,
         buildDirectCarRoute = false,
         calculationTimeoutHours = backgroundODSkimsCreatorConfig.calculationTimeoutHours
@@ -554,8 +555,7 @@ class BeamSim @Inject()(
           listener.notifyShutdown(event)
           dumpHouseholdAttributes
 
-        case x =>
-          logger.warn("dumper is not `ShutdownListener`")
+        case _ => logger.warn(s"dumper is not `ShutdownListener` - $dumper")
       }
     }
   }
@@ -625,17 +625,23 @@ class BeamSim @Inject()(
   }
 
   def deleteMATSimOutputFiles(lastIterationNumber: Int): Unit = {
-    val rootFiles = for {
-      fileName <- beamServices.beamConfig.beam.outputs.matsim.deleteRootFolderFiles.split(",")
-    } yield Paths.get(beamServices.matsimServices.getControlerIO.getOutputFilename(fileName))
+    val rootFilesName = beamServices.beamConfig.beam.outputs.matsim.deleteRootFolderFiles.trim
+    val iterationFilesName = beamServices.beamConfig.beam.outputs.matsim.deleteITERSFolderFiles.trim
 
-    val iterationFiles = for {
-      fileName        <- beamServices.beamConfig.beam.outputs.matsim.deleteITERSFolderFiles.split(",")
-      iterationNumber <- 0 to lastIterationNumber
-    } yield Paths.get(beamServices.matsimServices.getControlerIO.getIterationFilename(iterationNumber, fileName))
+    if (rootFilesName.nonEmpty) {
+      val rootFiles = for {
+        fileName <- rootFilesName.split(",")
+      } yield Paths.get(beamServices.matsimServices.getControlerIO.getOutputFilename(fileName))
+      tryDelete("root files: ", rootFiles)
+    }
 
-    tryDelete("root files: ", rootFiles)
-    tryDelete("iteration files: ", iterationFiles)
+    if (iterationFilesName.nonEmpty) {
+      val iterationFiles = for {
+        fileName        <- iterationFilesName.split(",")
+        iterationNumber <- 0 to lastIterationNumber
+      } yield Paths.get(beamServices.matsimServices.getControlerIO.getIterationFilename(iterationNumber, fileName))
+      tryDelete("iteration files: ", iterationFiles)
+    }
   }
 
   def tryDelete(kindOfFiles: String, filesToDelete: Seq[Path]): Unit = {
@@ -660,7 +666,9 @@ class BeamSim @Inject()(
         Files.delete(filePath)
         Right(filePath)
       } catch {
-        case e: Throwable => Left(filePath)
+        case ex: Throwable =>
+          logger.error(s"Could not delete $filePath", ex)
+          Left(filePath)
       }
     }
   }
@@ -674,18 +682,16 @@ class BeamSim @Inject()(
     out.newLine()
 
     val ignoredStats = mutable.HashSet.empty[String]
-    iterationSummaryStats.zipWithIndex.foreach {
-      case (stats, it) =>
-        val (ignored, parsed) =
-          SummaryVehicleStatsParser.splitStatsMap(stats.map(kv => (kv._1, Double2double(kv._2))), columns)
+    iterationSummaryStats.zipWithIndex.foreach { case (stats, it) =>
+      val (ignored, parsed) =
+        SummaryVehicleStatsParser.splitStatsMap(stats.map(kv => (kv._1, Double2double(kv._2))), columns)
 
-        ignoredStats ++= ignored
-        parsed.foreach {
-          case (vehicleType, statsValues) =>
-            out.write(s"$it,$vehicleType,")
-            out.write(statsValues.mkString(","))
-            out.newLine()
-        }
+      ignoredStats ++= ignored
+      parsed.foreach { case (vehicleType, statsValues) =>
+        out.write(s"$it,$vehicleType,")
+        out.write(statsValues.mkString(","))
+        out.newLine()
+      }
     }
 
     out.close()
@@ -702,17 +708,16 @@ class BeamSim @Inject()(
     out.write(keys.mkString(","))
     out.newLine()
 
-    iterationSummaryStats.zipWithIndex.foreach {
-      case (stats, it) =>
-        out.write(s"$it,")
-        out.write(
-          keys
-            .map { key =>
-              stats.getOrElse(key, 0)
-            }
-            .mkString(",")
-        )
-        out.newLine()
+    iterationSummaryStats.zipWithIndex.foreach { case (stats, it) =>
+      out.write(s"$it,")
+      out.write(
+        keys
+          .map { key =>
+            stats.getOrElse(key, 0)
+          }
+          .mkString(",")
+      )
+      out.newLine()
     }
 
     out.close()
@@ -755,7 +760,7 @@ class BeamSim @Inject()(
 
     val dataset = new DefaultCategoryDataset
 
-    var data = summaryData.getOrElse(fileName, new mutable.TreeMap[Int, Double])
+    val data = summaryData.getOrElse(fileName, new mutable.TreeMap[Int, Double])
     data += (iteration      -> value)
     summaryData += fileName -> data
 
@@ -795,17 +800,16 @@ class BeamSim @Inject()(
           .result(beamServices.beamRouter.ask(BeamRouter.GetTravelTime), 100.seconds)
           .asInstanceOf[UpdateTravelTimeLocal]
           .travelTime
-        val geoClustering = skimCreator.geoClustering
 
         val backgroundODSkimsCreatorConfig = beamServices.beamConfig.beam.urbansim.backgroundODSkimsCreator
         val carAndDriveTransitSkimCreator = new BackgroundSkimsCreator(
           beamServices,
           beamScenario,
-          geoClustering,
+          skimCreator.ODs,
           abstractSkimmer,
           currentTravelTime,
           Array(BeamMode.CAR, BeamMode.WALK),
-          withTransit = backgroundODSkimsCreatorConfig.modesToBuild.drive_transit,
+          withTransit = backgroundODSkimsCreatorConfig.modesToBuild.transit,
           buildDirectWalkRoute = false,
           buildDirectCarRoute = backgroundODSkimsCreatorConfig.modesToBuild.drive,
           calculationTimeoutHours = backgroundODSkimsCreatorConfig.calculationTimeoutHours

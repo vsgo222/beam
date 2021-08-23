@@ -1,16 +1,7 @@
 package beam.utils
 
-import java.io._
-import java.net.URL
-import java.nio.charset.StandardCharsets
-import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
-import java.text.SimpleDateFormat
-import java.util.stream
-import java.util.zip.{GZIPInputStream, ZipEntry, ZipInputStream}
-
 import beam.sim.config.BeamConfig
 import beam.utils.UnzipUtility.unzip
-import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.amazonaws.services.s3.model.GetObjectRequest
 import com.typesafe.scalalogging.LazyLogging
@@ -20,10 +11,16 @@ import org.apache.commons.io.FilenameUtils.{getBaseName, getExtension, getName}
 import org.matsim.core.config.Config
 import org.matsim.core.utils.io.{IOUtils, UnicodeInputStream}
 
+import java.io._
+import java.net.URL
+import java.nio.charset.StandardCharsets
+import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
+import java.text.SimpleDateFormat
+import java.util.stream
+import java.util.zip.{GZIPInputStream, ZipEntry, ZipInputStream}
 import scala.annotation.tailrec
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
 import scala.io.Source
 import scala.language.{higherKinds, postfixOps, reflectiveCalls}
 import scala.util.{Failure, Random, Success, Try}
@@ -449,13 +446,12 @@ object FileUtils extends LazyLogging {
       .map { i =>
         (i, Paths.get(outputDir.toString, fileNamePattern.replace("$i", i.toString)))
       }
-    val futures = fileList.map {
-      case (i: Int, path: Path) =>
-        Future {
-          using(IOUtils.getBufferedWriter(path.toString)) { writer =>
-            saver(i, path, writer)
-          }
+    val futures = fileList.map { case (i: Int, path: Path) =>
+      Future {
+        using(IOUtils.getBufferedWriter(path.toString)) { writer =>
+          saver(i, path, writer)
         }
+      }
     }
     Await.result(Future.sequence(futures), atMost)
   }
@@ -486,18 +482,17 @@ object FileUtils extends LazyLogging {
     import java.io.{BufferedInputStream, FileInputStream, FileOutputStream}
     import java.util.zip.{ZipEntry, ZipOutputStream}
 
-    val existed = files.filter { case (_, path)      => Files.exists(path) && Files.isRegularFile(path) }
+    val existed = files.filter { case (_, path) => Files.exists(path) && Files.isRegularFile(path) }
     val notExited = files.filterNot { case (_, path) => Files.exists(path) && Files.isRegularFile(path) }
     notExited.foreach { case (name, _) => logger.error(s"Cannot find $name") }
 
     using(new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(out)))) { zip =>
-      existed.foreach {
-        case (name, path) =>
-          zip.putNextEntry(new ZipEntry(name))
-          using(new BufferedInputStream(new FileInputStream(path.toFile))) { in =>
-            IOUtils.copyStream(in, zip)
-          }
-          zip.closeEntry()
+      existed.foreach { case (name, path) =>
+        zip.putNextEntry(new ZipEntry(name))
+        using(new BufferedInputStream(new FileInputStream(path.toFile))) { in =>
+          IOUtils.copyStream(in, zip)
+        }
+        zip.closeEntry()
       }
     }
     out

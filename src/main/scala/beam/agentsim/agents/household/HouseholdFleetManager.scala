@@ -1,4 +1,5 @@
 package beam.agentsim.agents.household
+
 import java.util.concurrent.TimeUnit
 import akka.actor.Status.{Failure, Success}
 import akka.actor.ActorRef
@@ -17,7 +18,7 @@ import beam.agentsim.agents.household.HouseholdActor.{
 }
 import beam.agentsim.agents.household.HouseholdFleetManager.ResolvedParkingResponses
 import beam.agentsim.agents.modalbehaviors.DrivesVehicle.ActualVehicle
-import beam.agentsim.agents.vehicles.BeamVehicle
+import beam.agentsim.agents.vehicles.{BeamVehicle, VehicleManager}
 import beam.agentsim.events.SpaceTime
 import beam.agentsim.infrastructure.{ParkingInquiry, ParkingInquiryResponse}
 import beam.agentsim.scheduler.BeamAgentScheduler.CompletionNotice
@@ -34,7 +35,7 @@ class HouseholdFleetManager(
   parkingManager: ActorRef,
   vehicles: Map[Id[BeamVehicle], BeamVehicle],
   homeCoord: Coord,
-  implicit val debug: Debug,
+  implicit val debug: Debug
 ) extends LoggingMessageActor
     with ExponentialLazyLogging {
   private implicit val timeout: Timeout = Timeout(50000, TimeUnit.SECONDS)
@@ -47,27 +48,24 @@ class HouseholdFleetManager(
   override def loggedReceive: Receive = {
     case ResolvedParkingResponses(triggerId, xs) =>
       logger.debug(s"ResolvedParkingResponses ($triggerId, $xs)")
-      xs.foreach {
-        case (id, resp) =>
-          val veh = vehicles(id)
-          veh.setManager(Some(self))
-          veh.spaceTime = SpaceTime(homeCoord.getX, homeCoord.getY, 0)
-          veh.setMustBeDrivenHome(true)
-          veh.useParkingStall(resp.stall)
-          self ! ReleaseVehicleAndReply(veh, triggerId = triggerId)
+      xs.foreach { case (id, resp) =>
+        val veh = vehicles(id)
+        veh.setManager(Some(self))
+        veh.spaceTime = SpaceTime(homeCoord.getX, homeCoord.getY, 0)
+        veh.setMustBeDrivenHome(true)
+        veh.useParkingStall(resp.stall)
+        self ! ReleaseVehicleAndReply(veh, triggerId = triggerId)
       }
       triggerSender.foreach(actorRef => actorRef ! CompletionNotice(triggerId, Vector()))
 
     case TriggerWithId(InitializeTrigger(_), triggerId) =>
       triggerSender = Some(sender())
-      val HasEnoughFuelToBeParked: Boolean = true
-      val listOfFutures: List[Future[(Id[BeamVehicle], ParkingInquiryResponse)]] = vehicles.toList.map {
-        case (id, _) =>
-          (parkingManager ? ParkingInquiry(SpaceTime(homeCoord, 0), "init", triggerId = triggerId))
-            .mapTo[ParkingInquiryResponse]
-            .map { r =>
-              (id, r)
-            }
+      val listOfFutures: List[Future[(Id[BeamVehicle], ParkingInquiryResponse)]] = vehicles.toList.map { case (id, _) =>
+        (parkingManager ? ParkingInquiry.init(SpaceTime(homeCoord, 0), "init", triggerId = triggerId))
+          .mapTo[ParkingInquiryResponse]
+          .map { r =>
+            (id, r)
+          }
       }
       val futureOfList = Future.sequence(listOfFutures)
       val response = futureOfList.map(ResolvedParkingResponses(triggerId, _))
@@ -116,12 +114,16 @@ class HouseholdFleetManager(
       context.stop(self)
 
     case Success =>
+    case pir: ParkingInquiryResponse =>
+      logger.error(s"STUCK with ParkingInquiryResponse: $pir")
+
     case x =>
-      logger.warn(s"No handler for ${x}")
+      logger.warn(s"No handler for $x")
   }
 }
 
 object HouseholdFleetManager {
+
   case class ResolvedParkingResponses(triggerId: Long, xs: List[(Id[BeamVehicle], ParkingInquiryResponse)])
       extends HasTriggerId
 }

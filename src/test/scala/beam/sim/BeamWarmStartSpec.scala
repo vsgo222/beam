@@ -2,7 +2,6 @@ package beam.sim
 
 import java.io.IOException
 import java.nio.file.{Files, Path, Paths}
-
 import beam.integration.IntegrationSpecCommon
 import beam.sim.BeamWarmStartSpec._
 import beam.sim.config.{BeamConfig, MatSimBeamConfigBuilder}
@@ -281,7 +280,7 @@ class BeamWarmStartSpec
     }
 
     "not sample population when sampling disabled" in {
-      loadScenarioAndGetPopulationSize(0.5, true, 0) shouldBe (50)
+      loadScenarioAndGetPopulationSize(0.5, true, 0) shouldBe 50
     }
 
     "should not impact population sampling when warmstart disabled" in {
@@ -349,12 +348,8 @@ object BeamWarmStartSpec {
     }
   }
 
-  def deleteDir(directoryToBeDeleted: Path): Boolean = {
-    val allContents = directoryToBeDeleted.toFile.listFiles
-    if (allContents != null) for (file <- allContents) {
-      deleteDir(file.toPath)
-    }
-    directoryToBeDeleted.toFile.delete
+  def deleteDir(directoryToBeDeleted: Path): Unit = {
+    org.apache.commons.io.FileUtils.deleteDirectory(directoryToBeDeleted.toFile)
   }
 
   def copyPlans(toDir: Path, asName: String): Option[String] = {

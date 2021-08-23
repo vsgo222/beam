@@ -27,14 +27,14 @@ class ParkingH3IndexConverterSpec extends AnyWordSpec with Matchers {
 
       val expectedValue = ParkingEntryValues(
         numStalls = 50,
-        feeInCents = 16D
+        feeInCents = 16d
       )
       assertResult(Seq(expectedValue)) {
         val entryGroup = H3IndexParkingEntryGroup(
           h3Index = H3Index("82bc27fffffffff"),
           parkingType = "Workplace",
           pricingModel = "Block",
-          chargingType = "DCFast(50|DC)",
+          chargingPointType = "DCFast(50|DC)",
           reservedFor = null
         )
         grouper.groupValues(entryGroup)
@@ -54,14 +54,14 @@ class ParkingH3IndexConverterSpec extends AnyWordSpec with Matchers {
         .aggregate(ValueAggregator.StallSummationAndFeeWeightAvg)
       val expectedValue = ParkingEntryValues(
         numStalls = 5,
-        feeInCents = 18D
+        feeInCents = 18d
       )
       assertResult(Seq(expectedValue)) {
         val entryGroup = H3IndexParkingEntryGroup(
           h3Index = H3Index("820eb7fffffffff"),
           parkingType = "100821",
           pricingModel = "Block",
-          chargingType = "DCFast(50|DC)",
+          chargingPointType = "DCFast(50|DC)",
           reservedFor = "Any"
         )
         grouper.groupValues(entryGroup)
