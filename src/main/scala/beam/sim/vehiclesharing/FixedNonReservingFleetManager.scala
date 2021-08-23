@@ -31,8 +31,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
 private[vehiclesharing] class FixedNonReservingFleetManager(
-  val id: Id[VehicleManager],
-  val parkingManager: ActorRef,
+  val vehicleManagerId: Id[VehicleManager],
+  val parkingNetworkManager: ActorRef,
+  val chargingNetworkManager: ActorRef,
   val locations: Iterable[Coord],
   val vehicleType: BeamVehicleType,
   val mainScheduler: ActorRef,
@@ -50,18 +51,17 @@ private[vehiclesharing] class FixedNonReservingFleetManager(
 
   private val rand: Random = new Random(beamServices.beamConfig.matsim.modules.global.randomSeed)
 
-  private val vehicles = (locations.zipWithIndex map {
-    case (location, ix) =>
-      val vehicle = new BeamVehicle(
-        Id.createVehicleId(self.path.name + "-" + ix),
-        new Powertrain(0.0),
-        vehicleType,
-        vehicleManager = Some(id),
-        rand.nextInt()
-      )
-      vehicle.setManager(Some(self))
-      vehicle.spaceTime = SpaceTime(location, 0)
-      vehicle.id -> vehicle
+  private val vehicles = (locations.zipWithIndex map { case (location, ix) =>
+    val vehicle = new BeamVehicle(
+      Id.createVehicleId(self.path.name + "-" + ix),
+      new Powertrain(0.0),
+      vehicleType,
+      vehicleManagerId = vehicleManagerId,
+      rand.nextInt()
+    )
+    vehicle.setManager(Some(self))
+    vehicle.spaceTime = SpaceTime(location, 0)
+    vehicle.id -> vehicle
   }).toMap
 
   private val availableVehicles = mutable.Map.empty[Id[BeamVehicle], BeamVehicle]
@@ -74,7 +74,9 @@ private[vehiclesharing] class FixedNonReservingFleetManager(
       Future
         .sequence(vehicles.values.map { veh =>
           veh.setManager(Some(self))
-          parkingManager ? parkingInquiry(veh.spaceTime, triggerId) flatMap {
+          val infrastructureManager = if (veh.isBEV || veh.isPHEV) chargingNetworkManager else parkingNetworkManager
+          infrastructureManager ? ParkingInquiry
+            .init(veh.spaceTime, "wherever", vehicleManagerId, triggerId = triggerId) flatMap {
             case ParkingInquiryResponse(stall, _, triggerId) =>
               veh.useParkingStall(stall)
               self ? ReleaseVehicleAndReply(veh, None, triggerId)
@@ -92,9 +94,12 @@ private[vehiclesharing] class FixedNonReservingFleetManager(
 
       val nearbyVehicles = availableVehiclesIndex.query(boundingBox).asScala.toVector.asInstanceOf[Vector[BeamVehicle]]
       nearbyVehicles.sortBy(veh => CoordUtils.calcEuclideanDistance(veh.spaceTime.loc, whenWhere.loc))
-      sender ! MobilityStatusResponse(nearbyVehicles.take(5).map { vehicle =>
-        Token(vehicle.id, self, vehicle)
-      }, triggerId)
+      sender ! MobilityStatusResponse(
+        nearbyVehicles.take(5).map { vehicle =>
+          Token(vehicle.id, self, vehicle)
+        },
+        triggerId
+      )
       collectData(whenWhere.time, whenWhere.loc, RepositionManager.inquiry)
 
     case TryToBoardVehicle(token, who, triggerId) =>
@@ -120,10 +125,8 @@ private[vehiclesharing] class FixedNonReservingFleetManager(
       collectData(vehicle.spaceTime.time, vehicle.spaceTime.loc, RepositionManager.release)
   }
 
-  def parkingInquiry(whenWhere: SpaceTime, triggerId: Long): ParkingInquiry =
-    ParkingInquiry(whenWhere, "wherever", triggerId = triggerId)
+  override def getId: Id[VehicleManager] = vehicleManagerId
 
-  override def getId: Id[VehicleManager] = id
   override def queryAvailableVehicles: List[BeamVehicle] =
     availableVehiclesIndex.queryAll().asScala.map(_.asInstanceOf[BeamVehicle]).toList
   override def getScheduler: ActorRef = mainScheduler
