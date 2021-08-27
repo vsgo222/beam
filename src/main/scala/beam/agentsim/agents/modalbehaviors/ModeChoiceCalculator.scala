@@ -153,7 +153,8 @@ object ModeChoiceCalculator {
               new ModeChoiceLCCM(
                 beamServices,
                 lccm,
-                beamServices.skims.tc_skimmer)
+                beamServices.skims.tc_skimmer
+              )
             case _ =>
               throw new RuntimeException("LCCM needs people to have modality styles")
           }
