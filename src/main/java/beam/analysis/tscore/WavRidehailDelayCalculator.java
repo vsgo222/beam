@@ -69,7 +69,8 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
 
             // if rideHail, get the vehicle type
             if (thisVehicle.contains("rideHail")) {
-                String thisVehicleType = rhm.get(thisVehicle).vehicleType();
+                String fixedVehicle = thisVehicle.substring(16, thisVehicle.length() - 8);
+                String thisVehicleType = rhm.get(fixedVehicle).vehicleType();
                 if (thisVehicleType.equals("WAV")) {
                     // This pertains to the vehicle utilization per hour
                     wavUtilizationMap.addVehicle(event.getVehicleId().toString());
