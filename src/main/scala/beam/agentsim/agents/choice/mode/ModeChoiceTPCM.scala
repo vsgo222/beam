@@ -44,6 +44,7 @@ class ModeChoiceTPCM(
 
   override lazy val beamConfig: BeamConfig = beamServices.beamConfig
   var expectedMaximumUtility: Double = Double.NaN
+  val TPCMCalculator = new ModeChoiceTPCMCalculator(beamServices)
 
   override def apply(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
@@ -106,55 +107,26 @@ class ModeChoiceTPCM(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     tourType: TourType
   ): Vector[ModeChoiceData] = {
+    //check to see if this is always 0
     val transitFareDefaults: Seq[Double] =
       TransitFareDefaults.estimateTransitFares(alternatives)
     val modeChoiceAlternatives: Seq[ModeChoiceData] =
       alternatives.zipWithIndex.map { altAndIdx =>
-        val mode = altAndIdx._1.tripClassifier
-        val totalCost = mode match {
-          case TRANSIT | WALK_TRANSIT | DRIVE_TRANSIT | BIKE_TRANSIT =>
-            (altAndIdx._1.costEstimate + transitFareDefaults(altAndIdx._2)) * beamServices.beamConfig.beam.agentsim.tuning.transitPrice
-          case RIDE_HAIL =>
-            altAndIdx._1.costEstimate * beamServices.beamConfig.beam.agentsim.tuning.rideHailPrice
-          case _ =>
-            altAndIdx._1.costEstimate
-        }
+        //get mode and total cost of current trip
+          val mode = altAndIdx._1.tripClassifier
+          val totalCost = TPCMCalculator.getTotalCost(mode, altAndIdx, transitFareDefaults)
         //TODO verify wait time is correct, look at transit and ride_hail in particular
-        val walkTime = altAndIdx._1.legs.view
-          .filter(_.beamLeg.mode == WALK)
-          .map(_.beamLeg.duration)
-          .sum
-        val bikeTime = altAndIdx._1.legs.view
-          .filter(_.beamLeg.mode == BIKE)
-          .map(_.beamLeg.duration)
-          .sum
-        val vehicleTime = altAndIdx._1.legs.view
-          .filter(_.beamLeg.mode != WALK)
-          .filter(_.beamLeg.mode != BIKE)
-          .map(_.beamLeg.duration)
-          .sum
-        val waitTime = altAndIdx._1.totalTravelTimeInSecs - walkTime - vehicleTime
+          val walkTime = TPCMCalculator.getWalkTime(altAndIdx)
+          val bikeTime = TPCMCalculator.getBikeTime(altAndIdx)
+          val vehicleTime = TPCMCalculator.getVehicleTime(altAndIdx)
+          val waitTime = TPCMCalculator.getWaitTime(altAndIdx, walkTime, vehicleTime)
         //TODO verify number of transfers is correct
-        val numTransfers = mode match {
-          case TRANSIT | WALK_TRANSIT | DRIVE_TRANSIT | RIDE_HAIL_TRANSIT | BIKE_TRANSIT =>
-            var nVeh = -1
-            var vehId = Id.create("dummy", classOf[BeamVehicle])
-            altAndIdx._1.legs.foreach { leg =>
-              if (leg.beamLeg.mode.isTransit && leg.beamVehicleId != vehId) {
-                vehId = leg.beamVehicleId
-                nVeh = nVeh + 1
-              }
-            }
-            nVeh
-          case _ =>
-            0
-        }
-        assert(numTransfers >= 0)
-        val percentile =
-          beamConfig.beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.transit_crowding_percentile
-        val occupancyLevel =
-          transitCrowding.getTransitOccupancyLevelForPercentile(altAndIdx._1, percentile)
-        val embodiedBeamTrip = altAndIdx._1
+          val numTransfers = TPCMCalculator.getNumTransfers(mode,altAndIdx)
+          assert(numTransfers >= 0)
+        //determine percentile, occupancy level, and embodied trip value
+          val percentile = beamConfig.beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.transit_crowding_percentile
+          val occupancyLevel = transitCrowding.getTransitOccupancyLevelForPercentile(altAndIdx._1, percentile)
+          val embodiedBeamTrip = altAndIdx._1
         ModeChoiceData(
           embodiedBeamTrip,
           mode,
