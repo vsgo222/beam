@@ -2,14 +2,18 @@ package beam.agentsim.agents.choice.mode
 
 import beam.agentsim.agents.vehicles.BeamVehicle
 import beam.router.Modes.BeamMode
-import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, DRIVE_TRANSIT, RIDE_HAIL, RIDE_HAIL_TRANSIT, TRANSIT, WALK, WALK_TRANSIT}
+import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, BUS, CABLE_CAR, CAR, DRIVE_TRANSIT, FERRY, FUNICULAR, GONDOLA, RAIL, RIDE_HAIL, RIDE_HAIL_TRANSIT, SUBWAY, TRAM, TRANSIT, WALK, WALK_TRANSIT}
 import beam.router.model.EmbodiedBeamTrip
 import beam.sim.BeamServices
 import org.matsim.api.core.v01.Id
+import com.conveyal.r5.api.util.TransitModes
 
 class ModeChoiceTPCMCalculator(
   beamServices: BeamServices
 ) {
+
+  val transitModes = Seq(BUS, FUNICULAR, GONDOLA, CABLE_CAR, FERRY, TRAM, TRANSIT, RAIL, SUBWAY)
+  val massTransitModes: List[BeamMode] = List(FERRY, TRANSIT, RAIL, SUBWAY, TRAM)
 
   def getTotalCost(
     mode: BeamMode,
@@ -76,14 +80,56 @@ class ModeChoiceTPCMCalculator(
     }
   }
 
+  def getDistance(
+    mode: BeamMode,
+    altAndIdx: (EmbodiedBeamTrip, Int)
+  ): Double = {
+    mode match {
+      case BIKE | WALK =>
+        var distance = 0.0
+        altAndIdx._1.legs.foreach{ leg =>
+          distance = distance + leg.beamLeg.travelPath.distanceInM
+        }
+        distance * 0.000621371 //convert from meters to miles
+      case _ =>
+        0
+    }
 
+  }
 
+  def getTransitMode(
+    mode: BeamMode,
+    altAndIdx: (EmbodiedBeamTrip, Int)
+  ): String = {
+    mode match {
+      case CAR | WALK_TRANSIT | TRANSIT | DRIVE_TRANSIT | RIDE_HAIL_TRANSIT | BIKE_TRANSIT  =>
+        var transitMode: BeamMode = mode
+        altAndIdx._1.legs.foreach { leg =>
+          var tMode: BeamMode = leg.beamLeg.mode
+          if (transitModes.contains(tMode)){
+            transitMode = tMode
+          }
+        }
+        getIVTTModeType(transitMode)
+      case _ =>
+        "none"
+    }
+  }
 
-
-
-
-
-
+  private def getIVTTModeType(mode:BeamMode): String ={
+    mode match {
+      case CAR | BUS =>
+        "car/bus"
+      case RAIL | CABLE_CAR | GONDOLA | FUNICULAR =>
+        "light-rail"
+      case FERRY =>
+        "ferry"
+      case  SUBWAY | TRANSIT | TRAM=>
+        "heavy-rail"
+      case _ =>
+        "express-bus"
+    }
+  }
 
 
 
