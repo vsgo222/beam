@@ -12,6 +12,8 @@ import org.matsim.vehicles.Vehicle;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandler, PersonLeavesVehicleEventHandler,
@@ -69,8 +71,16 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
 
             // if rideHail, get the vehicle type
             if (thisVehicle.contains("rideHail")) {
-                String fixedVehicle = thisVehicle.substring(16, thisVehicle.length() - 8);
-                String thisVehicleType = rhm.get(fixedVehicle).vehicleType();
+                //Currently, the ridehail vehicle IDs are in the form 'rideHailVehicle-rideHailVehicle-1-1-2@default',
+                //when the RHM is expecting 'rideHailVehicle-1-1-2'. Below is some regex that should fix those IDs.
+                //Ultimately we should fix the source problem, but this hacky fix will work for now
+                Pattern pattern = Pattern.compile("ridehailvehicle-ridehailvehicle", Pattern.CASE_INSENSITIVE);
+                Matcher match = pattern.matcher(thisVehicle);
+                if (match.find()) {
+                    thisVehicle = thisVehicle.replaceAll("\\w+-([\\w-]+)@\\w+", "$1");
+                }
+                //Now we can use the vehicle ID
+                String thisVehicleType = rhm.get(thisVehicle).vehicleType();
                 if (thisVehicleType.equals("WAV")) {
                     // This pertains to the vehicle utilization per hour
                     wavUtilizationMap.addVehicle(event.getVehicleId().toString());
@@ -154,8 +164,16 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
         else {
             if (thisVehicle.contains("rideHail")) {
                 totalRideHailCount++;
-                String fixedVehicle = thisVehicle.substring(16, thisVehicle.length() - 8);
-                String thisVehicleType = rhm.get(fixedVehicle).vehicleType();
+                //Currently, the ridehail vehicle IDs are in the form 'rideHailVehicle-rideHailVehicle-1-1-2@default',
+                //when the RHM is expecting 'rideHailVehicle-1-1-2'. Below is some regex that should fix those IDs.
+                //Ultimately we should fix the source problem, but this hacky fix will work for now
+                Pattern pattern = Pattern.compile("ridehailvehicle-ridehailvehicle", Pattern.CASE_INSENSITIVE);
+                Matcher match = pattern.matcher(thisVehicle);
+                if (match.find()) {
+                    thisVehicle = thisVehicle.replaceAll("\\w+-([\\w-]+)@\\w+", "$1");
+                }
+                //Now we can use the vehicle ID
+                String thisVehicleType = rhm.get(thisVehicle).vehicleType();
                 if (thisVehicleType.equals("WAV")) {
                     wavCount++;
                 }
