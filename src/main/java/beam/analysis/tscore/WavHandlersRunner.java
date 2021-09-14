@@ -2,6 +2,9 @@ package beam.analysis.tscore;
 
 import beam.sim.RideHailFleetInitializer;
 import beam.sim.RideHailFleetInitializer.RideHailAgentInputData;
+import com.google.devtools.common.options.Option;
+import com.google.devtools.common.options.OptionsBase;
+import com.google.devtools.common.options.OptionsParser;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.core.api.experimental.events.EventsManager;
@@ -13,6 +16,8 @@ import org.matsim.core.scenario.ScenarioUtils;
 import scala.collection.Iterator;
 import scala.collection.immutable.List;
 
+import java.io.*;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -22,12 +27,20 @@ public class WavHandlersRunner {
     private static final Logger log = Logger.getLogger(WavHandlersRunner.class);
 
 
-    public static void main(String[] args){
-        String path = "S:\\Documents\\output\\slc_5\\slc_5__2021-09-07_20-42-37_box/";
-        String eventsFile = path + "output_events.xml.gz";
-        String networkFile = path + "output_network.xml.gz";
-        //String outputFile = "output/WAV/wav_250/route_ridership.csv";
-        String ridehailFleetFile = "S:\\Documents\\scenarios\\ridehail_fleets/rhFleet-12-micro.csv";
+    public static void main(String[] args) throws IOException {
+
+        OptionsParser parser = OptionsParser.newOptionsParser(CLIOptions.class);
+        parser.parseAndExitUponError(args);
+        CLIOptions options = parser.getOptions(CLIOptions.class);
+        if (options.inputDir.isEmpty() || options.rideHailFleetFile.isEmpty()) {
+            printUsage(parser);
+            throw new IOException("Input Directory and Ridehail Fleet File are required");
+        }
+
+        String eventsFile = options.inputDir + "output_events.xml.gz";
+        String networkFile = options.inputDir + "output_network.xml.gz";
+        String outputFile = options.inputDir + "WAV_Stats.txt";
+        String ridehailFleetFile = "S:/Documents/scenarios/ridehail_fleets/rhFleet-12-micro.csv";
 
         Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
