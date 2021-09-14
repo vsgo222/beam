@@ -5,6 +5,8 @@ import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.events.GenericEvent;
 import org.matsim.api.core.v01.events.handler.GenericEventHandler;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,6 +30,15 @@ public class AllEventsCounter implements GenericEventHandler {
         for(String eventType:eventCounterMap.keySet()){
             log.info("Event type: " + eventType);
             log.info("Number of events: " + eventCounterMap.get(eventType));
+        }
+    }
+
+    public void writeEventCounts(BufferedWriter bw) throws IOException {
+        for(String eventType:eventCounterMap.keySet()){
+            bw.write("Event type: " + eventType);
+            bw.newLine();
+            bw.write("Number of events: " + eventCounterMap.get(eventType));
+            bw.newLine();
         }
     }
 }

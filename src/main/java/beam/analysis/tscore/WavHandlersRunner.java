@@ -86,6 +86,68 @@ public class WavHandlersRunner {
         log.info("----- General WAV utilization statistics ----------");
 
         // write into text file
+        File fout = new File(outputFile);
+        FileOutputStream fos = new FileOutputStream(fout);
+        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(fos));
+
+        writeLine(out, "WAV Stats");
+        writeLine(out, "=============================================");
+        writeLine(out,"");
+
+        aec.writeEventCounts(out);
+//        HashMap<String, String> check = wrdc.getEmptyTime();
+//        int nonNull = 0;
+        writeLine(out, "Average time for WAV's sitting empty: ");
+        for (Map.Entry<String, String> id: check.entrySet()){
+            if (id.getKey() != null)
+                nonNull++;
+            writeLine(out, id.getKey() + "'s average time sitting empty: " + id.getValue());
+        }
+        writeLine(out, "Ratio of WAV's being used: " + ((double)nonNull/wrdc.getTotalWavCount()));
+        writeLine(out, "Total number of people entering a vehicle: " + wrdc.getTotalPersonEntersVehicle());
+        writeLine(out, "Number of people entering a 'ride hail' vehicle: " + wrdc.getTotalRideHailCount());
+        writeLine(out, "Total wait time: " + wrdc.getTotalWaitTimeForAllPeople() + " seconds.");
+        writeLine(out, "Total trips count: " + wrdc.getNumberOfTrips());
+
+        writeLine(out, "------ WAV ridership information ---------");
+        writeLine(out, "Number of all people entering WAVs: " + wrdc.getTotalWavCount());
+        writeLine(out, "Total number of wc users in Wavs: " + wrdc.getWcPeopleInWavs());
+        writeLine(out, "total wait time for WC users: " + wrdc.getTotalWaitTimeForWcPeople());
+        writeLine(out, "Number of trips of WC users: " + wrdc.getNumberOfWcTrips());
+        writeLine(out, "Average wait time for for WC users for WAV: " + wrdc.getAverageWcWaitTime() + " minutes.");
+        writeLine(out, "Number of other people entering a WAV: " + wrdc.getOtherPeopleInWavs());
+        writeLine(out, "Total wait time for others in wavs: " + wrdc.getTotalWaitTimeforOtherInWavs());
+        writeLine(out, "Total trips for others in wavs: " + wrdc.getTotalTripsOthersInWavs());
+        writeLine(out, "Average wait time for others in wavs: " + wrdc.getAverageOtherInWavWaitTime() + " minutes.");
+        writeLine(out, "Percent of Wc people using WAVs: " + wrdc.getPercentWcInWavs() + " %");
+
+        writeLine(out, "------- General non-wav ride hail information -----------");
+        writeLine(out, "Total number of other people enter a ride hail: " + wrdc.getRideHailCount());
+        writeLine(out, "Number of wc incorrectly placed into RH: " + wrdc.getWrongPlace());
+        writeLine(out, "total wait time for other users: " + wrdc.getTotalWaitTimeForOtherPeople());
+        writeLine(out, "Total count of other (non-wav) trips: " + wrdc.getNumberOfOtherTrips());
+        writeLine(out, "Average wait time for Other users: " + wrdc.getAverageOtherWaitTime() + " minutes.");
+
+        writeLine(out, "-------- General Travel Time information -------------");
+        writeLine(out, "Average travel time for WC users on WAV: " + wrdc.getAverageWcTravelTime() + " minutes.");
+        writeLine(out, "Averge travel time for other users in ride_hail: " + wrdc.getAverageOtherTravelTime() + " minutes.");
+
+        writeLine(out, "----- General WAV utilization statistics ----------");
+
+
+        out.close();
+
+    }
+
+    private static void printUsage(OptionsParser parser) {
+        System.out.println("Usage: java -jar server.jar OPTIONS");
+        System.out.println(parser.describeOptions(Collections.<String, String>emptyMap(),
+                OptionsParser.HelpVerbosity.LONG));
+    }
+
+    private static void writeLine(BufferedWriter bw, String line) throws IOException {
+        bw.write(line);
+        bw.newLine();
     }
 
 
