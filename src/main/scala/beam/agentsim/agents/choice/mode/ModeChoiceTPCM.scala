@@ -114,6 +114,7 @@ class ModeChoiceTPCM(
       alternatives.zipWithIndex.map { altAndIdx =>
         //get mode and total cost of current trip
           val mode = altAndIdx._1.tripClassifier
+          val transitMode = TPCMCalculator.getTransitMode(mode,altAndIdx)
           val totalCost = TPCMCalculator.getTotalCost(mode, altAndIdx, transitFareDefaults)
         //TODO verify wait time is correct, look at transit and ride_hail in particular
           val walkTime = TPCMCalculator.getWalkTime(altAndIdx)
@@ -121,8 +122,10 @@ class ModeChoiceTPCM(
           val vehicleTime = TPCMCalculator.getVehicleTime(altAndIdx)
           val waitTime = TPCMCalculator.getWaitTime(altAndIdx, walkTime, vehicleTime)
         //TODO verify number of transfers is correct
-          val numTransfers = TPCMCalculator.getNumTransfers(mode,altAndIdx)
+          val numTransfers = TPCMCalculator.getNumTransfers(mode, altAndIdx)
           assert(numTransfers >= 0)
+        //determine distance for walk or bike modes
+          val walkBikeDistance = TPCMCalculator.getDistance(mode, altAndIdx)
         //determine percentile, occupancy level, and embodied trip value
           val percentile = beamConfig.beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.transit_crowding_percentile
           val occupancyLevel = transitCrowding.getTransitOccupancyLevelForPercentile(altAndIdx._1, percentile)
