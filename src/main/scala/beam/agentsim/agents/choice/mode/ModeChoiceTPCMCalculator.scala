@@ -2,7 +2,7 @@ package beam.agentsim.agents.choice.mode
 
 import beam.agentsim.agents.vehicles.BeamVehicle
 import beam.router.Modes.BeamMode
-import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, BUS, CABLE_CAR, CAR, DRIVE_TRANSIT, FERRY, FUNICULAR, GONDOLA, RAIL, RIDE_HAIL, RIDE_HAIL_TRANSIT, SUBWAY, TRAM, TRANSIT, WALK, WALK_TRANSIT}
+import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, BUS, CABLE_CAR, CAR, CAV, DRIVE_TRANSIT, FERRY, FUNICULAR, GONDOLA, RAIL, RIDE_HAIL, RIDE_HAIL_POOLED, RIDE_HAIL_TRANSIT, SUBWAY, TRAM, TRANSIT, WALK, WALK_TRANSIT}
 import beam.router.model.EmbodiedBeamTrip
 import beam.sim.BeamServices
 import org.matsim.api.core.v01.Id
@@ -97,28 +97,24 @@ class ModeChoiceTPCMCalculator(
 
   }
 
-  def getTransitMode(
+  def getIVTTMode(
     mode: BeamMode,
     altAndIdx: (EmbodiedBeamTrip, Int)
   ): String = {
-    mode match {
-      case CAR | WALK_TRANSIT | TRANSIT | DRIVE_TRANSIT | RIDE_HAIL_TRANSIT | BIKE_TRANSIT  =>
-        var transitMode: BeamMode = mode
-        altAndIdx._1.legs.foreach { leg =>
-          var tMode: BeamMode = leg.beamLeg.mode
-          if (transitModes.contains(tMode)){
-            transitMode = tMode
-          }
-        }
-        getIVTTModeType(transitMode)
-      case _ =>
-        "none"
+    var ivttMode: BeamMode = mode
+    altAndIdx._1.legs.foreach { leg =>
+      var tMode: BeamMode = leg.beamLeg.mode
+      if (transitModes.contains(tMode) | tMode == CAR) {
+        ivttMode = tMode
+      }
     }
+    getIVTTModeType(ivttMode)
   }
+
 
   private def getIVTTModeType(mode:BeamMode): String ={
     mode match {
-      case CAR | BUS =>
+      case CAR  =>
         "car/bus"
       case RAIL | CABLE_CAR | GONDOLA | FUNICULAR =>
         "light-rail"
@@ -126,8 +122,12 @@ class ModeChoiceTPCMCalculator(
         "ferry"
       case  SUBWAY | TRANSIT | TRAM=>
         "heavy-rail"
-      case _ =>
+      case BUS =>
         "express-bus"
+      case WALK | BIKE =>
+        "none"
+      case _ =>
+        "something_wrong"
     }
   }
 
