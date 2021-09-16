@@ -34,13 +34,13 @@ public class WavHandlersRunner {
         CLIOptions options = parser.getOptions(CLIOptions.class);
         if (options.inputDir.isEmpty() || options.rideHailFleetFile.isEmpty()) {
             printUsage(parser);
-            throw new IOException("Input Directory and Ridehail Fleet File are required");
+            throw new FileNotFoundException("Input Directory and Ridehail Fleet File are required");
         }
 
-        String eventsFile = options.inputDir + "output_events.xml.gz";
-        String networkFile = options.inputDir + "output_network.xml.gz";
-        String outputFile = options.inputDir + "WAV_Stats.txt";
-        String ridehailFleetFile = "S:/Documents/scenarios/ridehail_fleets/rhFleet-12-micro.csv";
+        String eventsFile = options.inputDir + "/output_events.xml.gz";
+        String networkFile = options.inputDir + "/output_network.xml.gz";
+        String outputFile = options.inputDir + "/" + options.outputFile;
+        String ridehailFleetFile = options.rideHailFleetFile;
 
         Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
