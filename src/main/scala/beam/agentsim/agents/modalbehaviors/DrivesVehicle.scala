@@ -1,33 +1,32 @@
 package beam.agentsim.agents.modalbehaviors
 
-import akka.actor.FSM.Failure
+import scala.collection.mutable
 import akka.actor.{ActorRef, Stash}
+import akka.actor.FSM.Failure
 import beam.agentsim.Resource.{NotifyVehicleIdle, ReleaseParkingStall}
-import beam.agentsim.agents.BeamAgent
+import beam.agentsim.agents.{BeamAgent, PersonAgent}
 import beam.agentsim.agents.PersonAgent._
 import beam.agentsim.agents.modalbehaviors.DrivesVehicle._
-import beam.agentsim.agents.parking.ChoosesParking.ConnectingToChargingPoint
 import beam.agentsim.agents.ridehail.RideHailAgent._
+import beam.agentsim.agents.vehicles._
 import beam.agentsim.agents.vehicles.AccessErrorCodes.VehicleFullError
 import beam.agentsim.agents.vehicles.BeamVehicle.{BeamVehicleState, FuelConsumed}
 import beam.agentsim.agents.vehicles.VehicleProtocol._
-import beam.agentsim.agents.vehicles._
 import beam.agentsim.events._
-import beam.agentsim.infrastructure.ChargingNetworkManager.ChargingPlugRequest
 import beam.agentsim.infrastructure.ParkingStall
-import beam.agentsim.scheduler.BeamAgentScheduler.{CompletionNotice, ScheduleTrigger}
-import beam.agentsim.scheduler.{HasTriggerId, Trigger}
+import beam.agentsim.infrastructure.charging.ChargingPointType
+import beam.agentsim.scheduler.BeamAgentScheduler.{CompletionNotice, ScheduleTrigger, SchedulerMessage}
+import beam.agentsim.scheduler.Trigger
 import beam.agentsim.scheduler.Trigger.TriggerWithId
 import beam.router.Modes.BeamMode
 import beam.router.Modes.BeamMode.WALK
 import beam.router.model.{BeamLeg, BeamPath}
 import beam.router.osm.TollCalculator
-import beam.router.skim.event.TransitCrowdingSkimmerEvent
+import beam.router.skim.TransitCrowdingSkimmerEvent
+import beam.sim.{BeamConfigChangesObservable, BeamScenario}
 import beam.sim.common.GeoUtils
 import beam.sim.config.BeamConfig
-import beam.sim.{BeamConfigChangesObservable, BeamScenario, BeamServices}
 import beam.utils.NetworkHelper
-import beam.utils.logging.ExponentialLazyLogging
 import com.conveyal.r5.transit.TransportNetwork
 import org.matsim.api.core.v01.Id
 import org.matsim.api.core.v01.events.{
@@ -39,9 +38,6 @@ import org.matsim.api.core.v01.events.{
 import org.matsim.api.core.v01.population.Person
 import org.matsim.core.api.experimental.events.EventsManager
 import org.matsim.vehicles.Vehicle
-
-import scala.collection.mutable
-import scala.language.postfixOps
 
 /**
   * DrivesVehicle
@@ -124,7 +120,7 @@ object DrivesVehicle {
 
   sealed trait VehicleOrToken {
     def id: Id[BeamVehicle]
-    def vehicle: BeamVehicle
+
     def streetVehicle: StreetVehicle
   }
 
@@ -136,9 +132,8 @@ object DrivesVehicle {
     override def streetVehicle: StreetVehicle = vehicle.toStreetVehicle
   }
 
-  case class Token(override val id: Id[BeamVehicle], manager: ActorRef, vehicle: BeamVehicle) extends VehicleOrToken {
-    override def streetVehicle: StreetVehicle = vehicle.toStreetVehicle
-  }
+  case class Token(override val id: Id[BeamVehicle], manager: ActorRef, override val streetVehicle: StreetVehicle)
+      extends VehicleOrToken
 
   case class StartLegTrigger(tick: Int, beamLeg: BeamLeg) extends Trigger
 
@@ -152,13 +147,13 @@ object DrivesVehicle {
 
   case class BoardVehicleTrigger(tick: Int, vehicleId: Id[BeamVehicle]) extends Trigger
 
-  case class StopDriving(tick: Int, triggerId: Long) extends HasTriggerId
+  case class StopDriving(tick: Int)
 
   case class StartRefuelSessionTrigger(tick: Int) extends Trigger
 
   case class EndRefuelSessionTrigger(
     tick: Int,
-    sessionStart: Long,
+    sessionStart: Double,
     fuelAddedInJoule: Double,
     vehicle: BeamVehicle
   ) extends Trigger
@@ -187,13 +182,12 @@ object DrivesVehicle {
   }
 }
 
-trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with ExponentialLazyLogging {
+trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash {
+
   protected val transportNetwork: TransportNetwork
   protected val parkingManager: ActorRef
-  protected val chargingNetworkManager: ActorRef
   protected val tollCalculator: TollCalculator
   protected val beamScenario: BeamScenario
-  protected val beamServices: BeamServices
   protected val networkHelper: NetworkHelper
   protected val geo: GeoUtils
   private var tollsAccumulated = 0.0
@@ -210,11 +204,8 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
   case class PassengerScheduleEmptyMessage(
     lastVisited: SpaceTime,
     toll: Double,
-    triggerId: Long,
     fuelConsumed: Option[FuelConsumed] = None
-  ) extends HasTriggerId
-
-  case class LastLegPassengerSchedule(triggerId: Long) extends HasTriggerId
+  )
 
   var nextNotifyVehicleResourceIdle: Option[NotifyVehicleIdle] = None
 
@@ -234,6 +225,7 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
           LiterallyDrivingData(data, legEndingAt, _)
         ) if tick == legEndingAt =>
       updateLatestObservedTick(tick)
+//      log.debug("state(DrivesVehicle.Driving): {}", ev)
       log.debug("state(DrivesVehicle.Driving): EndLegTrigger({}) for driver {}", tick, id)
       val currentLeg = data.passengerSchedule.schedule.keys.view
         .drop(data.currentLegPassengerScheduleIndex)
@@ -242,16 +234,7 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
       val currentVehicleUnderControl = data.currentVehicle.headOption
         .getOrElse(throw new RuntimeException("Current Vehicle is not available."))
       val isLastLeg = data.currentLegPassengerScheduleIndex + 1 == data.passengerSchedule.schedule.size
-      val fuelConsumed =
-        currentBeamVehicle.useFuel(
-          currentLeg,
-          beamScenario,
-          networkHelper,
-          eventsManager,
-          eventBuilderActor,
-          beamServices.beamCustomizationAPI.beamVehicleAfterUseFuelHook
-        )
-
+      val fuelConsumed = currentBeamVehicle.useFuel(currentLeg, beamScenario, networkHelper)
       currentBeamVehicle.spaceTime = geo.wgs2Utm(currentLeg.travelPath.endPoint)
 
       var nbPassengers = data.passengerSchedule.schedule(currentLeg).riders.size
@@ -271,11 +254,11 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
         nextNotifyVehicleResourceIdle = Some(
           NotifyVehicleIdle(
             currentVehicleUnderControl,
-            geo.wgs2Utm(currentLeg.travelPath.endPoint.copy(time = tick)),
+            geo.wgs2Utm(currentLeg.travelPath.endPoint),
             data.passengerSchedule,
             currentBeamVehicle.getState,
             data.geofence,
-            triggerId
+            Some(triggerId)
           )
         )
       }
@@ -318,19 +301,18 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
 
       val tollOnCurrentLeg = toll(currentLeg)
       tollsAccumulated += tollOnCurrentLeg
-      val riders = data.passengerSchedule.schedule(currentLeg).riders.toIndexedSeq.map(_.personId)
       val pte = PathTraversalEvent(
         tick,
         currentVehicleUnderControl,
         id.toString,
         currentBeamVehicle.beamVehicleType,
-        riders.size,
+        data.passengerSchedule.schedule(currentLeg).riders.size,
         currentLeg,
         fuelConsumed.primaryFuel,
         fuelConsumed.secondaryFuel,
         currentBeamVehicle.primaryFuelLevelInJoules,
         currentBeamVehicle.secondaryFuelLevelInJoules,
-        tollOnCurrentLeg, /*
+        tollOnCurrentLeg /*,
           fuelConsumed.fuelConsumptionData.map(x=>(x.linkId, x.linkNumberOfLanes)),
           fuelConsumed.fuelConsumptionData.map(x=>(x.linkId, x.freeFlowSpeed)),
           fuelConsumed.primaryLoggingData.map(x=>(x.linkId, x.gradientOption)),
@@ -339,9 +321,7 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
           fuelConsumed.primaryLoggingData.map(x=>(x.linkId, x.consumption)),
           fuelConsumed.secondaryLoggingData.map(x=>(x.linkId, x.rate)),
           fuelConsumed.secondaryLoggingData.map(x=>(x.linkId, x.consumption))*/
-        riders
       )
-
       eventsManager.processEvent(pte)
       generateTCSEventIfPossible(pte)
 
@@ -356,21 +336,14 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
             data.passengerSchedule.schedule.keys.view
               .drop(data.currentLegPassengerScheduleIndex + 1)
               .head
-          val startLegTriggerTick = if (nextLeg.startTime < tick) {
-            logger.warn(s"Start time of next leg ${nextLeg.startTime} was less than current tick $tick.")
-            tick
-          } else {
-            nextLeg.startTime
-          }
           goto(WaitingToDrive) using stripLiterallyDrivingData(data)
             .withCurrentLegPassengerScheduleIndex(data.currentLegPassengerScheduleIndex + 1)
             .asInstanceOf[T] replying CompletionNotice(
             triggerId,
-            Vector(ScheduleTrigger(StartLegTrigger(startLegTriggerTick, nextLeg), self))
+            Vector(ScheduleTrigger(StartLegTrigger(nextLeg.startTime, nextLeg), self))
           )
         }
       } else {
-        var waitForConnectionToChargingPoint = false
         if (data.hasParkingBehaviors) {
           currentBeamVehicle.reservedStall.foreach { stall: ParkingStall =>
             currentBeamVehicle.useParkingStall(stall)
@@ -387,13 +360,28 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
             if (currentBeamVehicle.isBEV | currentBeamVehicle.isPHEV) {
               stall.chargingPointType match {
                 case Some(_) =>
-                  log.debug("Sending ChargingPlugRequest to chargingNetworkManager at {}", tick)
-                  chargingNetworkManager ! ChargingPlugRequest(
-                    tick,
-                    currentBeamVehicle,
-                    triggerId,
-                  )
-                  waitForConnectionToChargingPoint = true
+                  handleStartCharging(tick, currentBeamVehicle)
+                  if (ChargingPointType.getChargingPointInstalledPowerInKw(
+                        currentBeamVehicle.stall.get.chargingPointType.get
+                      ) > 20.0) {
+                    val (sessionDuration, energyDelivered) =
+                      currentBeamVehicle.refuelingSessionDurationAndEnergyInJoules()
+                    log.debug(
+                      "scheduling EndRefuelSessionTrigger at {} with {} J to be delivered, triggerId: {}",
+                      tick + sessionDuration.toInt,
+                      energyDelivered,
+                      triggerId
+                    )
+                    scheduler ! ScheduleTrigger(
+                      EndRefuelSessionTrigger(
+                        tick + sessionDuration.toInt,
+                        tick,
+                        energyDelivered,
+                        currentBeamVehicle
+                      ),
+                      self
+                    )
+                  }
                 case None => // this should only happen rarely
                   log.debug(
                     "Charging request by vehicle {} ({}) on a spot without a charging point (parkingZoneId: {}). This is not handled yet!",
@@ -402,17 +390,29 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
                     stall.parkingZoneId
                   )
               }
+
             }
           }
           currentBeamVehicle.setReservedParkingStall(None)
         }
         holdTickAndTriggerId(tick, triggerId)
-        if (waitForConnectionToChargingPoint) {
-          goto(ConnectingToChargingPoint) using data.asInstanceOf[T]
-        } else {
-          self ! LastLegPassengerSchedule(triggerId)
-          goto(DrivingInterrupted) using data.asInstanceOf[T]
-        }
+        self ! PassengerScheduleEmptyMessage(
+          geo.wgs2Utm(
+            data.passengerSchedule.schedule
+              .drop(data.currentLegPassengerScheduleIndex)
+              .head
+              ._1
+              .travelPath
+              .endPoint
+          ),
+          tollsAccumulated,
+          Some(fuelConsumedByTrip.getOrElse(id.asInstanceOf[Id[Person]], FuelConsumed(0, 0)))
+        )
+        fuelConsumedByTrip.remove(id.asInstanceOf[Id[Person]])
+        tollsAccumulated = 0.0
+        goto(PassengerScheduleEmpty) using stripLiterallyDrivingData(data)
+          .withCurrentLegPassengerScheduleIndex(data.currentLegPassengerScheduleIndex + 1)
+          .asInstanceOf[T]
       }
 
     //TODO Need explanation as to why we do nothing if we receive EndLeg but data is not type LiterallyDrivingData
@@ -429,15 +429,14 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
       )
       stay replying CompletionNotice(triggerId, Vector())
 
-    case ev @ Event(Interrupt(interruptId, tick, triggerId), data) =>
+    case ev @ Event(Interrupt(interruptId, tick), data) =>
       log.debug("state(DrivesVehicle.Driving): {}", ev)
       goto(DrivingInterrupted) replying InterruptedWhileDriving(
         interruptId,
         currentBeamVehicle.id,
         latestObservedTick,
         data.passengerSchedule,
-        data.currentLegPassengerScheduleIndex,
-        triggerId
+        data.currentLegPassengerScheduleIndex
       )
 
     case ev @ Event(TriggerWithId(StartRefuelSessionTrigger(_), triggerId), _) =>
@@ -447,7 +446,7 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
   }
 
   when(DrivingInterrupted) {
-    case ev @ Event(StopDriving(stopTick, triggerId), LiterallyDrivingData(data, _, _)) =>
+    case ev @ Event(StopDriving(stopTick), LiterallyDrivingData(data, _, _)) =>
       log.debug("state(DrivesVehicle.DrivingInterrupted): {}", ev)
       val currentLeg = data.passengerSchedule.schedule.keys.view
         .drop(data.currentLegPassengerScheduleIndex)
@@ -458,34 +457,32 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
 
       val updatedStopTick = math.max(stopTick, currentLeg.startTime)
       val partiallyCompletedBeamLeg = currentLeg.subLegThrough(updatedStopTick, networkHelper, geo)
-      val riders = data.passengerSchedule.schedule(currentLeg).riders.toIndexedSeq.map(_.personId)
 
       val currentLocation = if (updatedStopTick > currentLeg.startTime) {
-        val fuelConsumed =
-          currentBeamVehicle.useFuel(
-            partiallyCompletedBeamLeg,
-            beamScenario,
-            networkHelper,
-            eventsManager,
-            eventBuilderActor,
-            beamServices.beamCustomizationAPI.beamVehicleAfterUseFuelHook
-          )
+        val fuelConsumed = currentBeamVehicle.useFuel(partiallyCompletedBeamLeg, beamScenario, networkHelper)
 
-        val tollOnCurrentLeg = toll(partiallyCompletedBeamLeg)
+        val tollOnCurrentLeg = toll(currentLeg)
         tollsAccumulated += tollOnCurrentLeg
         val pte = PathTraversalEvent(
           updatedStopTick,
           currentVehicleUnderControl,
           id.toString,
           currentBeamVehicle.beamVehicleType,
-          riders.size,
+          data.passengerSchedule.schedule(currentLeg).riders.size,
           partiallyCompletedBeamLeg,
           fuelConsumed.primaryFuel,
           fuelConsumed.secondaryFuel,
           currentBeamVehicle.primaryFuelLevelInJoules,
           currentBeamVehicle.secondaryFuelLevelInJoules,
-          tollOnCurrentLeg,
-          riders
+          tollOnCurrentLeg /*,
+          fuelConsumed.fuelConsumptionData.map(x=>(x.linkId, x.linkNumberOfLanes)),
+          fuelConsumed.fuelConsumptionData.map(x=>(x.linkId, x.freeFlowSpeed)),
+          fuelConsumed.primaryLoggingData.map(x=>(x.linkId, x.gradientOption)),
+          fuelConsumed.fuelConsumptionData.map(x=>(x.linkId, x.linkLength)),
+          fuelConsumed.primaryLoggingData.map(x=>(x.linkId, x.rate)),
+          fuelConsumed.primaryLoggingData.map(x=>(x.linkId, x.consumption)),
+          fuelConsumed.secondaryLoggingData.map(x=>(x.linkId, x.rate)),
+          fuelConsumed.secondaryLoggingData.map(x=>(x.linkId, x.consumption))*/
         )
         eventsManager.processEvent(pte)
         generateTCSEventIfPossible(pte)
@@ -494,16 +491,23 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
         currentLeg.travelPath.startPoint
       }
 
+      val fuelConsumed = currentBeamVehicle.useFuel(currentLeg, beamScenario, networkHelper)
+
       nextNotifyVehicleResourceIdle = Some(
         NotifyVehicleIdle(
           currentVehicleUnderControl,
-          geo.wgs2Utm(currentLocation.copy(time = updatedStopTick)),
+          geo.wgs2Utm(currentLocation),
           data.passengerSchedule,
           currentBeamVehicle.getState,
           data.geofence,
-          triggerId,
+          _currentTriggerId
         )
       )
+
+      //      log.debug(
+      //        "DrivesVehicle.DrivingInterrupted.nextNotifyVehicleResourceIdle:{}",
+      //        nextNotifyVehicleResourceIdle
+      //      )
 
       eventsManager.processEvent(
         new VehicleLeavesTrafficEvent(
@@ -516,11 +520,43 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
         )
       )
 
-      if (riders.isEmpty) {
+      val tollOnCurrentLeg = toll(currentLeg)
+      tollsAccumulated += tollOnCurrentLeg
+      val pte = PathTraversalEvent(
+        stopTick,
+        currentVehicleUnderControl,
+        id.toString,
+        currentBeamVehicle.beamVehicleType,
+        data.passengerSchedule.schedule(currentLeg).riders.size,
+        currentLeg,
+        fuelConsumed.primaryFuel,
+        fuelConsumed.secondaryFuel,
+        currentBeamVehicle.primaryFuelLevelInJoules,
+        currentBeamVehicle.secondaryFuelLevelInJoules,
+        tollOnCurrentLeg /*,
+          fuelConsumed.fuelConsumptionData.map(x=>(x.linkId, x.linkNumberOfLanes)),
+          fuelConsumed.fuelConsumptionData.map(x=>(x.linkId, x.freeFlowSpeed)),
+          fuelConsumed.primaryLoggingData.map(x=>(x.linkId, x.gradientOption)),
+          fuelConsumed.fuelConsumptionData.map(x=>(x.linkId, x.linkLength)),
+          fuelConsumed.primaryLoggingData.map(x=>(x.linkId, x.rate)),
+          fuelConsumed.primaryLoggingData.map(x=>(x.linkId, x.consumption)),
+          fuelConsumed.secondaryLoggingData.map(x=>(x.linkId, x.rate)),
+          fuelConsumed.secondaryLoggingData.map(x=>(x.linkId, x.consumption))*/
+      )
+      eventsManager.processEvent(pte)
+      generateTCSEventIfPossible(pte)
+
+      if (data.passengerSchedule.schedule(currentLeg).riders.isEmpty) {
         self ! PassengerScheduleEmptyMessage(
-          currentLocation,
-          tollsAccumulated,
-          triggerId = triggerId
+          geo.wgs2Utm(
+            data.passengerSchedule.schedule
+              .drop(data.currentLegPassengerScheduleIndex)
+              .head
+              ._1
+              .travelPath
+              .endPoint
+          ),
+          tollsAccumulated
         )
         tollsAccumulated = 0.0
         goto(PassengerScheduleEmptyInterrupted) using data
@@ -530,40 +566,20 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
         // In this case our passenger schedule isn't empty so we go directly to idle interrupted
         goto(IdleInterrupted) using stripLiterallyDrivingData(data).asInstanceOf[T]
       }
-    case ev @ Event(Resume(_), _) =>
+    case ev @ Event(Resume, _) =>
       log.debug("state(DrivesVehicle.DrivingInterrupted): {}", ev)
       goto(Driving)
     case ev @ Event(TriggerWithId(EndLegTrigger(_), _), _) =>
       log.debug("state(DrivesVehicle.DrivingInterrupted): {}", ev)
       stash()
       stay
-    case ev @ Event(Interrupt(_, _, _), _) =>
+    case ev @ Event(Interrupt(_, _), _) =>
       log.debug("state(DrivesVehicle.DrivingInterrupted): {}", ev)
       stash()
       stay
     case ev @ Event(TriggerWithId(StartRefuelSessionTrigger(_), triggerId), _) =>
       log.debug("state(DrivesVehicle.DrivingInterrupted): {}", ev)
       stay replying CompletionNotice(triggerId)
-    case ev @ Event(LastLegPassengerSchedule(triggerId), data) =>
-      self ! PassengerScheduleEmptyMessage(
-        geo.wgs2Utm(
-          data.passengerSchedule.schedule
-            .drop(data.currentLegPassengerScheduleIndex)
-            .head
-            ._1
-            .travelPath
-            .endPoint
-        ),
-        tollsAccumulated,
-        triggerId,
-        Some(fuelConsumedByTrip.getOrElse(id.asInstanceOf[Id[Person]], FuelConsumed(0, 0)))
-      )
-      fuelConsumedByTrip.remove(id.asInstanceOf[Id[Person]])
-      tollsAccumulated = 0.0
-      goto(PassengerScheduleEmpty) using stripLiterallyDrivingData(data)
-        .withCurrentLegPassengerScheduleIndex(data.currentLegPassengerScheduleIndex + 1)
-        .asInstanceOf[T]
-
   }
 
   private def generateTCSEventIfPossible(pte: PathTraversalEvent): Unit = {
@@ -588,6 +604,7 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
     case ev @ Event(TriggerWithId(StartLegTrigger(tick, newLeg), triggerId), data)
         if data.legStartsAt.isEmpty || tick == data.legStartsAt.get =>
       updateLatestObservedTick(tick)
+//      log.debug("state(DrivesVehicle.WaitingToDrive): {}", ev)
       log.debug("state(DrivesVehicle.WaitingToDrive): StartLegTrigger({},{}) for driver {}", tick, newLeg, id)
 
       if (data.currentVehicle.isEmpty) {
@@ -600,12 +617,10 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
               currentBeamVehicle.id == currentVehicleUnderControl,
               currentBeamVehicle.id + " " + currentVehicleUnderControl
             )
-            currentBeamVehicle.stall match {
-              case Some(theStall) if !currentBeamVehicle.isCAV =>
-                parkingManager ! ReleaseParkingStall(theStall, triggerId)
-                currentBeamVehicle.unsetParkingStall()
-              case _ =>
+            currentBeamVehicle.stall.foreach { theStall =>
+              parkingManager ! ReleaseParkingStall(theStall.parkingZoneId, theStall.geoId)
             }
+            currentBeamVehicle.unsetParkingStall()
           case None =>
         }
         val triggerToSchedule: Vector[ScheduleTrigger] = data.passengerSchedule
@@ -643,26 +658,24 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
           triggerToSchedule ++ Vector(ScheduleTrigger(EndLegTrigger(endTime), self))
         )
       }
-    case ev @ Event(Interrupt(interruptId, tick, triggerId), _) =>
+    case ev @ Event(Interrupt(interruptId, tick), _) =>
       log.debug("state(DrivesVehicle.WaitingToDrive): {}", ev)
       goto(WaitingToDriveInterrupted) replying InterruptedWhileWaitingToDrive(
         interruptId,
         currentBeamVehicle.id,
-        latestObservedTick,
-        triggerId,
+        latestObservedTick
       )
 
     case ev @ Event(
           NotifyVehicleResourceIdleReply(
-            triggerId: Long,
-            newTriggers: Seq[ScheduleTrigger],
-            _
+            triggerId: Option[Long],
+            newTriggers: Seq[ScheduleTrigger]
           ),
           _
         ) =>
       log.debug("state(DrivesVehicle.WaitingToDrive.NotifyVehicleResourceIdleReply): {}", ev)
 
-      if (Some(triggerId) != _currentTriggerId) {
+      if (triggerId != _currentTriggerId) {
         log.error(
           "Driver {}: local triggerId {} does not match the id received from resource manager {}",
           id,
@@ -683,7 +696,7 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
   }
 
   when(WaitingToDriveInterrupted) {
-    case ev @ Event(Resume(_), _) =>
+    case ev @ Event(Resume, _) =>
       log.debug("state(DrivesVehicle.WaitingToDriveInterrupted): {}", ev)
       goto(WaitingToDrive)
 
@@ -691,7 +704,7 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
       log.debug("state(DrivesVehicle.WaitingToDriveInterrupted): {}", ev)
       stash()
       stay
-    case ev @ Event(NotifyVehicleResourceIdleReply(_, _, _), _) =>
+    case ev @ Event(NotifyVehicleResourceIdleReply(_, _), _) =>
       stash()
       stay
 
@@ -705,7 +718,7 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
           currentBeamVehicle
         ) =>
       log.debug("state(DrivesVehicle.drivingBehavior): {}", ev)
-      stay() replying ReservationResponse(Left(VehicleFullError), req.triggerId)
+      stay() replying ReservationResponse(Left(VehicleFullError))
 
     case ev @ Event(req: ReservationRequest, data) =>
       log.debug("state(DrivesVehicle.drivingBehavior): {}", ev)
@@ -778,8 +791,7 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
       ReservationResponse(
         Right(
           ReserveConfirmInfo(boardTrigger ++ alightTrigger ++ boardTrigger2)
-        ),
-        req.triggerId
+        )
       )
 
     case ev @ Event(RemovePassengerFromTrip(id), data) =>
@@ -831,13 +843,10 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
           ScheduleTrigger(AlightVehicleTrigger(Math.max(currentLeg.endTime + 1, tick), vehicleId), self)
         )
       )
-    case Event(
-        TriggerWithId(EndRefuelSessionTrigger(tick, sessionDuration, fuelAddedInJoule, vehicle), triggerId),
-        _
-        ) =>
-      log.info(s"DrivesVehicle: EndRefuelSessionTrigger. tick: $tick, vehicle: $vehicle")
+    case Event(TriggerWithId(EndRefuelSessionTrigger(tick, _, _, vehicle), triggerId), _) =>
       if (vehicle.isConnectedToChargingPoint()) {
-        handleEndCharging(tick, vehicle, sessionDuration, fuelAddedInJoule, triggerId)
+        handleEndCharging(tick, vehicle)
+        vehicle.unsetParkingStall()
       }
       stay() replying CompletionNotice(triggerId)
   }
@@ -861,14 +870,7 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
       0.0
   }
 
-  /**
-    * process the event ChargingPlugInEvent
-    * !!!!! This is temporary and needs to be deleted
-    * @param currentTick current time
-    * @param vehicle vehicle to be charged
-    */
   def handleStartCharging(currentTick: Int, vehicle: BeamVehicle): Unit = {
-    log.debug("Starting refuel session for {} in tick {}.", vehicle.id, currentTick)
     log.debug("Vehicle {} connects to charger @ stall {}", vehicle.id, vehicle.stall.get)
     vehicle.connectToChargingPoint(currentTick)
     val chargingPlugInEvent = new ChargingPlugInEvent(
@@ -884,28 +886,19 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
 
   /**
     * Calculates the duration of the refuel session, the provided energy and throws corresponding events
-    * !!!!! This is temporary and needs to be deleted
-    * @param currentTick current time
-    * @param vehicle vehicle to end charging
-    * @param chargingDuration the duration of charging session
-    * @param energyInJoules the energy in joules
+    *
+    * @param currentTick
+    * @param vehicle
     */
-  def handleEndCharging(
-    currentTick: Int,
-    vehicle: BeamVehicle,
-    chargingDuration: Long,
-    energyInJoules: Double,
-    triggerId: Long
-  ): Unit = {
-    log.debug(
-      "Ending refuel session for {} in tick {}. Provided {} J. during {}",
-      vehicle.id,
-      currentTick,
-      energyInJoules,
-      chargingDuration
-    )
+  def handleEndCharging(currentTick: Int, vehicle: BeamVehicle): Unit = {
 
-    val refuelSessionEvent = new RefuelSessionEvent(
+    val (chargingDuration, energyInJoules) =
+      vehicle.refuelingSessionDurationAndEnergyInJoules(Some(currentTick - vehicle.getChargerConnectedTick()))
+
+    log.debug("Ending refuel session for {} in tick {}. Provided {} J.", vehicle.id, currentTick, energyInJoules)
+    vehicle.addFuel(energyInJoules)
+
+    val refuelSessionEvent: RefuelSessionEvent = new RefuelSessionEvent(
       currentTick,
       vehicle.stall.get.copy(locationUTM = geo.utm2Wgs(vehicle.stall.get.locationUTM)),
       energyInJoules,
@@ -914,7 +907,6 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
       vehicle.id,
       vehicle.beamVehicleType
     )
-    log.info(s"RefuelSessionEvent: $refuelSessionEvent")
     eventsManager.processEvent(refuelSessionEvent)
     vehicle.disconnectFromChargingPoint()
     log.debug(
@@ -931,13 +923,12 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
       Some(vehicle.secondaryFuelLevelInJoules)
     )
     eventsManager.processEvent(chargingPlugOutEvent)
-
     vehicle.stall match {
       case Some(stall) =>
-        parkingManager ! ReleaseParkingStall(stall, triggerId)
+        parkingManager ! ReleaseParkingStall(stall.parkingZoneId, stall.geoId)
         vehicle.unsetParkingStall()
       case None =>
-        log.error("Vehicle {} has no stall while ending charging event", vehicle)
+        log.error("Vehicle has no stall while ending charging event")
     }
 
   }

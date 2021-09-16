@@ -6,9 +6,8 @@ import beam.agentsim.agents.HasTickAndTrigger
 import beam.agentsim.agents.modalbehaviors.DrivesVehicle.StopDriving
 import beam.agentsim.agents.ridehail.RideHailAgent._
 import beam.agentsim.agents.ridehail.RideHailManager.{BufferedRideHailRequestsTrigger, RideHailRepositioningTrigger}
-import beam.agentsim.agents.ridehail.RideHailManagerHelper.Refueling
 import beam.agentsim.agents.vehicles.{BeamVehicle, PassengerSchedule}
-import beam.agentsim.scheduler.{BeamAgentScheduler, HasTriggerId}
+import beam.agentsim.scheduler.BeamAgentScheduler
 import beam.agentsim.scheduler.BeamAgentScheduler.{CompletionNotice, ScheduleTrigger}
 import beam.sim.config.BeamConfig
 import beam.utils.InterruptIdIdGenerator
@@ -45,7 +44,7 @@ class RideHailModifyPassengerScheduleManager(
   /*
    * This is the core of all the handling happening in this manager
    */
-  def handleInterruptReply(reply: InterruptReply, triggerId: Long): Unit = {
+  def handleInterruptReply(reply: InterruptReply): Unit = {
     interruptIdToModifyPassengerScheduleStatus.get(reply.interruptId) match {
       case Some(status) =>
         interruptIdToModifyPassengerScheduleStatus.put(reply.interruptId, status.copy(interruptReply = Some(reply)))
@@ -59,7 +58,6 @@ class RideHailModifyPassengerScheduleManager(
               status.vehicleId,
               status.rideHailAgent,
               status.tick,
-              triggerId,
               status.modifyPassengerSchedule.reservationRequestId
             )
           case _ =>
@@ -80,15 +78,14 @@ class RideHailModifyPassengerScheduleManager(
 
   private def sendModifyPassengerScheduleMessage(
     modifyStatus: RideHailModifyPassengerScheduleStatus,
-    stopDriving: Boolean,
-    triggerId: Long
+    stopDriving: Boolean
   ): Unit = {
     if (stopDriving) {
-      modifyStatus.rideHailAgent.tell(StopDriving(modifyStatus.tick, triggerId), rideHailManagerRef)
+      modifyStatus.rideHailAgent.tell(StopDriving(modifyStatus.tick), rideHailManagerRef)
     }
     modifyStatus.rideHailAgent.tell(modifyStatus.modifyPassengerSchedule, rideHailManagerRef)
     log.debug("sending Resume from sendModifyPassengerScheduleMessage to {}", modifyStatus.vehicleId)
-    modifyStatus.rideHailAgent.tell(Resume(triggerId), rideHailManagerRef)
+    modifyStatus.rideHailAgent.tell(Resume, rideHailManagerRef)
     interruptIdToModifyPassengerScheduleStatus.put(
       modifyStatus.interruptId,
       modifyStatus.copy(status = ModifyPassengerScheduleSent)
@@ -99,38 +96,37 @@ class RideHailModifyPassengerScheduleManager(
     )
   }
 
-  def cancelRepositionAttempt(vehicleId: Id[Vehicle], triggerId: Long): Unit = {
-    repositioningFinished(vehicleId, triggerId)
+  def cancelRepositionAttempt(vehicleId: Id[Vehicle]): Unit = {
+    repositioningFinished(vehicleId)
   }
 
-  def repositioningFinished(vehicleId: Id[Vehicle], triggerId: Long): Unit = {
+  def repositioningFinished(vehicleId: Id[Vehicle]): Unit = {
     if (waitingToReposition.contains(vehicleId)) {
       waitingToReposition = waitingToReposition - vehicleId
-      checkIfRoundOfRepositioningIsDone(triggerId)
+      checkIfRoundOfRepositioningIsDone()
     } else {
       log.error("Not found in waitingToReposition: {}", vehicleId)
     }
   }
 
-  def checkIfRoundOfRepositioningIsDone(triggerId: Long): Unit = {
+  def checkIfRoundOfRepositioningIsDone(): Unit = {
     if (waitingToReposition.isEmpty) {
       log.debug("Cleaning up from checkIfRoundOfRepositioningIsDone")
       sendCompletionAndScheduleNewTimeout(Reposition, 0)
-      rideHailManager.cleanUp(triggerId)
+      rideHailManager.cleanUp
     }
   }
 
   def modifyPassengerScheduleAckReceived(
     vehicleId: Id[Vehicle],
     triggersToSchedule: Vector[BeamAgentScheduler.ScheduleTrigger],
-    tick: Int,
-    triggerId: Long
+    tick: Int
   ): Unit = {
     clearModifyStatusFromCacheWithVehicleId(vehicleId)
     if (triggersToSchedule.nonEmpty) {
       allTriggersInWave = triggersToSchedule ++ allTriggersInWave
     }
-    repositioningFinished(vehicleId, triggerId)
+    repositioningFinished(vehicleId)
   }
 
   def sendCompletionAndScheduleNewTimeout(batchDispatchType: BatchDispatchType, tick: Int): Unit = {
@@ -170,17 +166,16 @@ class RideHailModifyPassengerScheduleManager(
 
   def startWaveOfRepositioningOrBatchedReservationRequests(tick: Int, triggerId: Long): Unit = {
     //    assert(numberPendingModifyPassengerScheduleAcks <= 0)
-    rideHailManager.rideHailManagerHelper.getIdleAndInServiceVehicles.foreach { veh =>
+    rideHailManager.vehicleManager.getIdleAndInServiceVehicles.foreach { veh =>
       sendInterruptMessage(
-        ModifyPassengerSchedule(PassengerSchedule(), tick, triggerId),
+        ModifyPassengerSchedule(PassengerSchedule(), tick),
         tick,
         veh._1,
         veh._2.rideHailAgent,
-        HoldForPlanning,
-        triggerId
+        HoldForPlanning
       )
     }
-    numInterruptRepliesPending = rideHailManager.rideHailManagerHelper.getIdleAndInServiceVehicles.size
+    numInterruptRepliesPending = rideHailManager.vehicleManager.getIdleAndInServiceVehicles.size
     holdTickAndTriggerId(tick, triggerId)
   }
 
@@ -189,14 +184,12 @@ class RideHailModifyPassengerScheduleManager(
     rideHailVehicleId: Id[Vehicle],
     rideHailAgentRef: ActorRef,
     tick: Int,
-    triggerId: Long,
-    reservationRequestIdOpt: Option[Int] = None,
+    reservationRequestIdOpt: Option[Int] = None
   ): Unit = {
     vehicleIdToModifyPassengerScheduleStatus.get(rideHailVehicleId) match {
       case Some(status) =>
         val reply = status.interruptReply.get
         val isRepositioning = waitingToReposition.nonEmpty
-        val isNotRefueling = rideHailManager.rideHailManagerHelper.getServiceStatusOf(rideHailVehicleId) != Refueling
         interruptIdToModifyPassengerScheduleStatus.get(reply.interruptId) match {
           case Some(
               RideHailModifyPassengerScheduleStatus(
@@ -211,21 +204,21 @@ class RideHailModifyPassengerScheduleManager(
               )
               ) =>
             reply match {
-              case InterruptedWhileOffline(_, _, _, triggerId) if isRepositioning && isNotRefueling =>
+              case InterruptedWhileOffline(_, _, _) if isRepositioning =>
                 log.debug(
                   "Cancelling repositioning for {} because {}, interruptId {}, numberPendingModifyPassengerScheduleAcks {}",
                   reply.vehicleId,
                   reply.getClass.getCanonicalName,
                   reply.interruptId
                 )
-                cancelRepositionAttempt(reply.vehicleId, triggerId)
+                cancelRepositionAttempt(reply.vehicleId)
                 log.debug(
                   "sending Resume from sendNewPassengerScheduleToVehicle when repositioning to {}",
                   reply.vehicleId
                 )
-                rideHailAgentRef ! Resume(triggerId)
+                rideHailAgentRef ! Resume
                 clearModifyStatusFromCacheWithInterruptId(reply.interruptId)
-              case InterruptedWhileOffline(_, _, _, triggerId) if isNotRefueling =>
+              case InterruptedWhileOffline(_, _, _) =>
                 log.debug(
                   "Abandoning attempt to modify passenger schedule of vehicle {} @ {} because {}",
                   reply.vehicleId,
@@ -238,7 +231,7 @@ class RideHailModifyPassengerScheduleManager(
                   case None    => reservationRequestIdOpt
                 }
                 log.debug("sending Resume from sendNewPassengerScheduleToVehicle to {}", reply.vehicleId)
-                rideHailAgentRef ! Resume(triggerId)
+                rideHailAgentRef ! Resume
                 clearModifyStatusFromCacheWithInterruptId(reply.interruptId)
                 if (requestId.isDefined) {
                   rideHailManager.cancelReservationDueToFailedModifyPassengerSchedule(requestId.get)
@@ -266,12 +259,8 @@ class RideHailModifyPassengerScheduleManager(
                         reservationRequestId = reservationRequestIdOpt
                       )
                   ),
-                  reply.isInstanceOf[InterruptedWhileDriving],
-                  triggerId
+                  reply.isInstanceOf[InterruptedWhileDriving]
                 )
-                rideHailManager.ridehailManagerCustomizationAPI
-                  .sendNewPassengerScheduleToVehicleWhenSuccessCaseHook(status.vehicleId, passengerSchedule)
-
             }
           case _ =>
             log.error(
@@ -283,17 +272,16 @@ class RideHailModifyPassengerScheduleManager(
               reply.vehicleId,
               reply.tick
             )
-            cancelRepositionAttempt(reply.vehicleId, triggerId)
+            cancelRepositionAttempt(reply.vehicleId)
         }
       case None =>
         // This is a non-buffered modify scenario, we still need to send Interrupt
         sendInterruptMessage(
-          ModifyPassengerSchedule(passengerSchedule, tick, triggerId, reservationRequestIdOpt),
+          ModifyPassengerSchedule(passengerSchedule, tick, reservationRequestIdOpt),
           tick,
           rideHailVehicleId,
           rideHailAgentRef,
-          SingleReservation,
-          triggerId
+          SingleReservation
         )
     }
   }
@@ -303,8 +291,7 @@ class RideHailModifyPassengerScheduleManager(
     tick: Int,
     vehicleId: Id[Vehicle],
     rideHailAgent: ActorRef,
-    interruptOrigin: InterruptOrigin,
-    triggerId: Long
+    interruptOrigin: InterruptOrigin
   ): Unit = {
     if (!isPendingReservation(vehicleId)) {
       val rideHailModifyPassengerScheduleStatus = RideHailModifyPassengerScheduleStatus(
@@ -321,9 +308,9 @@ class RideHailModifyPassengerScheduleManager(
         "RideHailModifyPassengerScheduleManager- sendInterrupt:  " + rideHailModifyPassengerScheduleStatus.interruptId
       )
       saveModifyStatusInCache(rideHailModifyPassengerScheduleStatus)
-      sendInterruptMessage(rideHailModifyPassengerScheduleStatus, modifyPassengerSchedule.triggerId)
+      sendInterruptMessage(rideHailModifyPassengerScheduleStatus)
     } else {
-      cancelRepositionAttempt(vehicleId, triggerId)
+      cancelRepositionAttempt(vehicleId)
       log.debug(
         "RideHailModifyPassengerScheduleManager- message ignored as repositioning cannot overwrite reserve: {}",
         vehicleId
@@ -345,26 +332,24 @@ class RideHailModifyPassengerScheduleManager(
     interruptedVehicleIds.add(rideHailModifyPassengerScheduleStatus.vehicleId)
   }
 
-  def setStatusToIdle(vehicleId: Id[BeamVehicle], triggerId: Long): Any = {
+  def setStatusToIdle(vehicleId: Id[BeamVehicle]): Any = {
     vehicleIdToModifyPassengerScheduleStatus.get(vehicleId) match {
       case Some(status) =>
         val newStatus =
-          status.copy(
-            interruptReply = Some(InterruptedWhileIdle(status.interruptId, vehicleId, status.tick, triggerId: Long))
-          )
+          status.copy(interruptReply = Some(InterruptedWhileIdle(status.interruptId, vehicleId, status.tick)))
         vehicleIdToModifyPassengerScheduleStatus.put(vehicleId, newStatus)
         interruptIdToModifyPassengerScheduleStatus.put(status.interruptId, newStatus)
       case None =>
     }
   }
 
-  def cleanUpCaches(triggerId: Long): Unit = {
+  def cleanUpCaches: Unit = {
     interruptIdToModifyPassengerScheduleStatus.values.foreach { status =>
       status.status match {
         case ModifyPassengerScheduleSent =>
         case _ =>
           log.debug("sending Resume from cleanUpCaches to {}", status.vehicleId)
-          status.rideHailAgent.tell(Resume(triggerId), rideHailManagerRef)
+          status.rideHailAgent.tell(Resume, rideHailManagerRef)
       }
     }
     vehicleIdToModifyPassengerScheduleStatus.clear
@@ -392,12 +377,11 @@ class RideHailModifyPassengerScheduleManager(
   }
 
   private def sendInterruptMessage(
-    passengerScheduleStatus: RideHailModifyPassengerScheduleStatus,
-    triggerId: Long
+    passengerScheduleStatus: RideHailModifyPassengerScheduleStatus
   ): Unit = {
     //    log.debug("sendInterruptMessage:" + passengerScheduleStatus)
     passengerScheduleStatus.rideHailAgent
-      .tell(Interrupt(passengerScheduleStatus.interruptId, passengerScheduleStatus.tick, triggerId), rideHailManagerRef)
+      .tell(Interrupt(passengerScheduleStatus.interruptId, passengerScheduleStatus.tick), rideHailManagerRef)
   }
 
   def doesPendingReservationContainPassSchedule(
@@ -457,7 +441,7 @@ case class RideHailModifyPassengerScheduleStatus(
   status: InterruptMessageStatus
 )
 
-case class ReduceAwaitingRepositioningAckMessagesByOne(vehicleId: Id[Vehicle], triggerId: Long) extends HasTriggerId
+case class ReduceAwaitingRepositioningAckMessagesByOne(vehicleId: Id[Vehicle])
 
 object RideHailModifyPassengerScheduleManager {
   def nextRideHailAgentInterruptId: Int = InterruptIdIdGenerator.nextId

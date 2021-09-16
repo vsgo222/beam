@@ -2,7 +2,7 @@ package beam.agentsim.agents.ridehail
 
 import beam.agentsim.agents.GenericEventsSpec
 import org.matsim.core.events.EventsUtils
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.Matchers
 
 class RideHailIterationsStatsCollectorSpec extends GenericEventsSpec with Matchers {
 

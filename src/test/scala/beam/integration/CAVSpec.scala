@@ -15,10 +15,9 @@ import org.matsim.api.core.v01.events.Event
 import org.matsim.core.controler.AbstractModule
 import org.matsim.core.events.handler.BasicEventHandler
 import org.matsim.core.scenario.{MutableScenario, ScenarioUtils}
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.{FlatSpec, Matchers}
 
-class CAVSpec extends AnyFlatSpec with Matchers with BeamHelper {
+class CAVSpec extends FlatSpec with Matchers with BeamHelper {
 
   private val sharedCarTypeId = Id.create("sharedCar", classOf[BeamVehicleType])
 

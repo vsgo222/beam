@@ -1,24 +1,18 @@
 package beam.integration
 
 import java.io.File
+
 import beam.agentsim.events.{LeavingParkingEvent, ModeChoiceEvent, ParkingEvent, PathTraversalEvent}
 import beam.sim.BeamHelper
 import beam.utils.EventReader
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import org.apache.commons.io.FileUtils
 import org.matsim.api.core.v01.events.Event
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.collection.mutable.ArrayBuffer
 
-class ParkingSpec
-    extends AnyWordSpecLike
-    with BeforeAndAfterAll
-    with Matchers
-    with BeamHelper
-    with IntegrationSpecCommon {
+class ParkingSpec extends WordSpecLike with BeforeAndAfterAll with Matchers with BeamHelper with IntegrationSpecCommon {
 
   def runAndCollectEvents(parkingScenario: String): Seq[Event] = {
     runAndCollectForIterations(parkingScenario, 1).head
@@ -95,7 +89,7 @@ class ParkingSpec
       .withFallback(param)
       .resolve()
 
-    val (matsimConfig, outputDirectory, _) = runBeamWithConfig(config, None)
+    val (matsimConfig, outputDirectory, _) = runBeamWithConfig(config)
 
     val queueEvents = ArrayBuffer[Seq[Event]]()
     for (i <- 0 until iterations) {
@@ -217,7 +211,7 @@ class ParkingSpec
       }
     }
 
-    "very expensive parking should reduce driving" ignore { // flakey test
+    "very expensive parking should reduce driving" in {
       val expensiveEvents = runAndCollectForIterations("very-expensive", 5)
 
       val expensiveModeChoiceCarCount = expensiveEvents.map(countForPathTraversalAndCarMode)
@@ -231,7 +225,7 @@ class ParkingSpec
         .sum should be > expensiveModeChoiceCarCount.takeRight(5).sum
     }
 
-    "no parking stalls should reduce driving" ignore { // flakey test
+    "no parking stalls should reduce driving" in {
       val emptyEvents = runAndCollectForIterations("empty", 5)
 
       val emptyModeChoiceCarCount = emptyEvents.map(countForPathTraversalAndCarMode)

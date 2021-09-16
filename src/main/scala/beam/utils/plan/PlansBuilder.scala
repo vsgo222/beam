@@ -133,10 +133,10 @@ object PlansBuilder {
     out.write("vehicleId,vehicleTypeId")
     out.newLine()
 
-    @SuppressWarnings(Array("UnsafeTraversableMethods"))
-    val carVehicleType = JavaConverters
-      .collectionAsScalaIterable(sc.getVehicles.getVehicleTypes.values())
-      .head
+    val carVehicleType =
+      JavaConverters
+        .collectionAsScalaIterable(sc.getVehicles.getVehicleTypes.values())
+        .head
     carVehicleType.setFlowEfficiencyFactor(1069)
     carVehicleType.getEngineInformation.setGasConsumption(1069)
     newVehicles.addVehicleType(carVehicleType)

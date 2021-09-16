@@ -35,8 +35,7 @@ object R5Requester extends BeamHelper {
       withTransit = true,
       streetVehicles = Vector.empty,
       personId = Some(personId),
-      attributesOfIndividual = Some(personAttribs),
-      triggerId = -1
+      attributesOfIndividual = Some(personAttribs)
     )
   }
 
@@ -107,8 +106,7 @@ object R5Requester extends BeamHelper {
       vehicleTypeId = Id.create(vehicleTypeId, classOf[BeamVehicleType]),
       locationUTM = SpaceTime(loc = location, time = 30600),
       mode = beamMode,
-      asDriver = true,
-      needsToCalculateCost = beamMode == BeamMode.CAR || beamMode == BeamMode.CAV
+      asDriver = true
     )
   }
 }

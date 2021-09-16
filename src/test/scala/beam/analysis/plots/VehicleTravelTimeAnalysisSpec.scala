@@ -1,7 +1,7 @@
 package beam.analysis.plots
 
 import beam.analysis.summary.VehicleTravelTimeAnalysis
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.Matchers
 
 class VehicleTravelTimeAnalysisSpec extends GenericAnalysisSpec with Matchers {
 

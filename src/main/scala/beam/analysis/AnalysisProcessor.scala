@@ -32,8 +32,12 @@ case class PythonProcess(processOption: Option[Process]) {
 
 object AnalysisProcessor extends ExponentialLazyLogging {
 
-  def firePythonScriptAsync(scriptPath: String, args: String*): PythonProcess = {
+  def firePython3ScriptAsync(scriptPath: String, args: String*): PythonProcess = {
     firePythonAsync("python3", scriptPath, args: _*)
+  }
+
+  def firePythonScriptAsync(scriptPath: String, args: String*): PythonProcess = {
+    firePythonAsync("python", scriptPath, args: _*)
   }
 
   def firePythonAsync(processName: String, scriptPath: String, args: String*): PythonProcess = {
@@ -57,5 +61,7 @@ object AnalysisProcessor extends ExponentialLazyLogging {
         logger.error(s"Error running python script $scriptPath $args: $ex")
         PythonProcess(None)
     }
+
   }
+
 }

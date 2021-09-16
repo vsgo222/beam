@@ -10,7 +10,7 @@ import beam.router.Modes.BeamMode
 import beam.router.RouteHistory
 import beam.sflight.RouterForTest
 import beam.sim.common.GeoUtilsImpl
-import beam.sim.{BeamHelper, BeamMobsim, RideHailFleetInitializerProvider}
+import beam.sim.{BeamHelper, BeamMobsim}
 import beam.utils.SimRunnerForTest
 import beam.utils.TestConfigUtils.testConfig
 import com.typesafe.config.ConfigFactory
@@ -18,15 +18,13 @@ import org.matsim.api.core.v01.events.{ActivityEndEvent, Event, PersonDepartureE
 import org.matsim.api.core.v01.population.{Activity, Leg}
 import org.matsim.core.events.handler.BasicEventHandler
 import org.scalatest._
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.language.postfixOps
 
 class SingleModeSpec
-    extends AnyWordSpecLike
+    extends WordSpecLike
     with TestKitBase
     with SimRunnerForTest
     with RouterForTest
@@ -81,8 +79,7 @@ class SingleModeSpec
         new RouteHistory(services.beamConfig),
         new GeoUtilsImpl(services.beamConfig),
         new ModeIterationPlanCleaner(beamConfig, scenario),
-        services.networkHelper,
-        new RideHailFleetInitializerProvider(services, beamScenario, scenario)
+        services.networkHelper
       )
       mobsim.run()
 
@@ -134,8 +131,7 @@ class SingleModeSpec
         new RouteHistory(services.beamConfig),
         new GeoUtilsImpl(services.beamConfig),
         new ModeIterationPlanCleaner(beamConfig, scenario),
-        services.networkHelper,
-        new RideHailFleetInitializerProvider(services, beamScenario, scenario),
+        services.networkHelper
       )
       mobsim.run()
 
@@ -206,8 +202,7 @@ class SingleModeSpec
         new RouteHistory(services.beamConfig),
         new GeoUtilsImpl(services.beamConfig),
         new ModeIterationPlanCleaner(beamConfig, scenario),
-        services.networkHelper,
-        new RideHailFleetInitializerProvider(services, beamScenario, scenario),
+        services.networkHelper
       )
       mobsim.run()
 
@@ -284,8 +279,7 @@ class SingleModeSpec
         new RouteHistory(services.beamConfig),
         new GeoUtilsImpl(services.beamConfig),
         new ModeIterationPlanCleaner(beamConfig, scenario),
-        services.networkHelper,
-        new RideHailFleetInitializerProvider(services, beamScenario, scenario),
+        services.networkHelper
       )
       mobsim.run()
 

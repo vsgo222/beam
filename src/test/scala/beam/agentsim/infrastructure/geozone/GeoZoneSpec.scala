@@ -1,11 +1,11 @@
 package beam.agentsim.infrastructure.geozone
 
 import java.nio.file.{Files, Path, Paths}
-import beam.utils.FileUtils
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
 
-class GeoZoneSpec extends AnyWordSpec with Matchers {
+import beam.utils.FileUtils
+import org.scalatest.{Matchers, WordSpec}
+
+class GeoZoneSpec extends WordSpec with Matchers {
 
   "GeoZone combined with TopDownEqualDemandGeoZoneHexGenerator and GeoZoneUtil" should {
 

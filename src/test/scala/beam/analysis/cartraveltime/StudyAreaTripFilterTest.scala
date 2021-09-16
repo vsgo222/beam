@@ -7,10 +7,9 @@ import beam.router.model.{BeamLeg, BeamPath}
 import beam.sim.common.GeoUtils
 import beam.sim.config.BeamConfig.Beam.Calibration.StudyArea
 import org.matsim.api.core.v01.Id
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.{FunSuite, Matchers}
 
-class StudyAreaTripFilterTest extends AnyFunSuite with Matchers {
+class StudyAreaTripFilterTest extends FunSuite with Matchers {
   // Texas capitol as center of study area: https://g.page/TexasCapitol?share
   // The bounding box looks like the following: https://imgur.com/a/GLKgRyl
   private val studyArea = StudyArea(enabled = true, lat = 30.2746698, lon = -97.7425392, radius = 10000)
@@ -53,8 +52,7 @@ class StudyAreaTripFilterTest extends AnyFunSuite with Matchers {
     secondaryFuelConsumed = 0.0,
     endLegPrimaryFuelLevel = 1.0,
     endLegSecondaryFuelLevel = 0.0,
-    amountPaid = 0,
-    Vector.empty
+    amountPaid = 0
   )
 
   test("Should recognize that PTE is inside study area if both start and end are inside of study area") {

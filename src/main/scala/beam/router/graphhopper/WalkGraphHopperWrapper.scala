@@ -20,7 +20,7 @@ class WalkGraphHopperWrapper(
   id2Link: Map[Int, (Coord, Coord)]
 ) extends GraphHopperWrapper(graphDir, geo, id2Link) {
 
-  override protected val beamMode: Modes.BeamMode = BeamMode.WALK
+  override protected val beamMode: Modes.BeamMode = BeamMode.CAR
 
   override def getProfile(): Profile = FastestProfile
 

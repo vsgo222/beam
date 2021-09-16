@@ -8,15 +8,14 @@ import beam.sim.{BeamHelper, BeamServices}
 import beam.utils.FileUtils
 import beam.utils.TestConfigUtils.testConfig
 import com.typesafe.config.ConfigValueFactory
-import org.scalatest.{BeforeAndAfterAllConfigMap, ConfigMap}
-import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.matchers.should.Matchers
+import org.matsim.core.scenario.{MutableScenario, ScenarioUtils}
+import org.scalatest.{BeforeAndAfterAllConfigMap, ConfigMap, Matchers, WordSpecLike}
 
 /**
   * Created by colinsheppard
   */
 
-class UrbanSimRunSpec extends AnyWordSpecLike with Matchers with BeamHelper with BeforeAndAfterAllConfigMap {
+class UrbanSimRunSpec extends WordSpecLike with Matchers with BeamHelper with BeforeAndAfterAllConfigMap {
 
   private val ITERS_DIR = "ITERS"
   private val LAST_ITER_CONF_PATH = "matsim.modules.controler.lastIteration"
@@ -49,7 +48,7 @@ class UrbanSimRunSpec extends AnyWordSpecLike with Matchers with BeamHelper with
 
       FileUtils.setConfigOutputFile(beamConfig, matsimConfig)
 
-      val (scenario, beamScenario, plansMerged) = buildBeamServicesAndScenario(
+      val (scenario, beamScenario) = buildBeamServicesAndScenario(
         beamConfig,
         matsimConfig,
       )
@@ -74,8 +73,7 @@ class UrbanSimRunSpec extends AnyWordSpecLike with Matchers with BeamHelper with
         services,
         scenario,
         beamScenario,
-        output,
-        plansMerged,
+        output
       )
 
       //val (_, output) = runBeamWithConfig(conf)

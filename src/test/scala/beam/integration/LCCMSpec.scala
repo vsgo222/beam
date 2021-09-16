@@ -9,12 +9,11 @@ import com.typesafe.config.ConfigValueFactory
 import org.matsim.core.controler.AbstractModule
 import org.matsim.core.controler.listener.IterationEndsListener
 import org.matsim.core.scenario.{MutableScenario, ScenarioUtils}
-import org.mockito.Mockito.mock
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.Ignore
+import org.scalatestplus.mockito.MockitoSugar
+import org.scalatest.{FlatSpec, Ignore}
 
 @Ignore
-class LCCMSpec extends AnyFlatSpec with BeamHelper {
+class LCCMSpec extends FlatSpec with BeamHelper with MockitoSugar {
 
   it should "be able to run for three iterations with LCCM without exceptions" in {
     val config = testConfig("test/input/beamville/beam.conf")
@@ -35,7 +34,7 @@ class LCCMSpec extends AnyFlatSpec with BeamHelper {
     val scenario = ScenarioUtils.loadScenario(matsimConfig).asInstanceOf[MutableScenario]
     scenario.setNetwork(beamScenario.network)
 
-    val iterationCounter = mock(classOf[IterationEndsListener])
+    val iterationCounter = mock[IterationEndsListener]
     val injector = org.matsim.core.controler.Injector.createInjector(
       scenario.getConfig,
       new AbstractModule() {

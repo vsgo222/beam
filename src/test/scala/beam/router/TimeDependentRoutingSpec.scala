@@ -20,17 +20,17 @@ import org.matsim.core.config.ConfigUtils
 import org.matsim.core.events.EventsUtils
 import org.matsim.core.trafficmonitoring.TravelTimeCalculator
 import org.matsim.vehicles.Vehicle
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.matchers.must.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatestplus.mockito.MockitoSugar
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.language.postfixOps
 
 class TimeDependentRoutingSpec
-    extends AnyWordSpecLike
+    extends WordSpecLike
     with TestKitBase
     with Matchers
     with ImplicitSender
+    with MockitoSugar
     with SimRunnerForTest
     with RouterForTest
     with BeforeAndAfterAll {
@@ -72,8 +72,7 @@ class TimeDependentRoutingSpec
       router ! EmbodyWithCurrentTravelTime(
         leg,
         Id.createVehicleId(1),
-        Id.create("beamVilleCar", classOf[BeamVehicleType]),
-        triggerId = 0
+        Id.create("beamVilleCar", classOf[BeamVehicleType])
       )
       val response = expectMsgType[RoutingResponse]
       assert(response.itineraries.head.beamLegs.head.duration == 147)
@@ -95,12 +94,7 @@ class TimeDependentRoutingSpec
           0.0
         )
       )
-      router ! EmbodyWithCurrentTravelTime(
-        leg,
-        Id.createVehicleId(1),
-        Id.create("slowCar", classOf[BeamVehicleType]),
-        triggerId = 0
-      )
+      router ! EmbodyWithCurrentTravelTime(leg, Id.createVehicleId(1), Id.create("slowCar", classOf[BeamVehicleType]))
       val response = expectMsgType[RoutingResponse]
       assert(response.itineraries.head.beamLegs.head.duration == 276)
       // R5 travel time, but less than what's in R5's routing response (see vv),
@@ -121,12 +115,7 @@ class TimeDependentRoutingSpec
           0.0
         )
       )
-      router ! EmbodyWithCurrentTravelTime(
-        leg,
-        Id.createVehicleId(1),
-        Id.create("Bicycle", classOf[BeamVehicleType]),
-        triggerId = 0
-      )
+      router ! EmbodyWithCurrentTravelTime(leg, Id.createVehicleId(1), Id.create("Bicycle", classOf[BeamVehicleType]))
       val response = expectMsgType[RoutingResponse]
       assert(response.itineraries.head.beamLegs.head.duration == 567)
       // R5 travel time, but less than what's in R5's routing response (see vv),
@@ -146,11 +135,9 @@ class TimeDependentRoutingSpec
             Id.create("beamVilleCar", classOf[BeamVehicleType]),
             new SpaceTime(new Coord(origin.getX, origin.getY), time),
             Modes.BeamMode.CAR,
-            asDriver = true,
-            needsToCalculateCost = true
+            asDriver = true
           )
-        ),
-        triggerId = 0
+        )
       )
       val response = expectMsgType[RoutingResponse]
       assert(response.itineraries.exists(_.tripClassifier == CAR))
@@ -169,11 +156,9 @@ class TimeDependentRoutingSpec
             Id.create("beamVilleCar", classOf[BeamVehicleType]),
             new SpaceTime(new Coord(origin.getX, origin.getY), time),
             Modes.BeamMode.CAR,
-            asDriver = true,
-            needsToCalculateCost = true
+            asDriver = true
           )
-        ),
-        triggerId = 0
+        )
       )
       val response3 = expectMsgType[RoutingResponse]
       assert(response3.itineraries.exists(_.tripClassifier == CAR))
@@ -201,11 +186,9 @@ class TimeDependentRoutingSpec
             Id.create("beamVilleCar", classOf[BeamVehicleType]),
             new SpaceTime(new Coord(origin.getX, origin.getY), time),
             Modes.BeamMode.CAR,
-            asDriver = true,
-            needsToCalculateCost = true
+            asDriver = true
           )
-        ),
-        triggerId = 0
+        )
       )
       var carOption = expectMsgType[RoutingResponse].itineraries.find(_.tripClassifier == CAR).get
 
@@ -238,11 +221,9 @@ class TimeDependentRoutingSpec
               Id.create("beamVilleCar", classOf[BeamVehicleType]),
               new SpaceTime(new Coord(origin.getX, origin.getY), time),
               Modes.BeamMode.CAR,
-              asDriver = true,
-              needsToCalculateCost = true
+              asDriver = true
             )
-          ),
-          triggerId = 0
+          )
         )
         carOption = expectMsgType[RoutingResponse].itineraries.find(_.tripClassifier == CAR).getOrElse(carOption)
       }
@@ -268,8 +249,7 @@ class TimeDependentRoutingSpec
       router ! EmbodyWithCurrentTravelTime(
         leg,
         Id.createVehicleId(1),
-        Id.create("beamVilleCar", classOf[BeamVehicleType]),
-        triggerId = 0
+        Id.create("beamVilleCar", classOf[BeamVehicleType])
       )
       val response = expectMsgType[RoutingResponse]
       assert(response.itineraries.head.beamLegs.head.duration == 3000) // Convention is to traverse from end of first link to end of last, so 3 full links

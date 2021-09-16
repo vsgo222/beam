@@ -11,7 +11,6 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 
 import beam.utils.scenario.{HouseholdId, PersonId, PersonInfo}
-import ScenarioCsvWriter._
 
 object PopulationCsvWriter extends ScenarioCsvWriter {
 
@@ -103,14 +102,15 @@ object PopulationCsvWriter extends ScenarioCsvWriter {
         .mkString(ArrayStartString, ArrayItemSeparator, ArrayEndString)
     }
     val values = Seq(
-      personInfo.personId.id,
+      personInfo.personId,
       personInfo.age,
       personInfo.isFemale,
-      personInfo.householdId.id,
+      personInfo.householdId,
       personInfo.rank,
       excludedModes,
       personInfo.valueOfTime
     )
     values.mkString("", FieldSeparator, LineSeparator)
   }
+
 }

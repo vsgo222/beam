@@ -1,6 +1,7 @@
 package beam.router
 
 import java.util.concurrent.TimeUnit
+
 import akka.actor.{ActorRef, ActorSystem, Identify, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
@@ -15,7 +16,7 @@ import beam.router.BeamRouter.{Location, RoutingRequest, RoutingResponse, Update
 import beam.router.Modes.BeamMode.CAR
 import beam.sim.config.BeamConfig
 import beam.sim.{BeamHelper, BeamWarmStart}
-import beam.utils.{DateUtils, FileUtils, LoggingUtil}
+import beam.utils.{FileUtils, LoggingUtil}
 import com.typesafe.scalalogging.LazyLogging
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.circe.syntax._
@@ -73,10 +74,10 @@ object R5RoutingApp extends BeamHelper {
     val f = Await.result(workerRouter ? Identify(0), Duration.Inf)
     logger.info("R5RoutingWorker is initialized!")
 
-    val isWarmMode = BeamWarmStart.isLinkStatsEnabled(beamCfg.beam.warmStart)
+    val isWarmMode = beamCfg.beam.warmStart.enabled
     logger.info(s"warmStart isEnabled?: $isWarmMode")
     if (isWarmMode) {
-      val warmStart = BeamWarmStart(beamCfg, DateUtils.getMaxHour(beamCfg))
+      val warmStart = BeamWarmStart(beamCfg)
       warmStart.readTravelTime.foreach { travelTime =>
         workerRouter ! UpdateTravelTimeLocal(travelTime)
         logger.info("Send `UpdateTravelTimeLocal`")
@@ -102,8 +103,7 @@ object R5RoutingApp extends BeamHelper {
       Id.create("BODY-TYPE-DEFAULT", classOf[BeamVehicleType]),
       new SpaceTime(startUTM, time = departureTime),
       CAR,
-      asDriver = true,
-      needsToCalculateCost = true
+      asDriver = true
     )
     val personId = Id.createPersonId(1)
     val routingRequest = RoutingRequest(
@@ -112,8 +112,7 @@ object R5RoutingApp extends BeamHelper {
       departureTime = departureTime,
       withTransit = false,
       personId = Some(personId),
-      streetVehicles = Vector(bodyStreetVehicle),
-      triggerId = -1
+      streetVehicles = Vector(bodyStreetVehicle)
     )
 
     println(routingRequest.asJson.toString())

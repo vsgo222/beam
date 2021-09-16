@@ -1,8 +1,8 @@
 package beam.utils
 
 import java.security.cert.PKIXRevocationChecker
-import beam.agentsim.agents.household.HouseholdFleetManager
 import java.util
+
 import beam.agentsim.agents.vehicles.EnergyEconomyAttributes.Powertrain
 import beam.agentsim.agents.vehicles.FuelType.FuelType
 import beam.agentsim.agents.vehicles._
@@ -40,13 +40,7 @@ object BeamVehicleUtils {
 
         val powerTrain = new Powertrain(vehicleType.primaryFuelConsumptionInJoulePerMeter)
 
-        val beamVehicle =
-          new BeamVehicle(
-            vehicleId,
-            powerTrain,
-            vehicleType,
-            randomSeed = rand.nextInt
-          )
+        val beamVehicle = new BeamVehicle(vehicleId, powerTrain, vehicleType, rand.nextInt)
         acc += ((vehicleId, beamVehicle))
         acc
     }
@@ -92,8 +86,6 @@ object BeamVehicleUtils {
         val sampleProbabilityWithinCategory =
           Option(line.get("sampleProbabilityWithinCategory")).map(_.toDouble).getOrElse(1.0)
         val sampleProbabilityString = Option(line.get("sampleProbabilityString"))
-        val chargingCapability = Option(line.get("chargingCapability")).map(ChargingCapability.fromString)
-        val payloadCapacity = Option(line.get("payloadCapacityInKg")).map(_.toDouble)
 
         val bvt = BeamVehicleType(
           vehicleTypeId,
@@ -118,9 +110,7 @@ object BeamVehicleUtils {
           primaryVehicleEnergyFile,
           secondaryVehicleEnergyFile,
           sampleProbabilityWithinCategory,
-          sampleProbabilityString,
-          chargingCapability,
-          payloadCapacity,
+          sampleProbabilityString
         )
         z += ((vehicleTypeId, bvt))
     }.toMap

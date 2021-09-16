@@ -53,7 +53,6 @@ case class FrequencyAdjustingNetworkCoordinator(beamConfig: BeamConfig) extends 
     scenario
   }
 
-  @SuppressWarnings(Array("UnsafeTraversableMethods"))
   def getTripForId(tripId: String): Trip = {
     feeds.map { feed =>
       feed.trips.asScala(tripId)

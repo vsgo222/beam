@@ -31,8 +31,7 @@ public class BeamDominatingList implements DominatingList {
     private boolean betterOrEqual(McRaptorSuboptimalPathProfileRouter.McRaptorState dominator, McRaptorSuboptimalPathProfileRouter.McRaptorState dominatee) {
         // FIXME add check for nonnegative
         boolean sameAccessMode = dominator.accessMode == dominatee.accessMode;
-        boolean sameEgressMode = dominator.egressMode == dominatee.egressMode;
-        if (!sameAccessMode || !sameEgressMode) {
+        if (!sameAccessMode) {
             return false;
         }
 
@@ -81,7 +80,7 @@ public class BeamDominatingList implements DominatingList {
         // Bruno, and transferAllowance.value is set to $7.85 - $4.55 = $3.30, we will retain it properly.
         if (newState.fare.cumulativeFarePaid - newState.fare.transferAllowance.value > maxFare) return false;
 
-        for (Iterator<McRaptorSuboptimalPathProfileRouter.McRaptorState> it = states.iterator(); it.hasNext(); ) {
+        for (Iterator<McRaptorSuboptimalPathProfileRouter.McRaptorState> it = states.iterator(); it.hasNext();) {
             McRaptorSuboptimalPathProfileRouter.McRaptorState existing = it.next();
 
 

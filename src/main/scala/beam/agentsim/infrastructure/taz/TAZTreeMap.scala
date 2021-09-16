@@ -2,6 +2,7 @@ package beam.agentsim.infrastructure.taz
 
 import java.io._
 import java.util
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import beam.utils.matsim_conversion.ShapeUtils
@@ -14,21 +15,11 @@ import org.opengis.feature.simple.SimpleFeature
 import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
-import scala.collection.concurrent.TrieMap
 
-/**
-  * TAZTreeMap manages a quadTree to find the closest TAZ to any coordinate.
-  *
-  * @param tazQuadTree quadtree containing the TAZs
-  * @param useCache Currently [as of 10-2020] the use of the TAZ quadtree cache is less performant than just keeping it off (better to reduce calls to TAZ quadtree
-  *                 by avoiding unnecessary queries). The caching mechanism is however still useful for debugging and as a quickfix/confirmation if TAZ quadtree queries
-  *                 suddenly increase due to code change.
-  */
-class TAZTreeMap(val tazQuadTree: QuadTree[TAZ], val useCache: Boolean = false) {
+class TAZTreeMap(val tazQuadTree: QuadTree[TAZ]) {
 
-  private val stringIdToTAZMapping: mutable.HashMap[String, TAZ] = mutable.HashMap()
+  val stringIdToTAZMapping: mutable.HashMap[String, TAZ] = mutable.HashMap()
   val idToTAZMapping: mutable.HashMap[Id[TAZ], TAZ] = mutable.HashMap()
-  private val cache: TrieMap[(Double, Double), TAZ] = TrieMap()
 
   def getTAZs: Iterable[TAZ] = {
     tazQuadTree.values().asScala
@@ -44,11 +35,8 @@ class TAZTreeMap(val tazQuadTree: QuadTree[TAZ], val useCache: Boolean = false) 
   }
 
   def getTAZ(x: Double, y: Double): TAZ = {
-    if (useCache) {
-      cache.getOrElseUpdate((x, y), tazQuadTree.getClosest(x, y))
-    } else {
-      tazQuadTree.getClosest(x, y)
-    }
+    // TODO: is this enough precise, or we want to get the exact TAZ where the coordinate is located?
+    tazQuadTree.getClosest(x, y)
   }
 
   def getTAZ(tazId: String): Option[TAZ] = {
@@ -60,6 +48,7 @@ class TAZTreeMap(val tazQuadTree: QuadTree[TAZ], val useCache: Boolean = false) 
   }
 
   def getTAZInRadius(x: Double, y: Double, radius: Double): util.Collection[TAZ] = {
+    // TODO: is this enough precise, or we want to get the exact TAZ where the coordinate is located?
     tazQuadTree.getDisk(x, y, radius)
   }
 

@@ -2,9 +2,8 @@ package beam.sim.population
 
 import java.io.FileWriter
 
-import beam.sim.config.BeamConfig
-import beam.sim.{BeamScenario, BeamServices, BeamWarmStart}
-import beam.sim.metrics.BeamStaticMetricsWriter
+import beam.sim.{BeamScenario, BeamServices}
+import beam.sim.config.BeamConfig.Beam.Exchange.Scenario
 import com.typesafe.scalalogging.LazyLogging
 import org.matsim.api.core.v01.Id
 import org.matsim.api.core.v01.population.Person
@@ -18,7 +17,7 @@ import scala.util.Random
 import scala.collection.JavaConverters._
 import beam.utils.CloseableUtil.RichCloseable
 
-class PopulationScaling extends LazyLogging {
+trait PopulationScaling extends LazyLogging {
 
   def upSample(beamServices: BeamServices, scenario: MutableScenario, beamScenario: BeamScenario): Unit = {
     val beamConfig = beamServices.beamConfig
@@ -228,38 +227,4 @@ class PopulationScaling extends LazyLogging {
   }
 }
 
-object PopulationScaling {
-
-  def isWarmstartDisabledOrSamplingEnabled(beamConfig: BeamConfig): Boolean = {
-    !BeamWarmStart.isFullWarmStart(beamConfig.beam.warmStart) ||
-    beamConfig.beam.warmStart.samplePopulationIntegerFlag == 1
-  }
-
-  // sample population (beamConfig.beam.agentsim.numAgents - round to nearest full household)
-  def samplePopulation(
-    scenario: MutableScenario,
-    beamScenario: BeamScenario,
-    beamConfig: BeamConfig,
-    beamServices: BeamServices,
-    outputDir: String
-  ): Unit = {
-    val populationScaling = new PopulationScaling()
-    if (isWarmstartDisabledOrSamplingEnabled(beamConfig) && beamConfig.beam.agentsim.agentSampleSizeAsFractionOfPopulation < 1) {
-      populationScaling.downSample(beamServices, scenario, beamScenario, outputDir)
-    }
-    if (isWarmstartDisabledOrSamplingEnabled(beamConfig) && beamConfig.beam.agentsim.agentSampleSizeAsFractionOfPopulation > 1) {
-      populationScaling.upSample(beamServices, scenario, beamScenario)
-    }
-    val populationAdjustment = PopulationAdjustment.getPopulationAdjustment(beamServices)
-    populationAdjustment.update(scenario)
-
-    // write static metrics, such as population size, vehicles fleet size, etc.
-    // necessary to be called after population sampling
-    BeamStaticMetricsWriter.writeSimulationParameters(
-      scenario,
-      beamScenario,
-      beamServices,
-      beamConfig
-    )
-  }
-}
+object PopulationScaling extends PopulationScaling

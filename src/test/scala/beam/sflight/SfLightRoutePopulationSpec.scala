@@ -11,14 +11,11 @@ import beam.router.r5.{R5Parameters, R5Wrapper}
 import beam.tags.{ExcludeRegular, Periodic}
 import org.matsim.api.core.v01.{Coord, Id}
 import org.scalatest._
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
-import org.scalatest.matchers.must.Matchers
 
 import scala.language.postfixOps
 
 class SfLightRoutePopulationSpec
     extends AbstractSfLightSpec("SfLightRoutePopulationSpec")
-    with Matchers
     with Inside
     with LoneElement {
 
@@ -64,19 +61,16 @@ class SfLightRoutePopulationSpec
                       Id.create("Car", classOf[BeamVehicleType]),
                       new SpaceTime(origin, 0),
                       CAR,
-                      asDriver = true,
-                      needsToCalculateCost = true
+                      asDriver = true
                     ),
                     StreetVehicle(
                       Id.createVehicleId("body-116378-2"),
                       Id.create("BODY-TYPE-DEFAULT", classOf[BeamVehicleType]),
                       new SpaceTime(new Coord(origin.getX, origin.getY), time),
                       WALK,
-                      asDriver = true,
-                      needsToCalculateCost = false
+                      asDriver = true
                     )
-                  ),
-                  triggerId = 0
+                  )
                 )
               )
               assert(response.itineraries.filter(_.tripClassifier.isTransit).forall(_.costEstimate > 0))

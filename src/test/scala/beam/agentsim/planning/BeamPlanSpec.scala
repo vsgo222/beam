@@ -7,15 +7,14 @@ import beam.sim.BeamHelper
 import org.matsim.api.core.v01.Coord
 import org.matsim.api.core.v01.population.{Activity, Plan}
 import org.matsim.core.population.PopulationUtils
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest._
 
 import scala.collection.JavaConverters._
 
 /**
   * BeamPlanSpec
   */
-class BeamPlanSpec extends AnyWordSpecLike with Matchers with BeamHelper {
+class BeamPlanSpec extends WordSpecLike with Matchers with BeamHelper {
 
   "A BeamPlan" must {
 

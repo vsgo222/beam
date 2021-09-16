@@ -175,14 +175,12 @@ class DestinationChoiceModel(
     Try {
       IOUtils.getBufferedReader(activityRateFilePath)
     } match {
-      case Success(reader) if !activityRateFilePath.equals("") =>
+      case Success(reader) =>
         val result: Option[DestinationChoiceModel.ActivityRates] = generateActivityRates(reader.lines.iterator)
         result match {
           case Some(params) => params
           case _            => DefaultActivityRates
         }
-      case Success(_) =>
-        DefaultActivityRates
       case Failure(e) =>
         println(e)
         DefaultActivityRates

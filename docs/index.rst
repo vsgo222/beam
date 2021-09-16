@@ -16,7 +16,6 @@ Contents:
    about
    users
    developers
-   messages
    grafana
    agents
    behaviors

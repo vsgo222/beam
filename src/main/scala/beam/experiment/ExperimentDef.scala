@@ -87,14 +87,7 @@ case class ExperimentRun(experiment: ExperimentDef, combinations: Seq[(Level, Fa
 
   lazy val params: Map[String, Any] = {
     val runParams = combinations.flatMap(_._1.params.asScala)
-
-    val defaultParamsOpt = Option(experiment.defaultParams)
-
-    val overrideParams = defaultParamsOpt match {
-      case Some(defaultParams) => defaultParams.asScala.clone() ++ runParams
-      case None                => runParams
-    }
-
+    val overrideParams = experiment.defaultParams.asScala.clone() ++ runParams
     overrideParams.toMap
   }
 
@@ -119,20 +112,11 @@ case class Header(
   @BeanProperty var title: String,
   @BeanProperty var author: String,
   @BeanProperty var beamTemplateConfPath: String,
-  @BeanProperty var beamScenarioDataInputRoot: String,
-  @BeanProperty var experimentId: String,
   @BeanProperty var modeChoiceTemplate: String,
   @BeanProperty var numWorkers: String,
-  @BeanProperty var deployParams: java.util.Map[String, Object],
-  @BeanProperty var iterationForAnalysis: Int,
-  @BeanProperty var processingConfPath: String,
-  @BeanProperty var ownerEmail: String,
-  @BeanProperty var customerFacingNotes: String,
-  @BeanProperty var internalNotes: String,
+  @BeanProperty var deployParams: java.util.Map[String, Object]
 ) {
-  def this() = this("", "", "", "", "", "", "", new java.util.HashMap(), 0, "", "", "", "")
-
-  val experimentOutputRoot: String = s"data/interim/scenario_experiments"
+  def this() = this("", "", "", "", "", new java.util.HashMap())
 }
 case class BaseScenario(
   @BeanProperty var title: String,

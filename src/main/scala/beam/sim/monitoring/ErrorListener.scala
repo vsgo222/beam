@@ -6,11 +6,11 @@ import beam.agentsim.agents.modalbehaviors.DrivesVehicle.EndRefuelSessionTrigger
 import beam.agentsim.agents.ridehail.RideHailAgent.{Interrupt, InterruptedWhileOffline}
 import beam.agentsim.agents.vehicles.AccessErrorCodes.DriverNotFoundError
 import beam.agentsim.agents.vehicles.VehicleProtocol.RemovePassengerFromTrip
-import beam.agentsim.agents.vehicles.{BeamVehicle, ReservationRequest, ReservationResponse}
+import beam.agentsim.agents.vehicles.{ReservationRequest, ReservationResponse}
 import beam.agentsim.scheduler.BeamAgentScheduler.CompletionNotice
 import beam.agentsim.scheduler.Trigger.TriggerWithId
 import beam.router.BeamRouter.{EmbodyWithCurrentTravelTime, RoutingRequest, WorkAvailable}
-import org.matsim.api.core.v01.Id
+import beam.router.Modes.BeamMode.TRANSIT
 
 /**
   * @author sid.feygin
@@ -35,7 +35,7 @@ class ErrorListener() extends Actor with ActorLogging {
           log.warning(
             s"Person ${d.sender} attempted to reserve ride with agent ${d.recipient} that was not found, message sent to dead letters."
           )
-          d.sender ! ReservationResponse(Left(DriverNotFoundError), m.triggerId)
+          d.sender ! ReservationResponse(Left(DriverNotFoundError))
         case _: RemovePassengerFromTrip =>
         // Can be safely skipped
         case TriggerWithId(EndRefuelSessionTrigger(_, _, _, _), triggerId) =>

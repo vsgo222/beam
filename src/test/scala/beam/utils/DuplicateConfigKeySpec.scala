@@ -1,11 +1,9 @@
 package beam.utils
 import java.io.{File, PrintWriter}
 
-import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
-import org.scalatest.matchers.must.Matchers
+import org.scalatest.{Matchers, WordSpecLike}
 
-class DuplicateConfigKeySpec extends AnyWordSpecLike with Matchers {
+class DuplicateConfigKeySpec extends WordSpecLike with Matchers {
 
   val dummyConfString: String =
     """

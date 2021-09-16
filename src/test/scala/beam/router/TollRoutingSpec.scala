@@ -25,9 +25,8 @@ import org.matsim.core.config.ConfigUtils
 import org.matsim.core.scenario.ScenarioUtils
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.matchers.must.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatestplus.mockito.MockitoSugar
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.language.postfixOps
 
@@ -35,10 +34,11 @@ class TollRoutingSpec
     extends TestKit(
       ActorSystem("TollRoutingSpec", testConfig("test/input/beamville/beam.conf").resolve())
     )
-    with AnyWordSpecLike
+    with WordSpecLike
     with Matchers
     with BeamHelper
     with ImplicitSender
+    with MockitoSugar
     with BeforeAndAfterAll {
 
   var router: ActorRef = _
@@ -60,7 +60,7 @@ class TollRoutingSpec
 
     val networkHelper = new NetworkHelperImpl(networkCoordinator.network)
 
-    fareCalculator = mock(classOf[FareCalculator])
+    fareCalculator = mock[FareCalculator]
     when(fareCalculator.getFareSegments(any(), any(), any(), any(), any())).thenReturn(Vector[BeamFareSegment]())
     val tollCalculator = new TollCalculator(beamConfig)
     router = system.actorOf(
@@ -74,7 +74,7 @@ class TollRoutingSpec
         scenario.getTransitVehicles,
         fareCalculator,
         tollCalculator,
-        eventsManager = mock(classOf[EventsManager])
+        eventsManager = mock[EventsManager]
       )
     )
   }
@@ -97,8 +97,7 @@ class TollRoutingSpec
             Id.create("beamVilleCar", classOf[BeamVehicleType]),
             new SpaceTime(new Coord(origin.getX, origin.getY), time),
             Modes.BeamMode.CAR,
-            asDriver = true,
-            needsToCalculateCost = true
+            asDriver = true
           )
         ),
         attributesOfIndividual = Some(
@@ -111,8 +110,7 @@ class TollRoutingSpec
             None,
             None
           )
-        ),
-        triggerId = 0
+        )
       )
       router ! request
       val response = expectMsgType[RoutingResponse]
@@ -142,7 +140,7 @@ class TollRoutingSpec
           scenario.getTransitVehicles,
           fareCalculator,
           moreExpensiveTollCalculator,
-          eventsManager = mock(classOf[EventsManager])
+          eventsManager = mock[EventsManager]
         )
       )
       moreExpensiveRouter ! request
@@ -162,8 +160,7 @@ class TollRoutingSpec
             Id.create("beamVilleCar", classOf[BeamVehicleType]),
             new SpaceTime(new Coord(origin.getX, origin.getY), time),
             Modes.BeamMode.CAR,
-            asDriver = true,
-            needsToCalculateCost = true
+            asDriver = true
           )
         ),
         attributesOfIndividual = Some(
@@ -178,8 +175,7 @@ class TollRoutingSpec
             None,
             None
           )
-        ),
-        triggerId = 0
+        )
       )
       router ! tollSensitiveRequest
       val tollSensitiveResponse = expectMsgType[RoutingResponse]
@@ -200,11 +196,9 @@ class TollRoutingSpec
             Id.create("beamVilleCar", classOf[BeamVehicleType]),
             new SpaceTime(new Coord(origin.getX, origin.getY), time),
             Modes.BeamMode.WALK,
-            asDriver = true,
-            needsToCalculateCost = false
+            asDriver = true
           )
-        ),
-        triggerId = 0
+        )
       )
       router ! request
       val response = expectMsgType[RoutingResponse]

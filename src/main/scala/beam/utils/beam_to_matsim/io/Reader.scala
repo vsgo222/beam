@@ -22,19 +22,17 @@ object Reader {
 
     // fix overlapping of path traversal events for vehicle
     def pteOverlappingFix(pteSeq: Seq[BeamPathTraversal]): Unit = {
-      @SuppressWarnings(Array("UnsafeTraversableMethods"))
-      val pteSeqHead = pteSeq.head
-      pteSeq.drop(1).foldLeft(pteSeqHead) {
+      pteSeq.tail.foldLeft(pteSeq.head) {
         case (prevPTE, currPTE) if prevPTE.linkIds.nonEmpty && currPTE.linkIds.nonEmpty =>
           // if they overlap each other in case of time
           val timeDiff = currPTE.time - prevPTE.arrivalTime
           if (timeDiff < 0) prevPTE.adjustTime(timeDiff)
 
           // if they overlap each other in case of travel links
-          if (prevPTE.linkIds.lastOption == currPTE.linkIds.headOption) {
-            currPTE.removeHeadLinkFromTrip()
-            @SuppressWarnings(Array("UnsafeTraversableMethods"))
+          if (prevPTE.linkIds.last == currPTE.linkIds.head) {
             val removedLinkTime = currPTE.linkTravelTime.head
+            currPTE.removeHeadLinkFromTrip()
+
             if (currPTE.linkIds.nonEmpty) currPTE.adjustTime(removedLinkTime)
             else prevPTE.adjustTime(removedLinkTime)
           }

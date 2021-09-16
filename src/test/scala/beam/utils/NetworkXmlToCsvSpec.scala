@@ -1,9 +1,9 @@
 package beam.utils
 
 import beam.utils.csv.conversion.NetworkXmlToCSV
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.WordSpecLike
 
-class NetworkXmlToCsvSpec extends AnyWordSpecLike {
+class NetworkXmlToCsvSpec extends WordSpecLike {
 
   "networkXmlToCsv class " in {
     val path = "test/input/beamville/physsim-network.xml"

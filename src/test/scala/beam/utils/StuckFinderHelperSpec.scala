@@ -1,9 +1,8 @@
 package beam.utils
 
-import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.{Matchers, WordSpec}
 
-class StuckFinderHelperSpec extends AnyWordSpec with Matchers {
+class StuckFinderHelperSpec extends WordSpec with Matchers {
   "A StuckFinderHelper" when {
     "empty" should {
       "have size 0" in {

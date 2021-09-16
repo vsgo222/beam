@@ -10,7 +10,6 @@ class SythpopReader(val houseHoldsWithPeople: Seq[(File, File)]) {
   def read(): Map[Household, Seq[Person]] = {
     val (_, allHouseholdsWithPeople) = houseHoldsWithPeople.foldLeft((0, Map[Household, Seq[Person]]())) {
       case ((totalNumberOfPeople, resultMap), (hhFile, personFile)) =>
-        @SuppressWarnings(Array("UnsafeTraversableMethods"))
         val households =
           new HouseholdReader(hhFile.getAbsolutePath).read().groupBy(x => x.id).map {
             case (hhId, xs) => hhId -> xs.head

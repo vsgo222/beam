@@ -1,8 +1,7 @@
 package beam.agentsim.agents.vehicles
 
 import beam.agentsim.agents.vehicles.FuelType._
-import beam.agentsim.agents.vehicles.VehicleCategory._
-import beam.agentsim.agents.vehicles.ChargingCapability._
+import beam.agentsim.agents.vehicles.VehicleCategory.VehicleCategory
 import org.matsim.api.core.v01.Id
 
 case class BeamVehicleType(
@@ -28,9 +27,7 @@ case class BeamVehicleType(
   primaryVehicleEnergyFile: Option[String] = None,
   secondaryVehicleEnergyFile: Option[String] = None,
   sampleProbabilityWithinCategory: Double = 1.0,
-  sampleProbabilityString: Option[String] = None,
-  chargingCapability: Option[ChargingCapability] = None,
-  payloadCapacityInKg: Option[Double] = None,
+  sampleProbabilityString: Option[String] = None
 ) {
 
   def isEV: Boolean = {
@@ -69,21 +66,9 @@ object VehicleCategory {
   case object LightDutyTruck extends VehicleCategory
   case object HeavyDutyTruck extends VehicleCategory
 
-  def fromString(value: String): VehicleCategory = fromStringOptional(value).get
-
-  def fromStringOptional(value: String): Option[VehicleCategory] = {
+  def fromString(value: String): VehicleCategory = {
     Vector(Body, Bike, Car, MediumDutyPassenger, LightDutyTruck, HeavyDutyTruck)
       .find(_.toString.equalsIgnoreCase(value))
-  }
-}
-
-object ChargingCapability {
-  sealed trait ChargingCapability
-  case object XFC extends ChargingCapability
-  case object DCFC extends ChargingCapability
-  case object AC extends ChargingCapability
-
-  def fromString(value: String): ChargingCapability = {
-    Vector(XFC, DCFC, AC).find(_.toString.equalsIgnoreCase(value)).get
+      .get
   }
 }

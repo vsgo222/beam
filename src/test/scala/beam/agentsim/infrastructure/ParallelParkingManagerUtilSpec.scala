@@ -4,14 +4,13 @@ import beam.agentsim.infrastructure.parking.ParkingZone
 import beam.agentsim.infrastructure.taz.{TAZ, TAZTreeMap}
 import org.matsim.api.core.v01.Coord
 import org.matsim.core.utils.collections.QuadTree
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.{Matchers, WordSpecLike}
 
 /**
   *
   * @author Dmitry Openkov
   */
-class ParallelParkingManagerUtilSpec extends AnyWordSpecLike with Matchers {
+class ParallelParkingManagerUtilSpec extends WordSpecLike with Matchers {
 
   "ParallelParkingManager" should {
 

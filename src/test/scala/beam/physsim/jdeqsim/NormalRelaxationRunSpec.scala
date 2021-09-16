@@ -3,11 +3,9 @@ package beam.physsim.jdeqsim
 import beam.sim.BeamHelper
 import beam.utils.TestConfigUtils.testConfig
 import com.typesafe.config.ConfigFactory
-import org.scalatest.BeforeAndAfterAllConfigMap
-import org.scalatest.matchers.must.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.{BeforeAndAfterAllConfigMap, Matchers, WordSpecLike}
 
-class NormalRelaxationRunSpec extends AnyWordSpecLike with Matchers with BeamHelper with BeforeAndAfterAllConfigMap {
+class NormalRelaxationRunSpec extends WordSpecLike with Matchers with BeamHelper with BeforeAndAfterAllConfigMap {
 
   "Normal Relaxation" must {
     "run sf-light scenario for two iteration" in {

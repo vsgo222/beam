@@ -8,12 +8,11 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 
 import beam.utils.scenario.{HouseholdId, HouseholdInfo}
-import ScenarioCsvWriter._
 
 object HouseholdsCsvWriter extends ScenarioCsvWriter with StrictLogging {
 
   override protected val fields: Seq[String] =
-    Seq("householdId", "cars", "incomeValue", "locationX", "locationY")
+    Seq("householdId", "incomeValue", "locationX", "locationY")
 
   override def contentIterator(scenario: Scenario): Iterator[String] = {
     val attributes: ObjectAttributes = scenario.getHouseholds.getHouseholdAttributes
@@ -40,11 +39,11 @@ object HouseholdsCsvWriter extends ScenarioCsvWriter with StrictLogging {
 
   private def toLine(info: HouseholdInfo): String = {
     Seq(
-      info.householdId.id,
-      info.cars,
+      info.householdId,
       info.income,
       info.locationX,
       info.locationY
     ).mkString("", FieldSeparator, LineSeparator)
   }
+
 }

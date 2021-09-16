@@ -14,11 +14,9 @@ import com.google.inject
 import com.typesafe.config.ConfigFactory
 import org.matsim.core.controler.OutputDirectoryHierarchy
 import org.matsim.core.scenario.{MutableScenario, ScenarioUtils}
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.matchers.must.Matchers
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
-class BeamIncentiveSpec extends AnyWordSpecLike with Matchers with BeamHelper with BeforeAndAfterAll {
+class BeamIncentiveSpec extends WordSpecLike with Matchers with BeamHelper with BeforeAndAfterAll {
 
   private var injector: inject.Injector = _
 
@@ -49,8 +47,7 @@ class BeamIncentiveSpec extends AnyWordSpecLike with Matchers with BeamHelper wi
       .parseString(
         s"""
             |beam.actorSystemName = "BeamIncentiveSpec"
-            |beam.outputs.collectAndCreateBeamAnalysisAndGraphs=true
-                      |beam.agentsim.lastIteration = $iterationNumber
+            |beam.agentsim.lastIteration = $iterationNumber
             |beam.agentsim.agents.modeIncentive.filePath = "$beamVilleFolder$incentivesFile"
          """.stripMargin
       )

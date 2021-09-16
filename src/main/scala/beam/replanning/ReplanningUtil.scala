@@ -9,6 +9,7 @@ import org.matsim.core.replanning.selectors.RandomPlanSelector
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
 
 object ReplanningUtil {
 

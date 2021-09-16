@@ -66,9 +66,7 @@ object CsvWriter {
       case Some(x) => x
       case x       => x
     }
-    val strValue = toWrite.toString
-    val strValueToAppend = if (strValue.contains(',')) "\"" + strValue + "\"" else strValue
-    wrt.append(strValueToAppend)
+    wrt.append(toWrite.toString)
     if (shouldAddDelimiter)
       wrt.append(delimiter.value)
   }

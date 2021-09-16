@@ -1,8 +1,8 @@
 package beam.agentsim.agents.choice.mode
-import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.FlatSpec
 import beam.sim.common.Range
 
-class RangeSpec extends AnyFlatSpec {
+class RangeSpec extends FlatSpec {
 
   "Range(0,0)" should "be empty" in {
     assert(Range(0, 0).isEmpty)

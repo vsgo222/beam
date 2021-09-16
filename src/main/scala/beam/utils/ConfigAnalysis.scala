@@ -24,8 +24,7 @@ object ConfigAnalysis extends App with StrictLogging {
   val skipKeys = Seq(
     "akka",
     "beam-agent-scheduler-pinned-dispatcher",
-    "parking-network-manager-pinned-dispatcher",
-    "charging-network-manager-pinned-dispatcher",
+    "zonal-parking-manager-pinned-dispatcher",
     "parallel-parking-manager-dispatcher",
     "ride-hail-manager-pinned-dispatcher",
     "my-custom-mailbox"

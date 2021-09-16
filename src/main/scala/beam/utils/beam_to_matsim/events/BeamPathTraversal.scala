@@ -108,7 +108,6 @@ case class BeamPathTraversal(
 
   assert(linkIds.size == linkTravelTime.size, "linkIds size does not equal to linkTravelTime size")
 
-  @SuppressWarnings(Array("UnsafeTraversableMethods"))
   def removeHeadLinkFromTrip(): Unit = {
     linkIds = linkIds.tail
     linkTravelTime = linkTravelTime.tail

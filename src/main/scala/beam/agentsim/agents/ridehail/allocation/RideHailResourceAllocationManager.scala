@@ -1,27 +1,26 @@
 package beam.agentsim.agents.ridehail.allocation
 
 import beam.agentsim.agents.ridehail.RideHailManager.PoolingInfo
-import beam.agentsim.agents.ridehail.RideHailManagerHelper.RideHailAgentLocation
+import beam.agentsim.agents.ridehail.RideHailVehicleManager.RideHailAgentLocation
 import beam.agentsim.agents.ridehail.repositioningmanager._
 import beam.agentsim.agents.ridehail.{RideHailManager, RideHailRequest}
 import beam.agentsim.agents.vehicles.BeamVehicle
 import beam.agentsim.agents.{Dropoff, MobilityRequest, Pickup, Relocation}
-import beam.router.BeamRouter
+import beam.agentsim.infrastructure.ParkingStall
 import beam.router.BeamRouter.{Location, RoutingRequest, RoutingResponse}
 import beam.sim.BeamServices
 import beam.sim.config.BeamConfig
 import com.typesafe.scalalogging.LazyLogging
-import enumeratum.{Enum, EnumEntry}
 import org.matsim.api.core.v01.Id
 import org.matsim.api.core.v01.population.Person
+
+import scala.util.control.NonFatal
 
 abstract class RideHailResourceAllocationManager(private val rideHailManager: RideHailManager) extends LazyLogging {
 
   private var bufferedRideHailRequests = Map[RideHailRequest, List[RoutingResponse]]()
   private var secondaryBufferedRideHailRequests = Map[RideHailRequest, List[RoutingResponse]]()
   private var awaitingRoutes = Set[RideHailRequest]()
-  protected val maxWaitTimeInSec =
-    rideHailManager.beamScenario.beamConfig.beam.agentsim.agents.rideHail.allocationManager.maxWaitingTimeInSec
 
   /*
    * respondToInquiry
@@ -37,12 +36,12 @@ abstract class RideHailResourceAllocationManager(private val rideHailManager: Ri
    * rational choices about mode that reflect the true travel time cost of pooling.
    */
   def respondToInquiry(inquiry: RideHailRequest): InquiryResponse = {
-    rideHailManager.rideHailManagerHelper.getClosestIdleVehiclesWithinRadiusByETA(
+    rideHailManager.vehicleManager.getClosestIdleVehiclesWithinRadiusByETA(
       inquiry.pickUpLocationUTM,
       inquiry.destinationUTM,
       rideHailManager.radiusInMeters,
-      maxWaitTimeInSec,
-      inquiry.departAt
+      inquiry.departAt,
+      wheelchair = inquiry.customer.personId.toString().contains("wc-")
     ) match {
       case Some(agentETA) =>
         SingleOccupantQuoteAndPoolingInfo(agentETA.agentLocation, None)
@@ -84,45 +83,18 @@ abstract class RideHailResourceAllocationManager(private val rideHailManager: Ri
   }
   def isBufferEmpty: Boolean = bufferedRideHailRequests.isEmpty
 
-  /**
-    * Take all requests in the buffer that are not part of the current product type (i.e. SOLO or POOLED) and move
-    * them into the secondary request buffer which effectively delays when they are processed to a future allocation.
-    *
-    * @param dispatchProductType Enum specifying which product type is being processed.
-    */
-  private def moveNonMatchingDispatchProductTypeToSecondaryBuffer(dispatchProductType: DispatchProductType): Unit = {
-    val requestsNotMatchingDispatchProductType = if (dispatchProductType == DispatchProductType.POOLED) {
-      bufferedRideHailRequests.filterNot(x => x._1.asPooled)
-    } else if (dispatchProductType == DispatchProductType.SOLO) {
-      bufferedRideHailRequests.filter(x => x._1.asPooled)
-    } else {
-      Map.empty[RideHailRequest, scala.List[BeamRouter.RoutingResponse]]
-    }
-
-    requestsNotMatchingDispatchProductType.foreach {
-      case (rideHailRequest, _) =>
-        removeRequestFromBuffer(rideHailRequest)
-        addRequestToSecondaryBuffer(rideHailRequest)
-    }
-  }
-
-  def allocateVehiclesToCustomers(
-    tick: Int,
-    beamServices: BeamServices,
-    dispatchProductType: DispatchProductType,
-    triggerId: Long,
-  ): AllocationResponse = {
-    moveNonMatchingDispatchProductTypeToSecondaryBuffer(dispatchProductType)
-
-    val allocationResponse =
-      allocateVehiclesToCustomers(tick, new AllocationRequests(bufferedRideHailRequests), beamServices, triggerId)
+  def allocateVehiclesToCustomers(tick: Int, beamServices: BeamServices): AllocationResponse = {
+    var allocationResponse =
+      allocateVehiclesToCustomers(tick, new AllocationRequests(bufferedRideHailRequests), beamServices)
     allocationResponse match {
       case VehicleAllocations(allocations) =>
-        allocations.foreach {
-          case RoutingRequiredToAllocateVehicle(request, _) =>
-            awaitingRoutes += request
-            bufferedRideHailRequests -= request
-          case _ =>
+        allocations.foreach { alloc =>
+          alloc match {
+            case RoutingRequiredToAllocateVehicle(request, _) =>
+              awaitingRoutes += request
+              bufferedRideHailRequests -= request
+            case _ =>
+          }
         }
       case _ =>
     }
@@ -152,21 +124,20 @@ abstract class RideHailResourceAllocationManager(private val rideHailManager: Ri
   def allocateVehiclesToCustomers(
     tick: Int,
     vehicleAllocationRequest: AllocationRequests,
-    beamServices: BeamServices,
-    triggerId: Long,
+    beamServices: BeamServices
   ): AllocationResponse = {
     // closest request
     var alreadyAllocated: Set[Id[BeamVehicle]] = Set()
     val allocResponses = vehicleAllocationRequest.requests.map {
       case (request, routingResponses) if (routingResponses.isEmpty) =>
-        val requestWithUpdatedLoc = RideHailRequest.projectCoordinatesToUtm(request, beamServices)
-        rideHailManager.rideHailManagerHelper
+        val requestWithUpdatedLoc = RideHailRequest.handleImpression(request, beamServices)
+        rideHailManager.vehicleManager
           .getClosestIdleVehiclesWithinRadiusByETA(
             requestWithUpdatedLoc.pickUpLocationUTM,
             requestWithUpdatedLoc.destinationUTM,
             rideHailManager.radiusInMeters,
             tick,
-            maxWaitTimeInSec
+            requestWithUpdatedLoc.customer.personId.toString().contains("wc-")
           ) match {
           case Some(agentETA) =>
             val routeRequired = RoutingRequiredToAllocateVehicle(
@@ -174,8 +145,7 @@ abstract class RideHailResourceAllocationManager(private val rideHailManager: Ri
               rideHailManager.createRoutingRequestsToCustomerAndDestination(
                 tick,
                 requestWithUpdatedLoc,
-                agentETA.agentLocation,
-                request.triggerId,
+                agentETA.agentLocation
               )
             )
             routeRequired
@@ -186,14 +156,14 @@ abstract class RideHailResourceAllocationManager(private val rideHailManager: Ri
       case (request, routingResponses) if routingResponses.exists(_.itineraries.isEmpty) =>
         NoVehicleAllocated(request)
       case (request, routingResponses) =>
-        val requestUpdated = RideHailRequest.projectCoordinatesToUtm(request, beamServices)
-        rideHailManager.rideHailManagerHelper
+        val requestUpdated = RideHailRequest.handleImpression(request, beamServices)
+        rideHailManager.vehicleManager
           .getClosestIdleVehiclesWithinRadiusByETA(
             requestUpdated.pickUpLocationUTM,
             requestUpdated.destinationUTM,
             rideHailManager.radiusInMeters,
             tick,
-            maxWaitTimeInSec,
+            wheelchair = requestUpdated.customer.personId.toString().contains("wc-"),
             excludeRideHailVehicles = alreadyAllocated
           ) match {
           case Some(agentETA) =>
@@ -223,6 +193,36 @@ abstract class RideHailResourceAllocationManager(private val rideHailManager: Ri
   val repositioningManager: RepositioningManager = createRepositioningManager()
   logger.info(s"Using ${repositioningManager.getClass.getSimpleName} as RepositioningManager")
 
+  def findDepotsForVehiclesInNeedOfRefueling(
+    idleVehicles: scala.collection.Map[Id[BeamVehicle], RideHailAgentLocation],
+    cavOnly: Boolean = true
+  ): Vector[(Id[BeamVehicle], ParkingStall)] = {
+    val idleVehicleIdsAndLocation: Vector[(Id[BeamVehicle], RideHailAgentLocation)] = idleVehicles.toVector
+    val idleVehicleIdsWantingToRefuelWithLocation = idleVehicleIdsAndLocation.filter {
+      case ((vehicleId: Id[BeamVehicle], _)) => {
+        rideHailManager.findBeamVehicleUsing(vehicleId) match {
+          case Some(beamVehicle) => {
+            if (cavOnly && !beamVehicle.isCAV) false
+            else
+              beamVehicle.isRefuelNeeded(
+                rideHailManager.beamScenario.beamConfig.beam.agentsim.agents.rideHail.cav.refuelRequiredThresholdInMeters,
+                rideHailManager.beamScenario.beamConfig.beam.agentsim.agents.rideHail.cav.noRefuelThresholdInMeters
+              )
+          }
+          case None => false
+        }
+      }
+    }
+
+    for {
+      (vehicleId, location) <- idleVehicleIdsWantingToRefuelWithLocation
+      beamVehicle           <- rideHailManager.findBeamVehicleUsing(vehicleId)
+      (parkingDuration, _) = beamVehicle.refuelingSessionDurationAndEnergyInJoules()
+      parkingStall <- rideHailManager.rideHailDepotParkingManager
+        .findDepot(location.currentLocationUTM.loc, parkingDuration)
+    } yield (vehicleId, parkingStall)
+  }
+
   /*
    * repositionVehicles
    *
@@ -250,16 +250,30 @@ abstract class RideHailResourceAllocationManager(private val rideHailManager: Ri
   def getUnprocessedCustomers: Set[RideHailRequest] = awaitingRoutes
 
   def createRepositioningManager(): RepositioningManager = {
-    val repositioningManagerName =
-      rideHailManager.beamServices.beamConfig.beam.agentsim.agents.rideHail.repositioningManager.name
-
-    val repositionManagerTry = rideHailManager.beamServices.beamCustomizationAPI.getRepositionManagerFactory
-      .create(rideHailManager, repositioningManagerName)
-
-    repositionManagerTry.recoverWith {
-      case exception: Exception =>
-        throw new IllegalStateException(s"There is no implementation for `$repositioningManagerName`", exception)
-    }.get
+    val name = rideHailManager.beamServices.beamConfig.beam.agentsim.agents.rideHail.repositioningManager.name
+    try {
+      name match {
+        case "DEFAULT_REPOSITIONING_MANAGER" =>
+          RepositioningManager[DefaultRepositioningManager](rideHailManager.beamServices, rideHailManager)
+        case "DEMAND_FOLLOWING_REPOSITIONING_MANAGER" =>
+          RepositioningManager[DemandFollowingRepositioningManager](rideHailManager.beamServices, rideHailManager)
+        case "INVERSE_SQUARE_DISTANCE_REPOSITIONING_FACTOR" =>
+          RepositioningManager[InverseSquareDistanceRepositioningFactor](
+            rideHailManager.beamServices,
+            rideHailManager
+          )
+        case "REPOSITIONING_LOW_WAITING_TIMES" =>
+          RepositioningManager[RepositioningLowWaitingTimes](rideHailManager.beamServices, rideHailManager)
+        case "THE_SAME_LOCATION_REPOSITIONING_MANAGER" =>
+          RepositioningManager[TheSameLocationRepositioningManager](rideHailManager.beamServices, rideHailManager)
+        case x =>
+          throw new IllegalStateException(s"There is no implementation for `$x`")
+      }
+    } catch {
+      case NonFatal(ex) =>
+        logger.error(s"Could not create reposition manager from $name: ${ex.getMessage}", ex)
+        throw ex
+    }
   }
 }
 
@@ -279,7 +293,7 @@ object RideHailResourceAllocationManager {
       case RideHailResourceAllocationManager.DEFAULT_MANAGER =>
         new DefaultRideHailResourceAllocationManager(rideHailManager)
       case RideHailResourceAllocationManager.EV_MANAGER =>
-        //        new EVFleetAllocationManager(rideHailManager)
+//        new EVFleetAllocationManager(rideHailManager)
         new DefaultRideHailResourceAllocationManager(rideHailManager)
       case RideHailResourceAllocationManager.POOLING =>
         new Pooling(rideHailManager)
@@ -315,36 +329,26 @@ object RideHailResourceAllocationManager {
  * can be one to many... i.e. one vehicle is assigned to many customers.
  */
 trait InquiryResponse
-
 case object NoVehiclesAvailable extends InquiryResponse
-
 case class SingleOccupantQuoteAndPoolingInfo(
   rideHailAgentLocation: RideHailAgentLocation,
   poolingInfo: Option[PoolingInfo]
 ) extends InquiryResponse
-
 /*
  * An AllocationResponse is what the RideHailResourceAllocationManager returns in response to an AllocationRequest
  */
 trait AllocationResponse
-
 case object NoRidesRequested extends AllocationResponse
-
 case class VehicleAllocations(allocations: IndexedSeq[VehicleAllocation]) extends AllocationResponse
 
 /*
  * A VehicleAllocation is a specific directive about one ride hail vehicle
  * (match found or no match found? if found, who are the customers?)
  */
-trait VehicleAllocation {
-  val request: RideHailRequest
-}
-
+trait VehicleAllocation { val request: RideHailRequest }
 case class NoVehicleAllocated(request: RideHailRequest) extends VehicleAllocation
-
 case class RoutingRequiredToAllocateVehicle(request: RideHailRequest, routesRequired: List[RoutingRequest])
     extends VehicleAllocation
-
 case class VehicleMatchedToCustomers(
   request: RideHailRequest,
   rideHailAgentLocation: RideHailAgentLocation,
@@ -355,28 +359,12 @@ case class AllocationRequests(requests: Map[RideHailRequest, List[RoutingRespons
 
 object AllocationRequests {
   def apply(requests: List[RideHailRequest]): AllocationRequests = AllocationRequests(requests.map((_ -> List())).toMap)
-
   def apply(request: RideHailRequest): AllocationRequests = AllocationRequests(Map((request -> List())))
 
   def apply(request: RideHailRequest, routeResponses: List[RoutingResponse]): AllocationRequests =
     AllocationRequests(Map((request -> routeResponses)))
 }
 
-sealed trait DispatchProductType extends EnumEntry
-
-/**
-  * Flags what product is being dispatched, either SOLO, POOLED, or both SOLO_AND_POOLED.
-  */
-object DispatchProductType extends Enum[DispatchProductType] {
-  val values = findValues
-
-  case object SOLO extends DispatchProductType
-
-  case object SOLO_AND_POOLED extends DispatchProductType
-
-  case object POOLED extends DispatchProductType
-
-}
 //requestType: RideHailRequestType,
 //customer: VehiclePersonId,
 //pickUpLocation: Location,

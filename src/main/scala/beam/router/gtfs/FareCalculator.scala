@@ -84,10 +84,8 @@ class FareCalculator @Inject()(beamConfig: BeamConfig) {
 
         fare.fare_rules.forEach(r => {
 
-          @SuppressWarnings(Array("UnsafeTraversableMethods"))
-          val fareHead = fares.get(r.fare_id).head
           val rule: BeamFareRule = BeamFareRule(
-            fareHead,
+            fares.get(r.fare_id).head,
             agencyId,
             r.route_id,
             r.origin_id,

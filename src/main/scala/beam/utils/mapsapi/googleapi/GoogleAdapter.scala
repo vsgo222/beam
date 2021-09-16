@@ -91,10 +91,9 @@ class GoogleAdapter(apiKey: String, outputResponseToFile: Option[Path] = None, a
   }
 
   private def parseRoutes(jsRoutes: Seq[JsValue]): Seq[Route] = {
-    jsRoutes.flatMap { route: JsValue =>
-      (route \ "legs").as[JsArray].value.map { value =>
-        parseRoute(value.as[JsObject])
-      }
+    jsRoutes.map { route =>
+      val firstAndUniqueLeg = (route \ "legs").as[JsArray].value.head
+      parseRoute(firstAndUniqueLeg.as[JsObject])
     }
   }
 

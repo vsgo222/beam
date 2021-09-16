@@ -10,8 +10,7 @@ import org.matsim.core.api.experimental.events.EventsManager
 import org.matsim.core.events.EventsUtils
 import org.matsim.core.events.handler.BasicEventHandler
 import org.matsim.vehicles.Vehicle
-import org.scalatest.Assertion
-import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.{Assertion, FunSuite}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -22,7 +21,7 @@ class DummyEventsHandler extends BasicEventHandler {
   }
 }
 
-class DrivesVehicleTest extends AnyFunSuite {
+class DrivesVehicleTest extends FunSuite {
   test("processLinkEvents should work properly") {
     val linkIds = Array(1, 2, 3, 4)
     val linkTravelTime = Array(1.0, 2.0, 3.0, 4.0)

@@ -13,15 +13,13 @@ import org.matsim.core.scenario.ScenarioUtils
 import org.matsim.households.{Household, HouseholdImpl, HouseholdsImpl}
 import org.matsim.utils.objectattributes.ObjectAttributes
 import org.matsim.vehicles.{Vehicle, VehicleType, VehicleUtils, Vehicles}
-import org.scalatest.GivenWhenThen
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.must.Matchers
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatestplus.mockito.MockitoSugar
+import org.scalatest.{FlatSpec, GivenWhenThen, Matchers}
 
 import scala.collection.{immutable, JavaConverters}
 import scala.util.Random
 
-class ChainBasedTourAllocatorSpec extends AnyFlatSpec with Matchers with BeamHelper with GivenWhenThen {
+class ChainBasedTourAllocatorSpec extends FlatSpec with Matchers with BeamHelper with MockitoSugar with GivenWhenThen {
 
   val MODE = "Car"
 

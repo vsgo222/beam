@@ -11,7 +11,6 @@ import beam.agentsim.agents.ridehail.RideHailAgent.{
 import beam.agentsim.agents.vehicles.PassengerSchedule
 import beam.agentsim.infrastructure.ParkingStall
 import beam.agentsim.scheduler.BeamAgentScheduler.ScheduleTrigger
-import beam.agentsim.scheduler.HasTriggerId
 import beam.utils.DebugLib
 import org.matsim.api.core.v01.Id
 import org.matsim.vehicles.Vehicle
@@ -32,18 +31,17 @@ class OutOfServiceVehicleManager(
   def initiateMovementToParkingDepot(
     vehicleId: Id[Vehicle],
     passengerSchedule: PassengerSchedule,
-    tick: Int,
-    triggerId: Long
+    tick: Int
   ): Unit = {
     log.debug("initiateMovementToParkingDepot - vehicle: " + vehicleId)
 
     passengerSchedules.put(vehicleId, passengerSchedule)
 
-    rideHailManager.rideHailManagerHelper
+    rideHailManager.vehicleManager
       .getRideHailAgentLocation(vehicleId)
       .rideHailAgent
       .tell(
-        Interrupt(RideHailModifyPassengerScheduleManager.nextRideHailAgentInterruptId, tick, triggerId),
+        Interrupt(RideHailModifyPassengerScheduleManager.nextRideHailAgentInterruptId, tick),
         rideHailManagerActor
       )
   }
@@ -54,31 +52,30 @@ class OutOfServiceVehicleManager(
 
   def handleInterruptReply(
     vehicleId: Id[Vehicle],
-    tick: Int,
-    triggerId: Long
+    tick: Int
   ): Unit = {
 
-    val rideHailAgent = rideHailManager.rideHailManagerHelper
+    val rideHailAgent = rideHailManager.vehicleManager
       .getRideHailAgentLocation(vehicleId)
       .rideHailAgent
 
     rideHailAgent.tell(
-      ModifyPassengerSchedule(passengerSchedules(vehicleId), tick, triggerId),
+      ModifyPassengerSchedule(passengerSchedules(vehicleId), tick),
       rideHailManagerActor
     )
-    rideHailAgent.tell(Resume(triggerId), rideHailManagerActor)
+    rideHailAgent.tell(Resume, rideHailManagerActor)
   }
 
   def releaseTrigger(
     vehicleId: Id[Vehicle],
     triggersToSchedule: Seq[ScheduleTrigger] = Vector()
   ): Unit = {
-    val rideHailAgent = rideHailManager.rideHailManagerHelper
+    val rideHailAgent = rideHailManager.vehicleManager
       .getRideHailAgentLocation(vehicleId)
       .rideHailAgent
 
     rideHailAgent ! NotifyVehicleResourceIdleReply(
-      triggerIds(vehicleId).get,
+      triggerIds(vehicleId),
       triggersToSchedule
     )
   }
@@ -91,5 +88,5 @@ case class MoveOutOfServiceVehicleToDepotParking(
   passengerSchedule: PassengerSchedule,
   tick: Int,
   vehicleId: Id[Vehicle],
-  triggerId: Long
-) extends HasTriggerId
+  stall: ParkingStall
+)

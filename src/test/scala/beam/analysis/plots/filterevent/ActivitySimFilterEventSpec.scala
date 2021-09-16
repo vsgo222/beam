@@ -1,5 +1,7 @@
 package beam.analysis.plots.filterevent
 
+import scala.util.Random
+
 import beam.agentsim.events.ModeChoiceEvent
 import beam.router.model.{EmbodiedBeamLeg, EmbodiedBeamTrip}
 import beam.sim.config.BeamConfig
@@ -9,13 +11,11 @@ import org.matsim.api.core.v01.Id
 import org.matsim.api.core.v01.population.{Activity, PlanElement}
 import org.matsim.core.controler.MatsimServices
 import org.mockito.Mockito
-import org.mockito.Mockito.{doAnswer, mock}
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.mockito.Mockito.doAnswer
+import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatestplus.mockito.MockitoSugar
 
-import scala.util.Random
-
-class ActivitySimFilterEventSpec extends AnyWordSpecLike with Matchers {
+class ActivitySimFilterEventSpec extends WordSpecLike with MockitoSugar with Matchers {
 
   private val beamConfigEnabled = BeamConfig(
     ConfigFactory
@@ -29,7 +29,7 @@ class ActivitySimFilterEventSpec extends AnyWordSpecLike with Matchers {
       .withFallback(testConfig("test/input/beamville/beam.conf"))
       .resolve()
   )
-  private val matsimServices = mock(classOf[MatsimServices])
+  private val matsimServices = mock[MatsimServices]
 
   private val activityTypeHome = "Home"
   private val activityHome = buildActivity(activityTypeHome)
@@ -108,7 +108,7 @@ class ActivitySimFilterEventSpec extends AnyWordSpecLike with Matchers {
   }
 
   private def buildActivity(activityType: String): Activity = {
-    val result = mock(classOf[Activity])
+    val result = mock[Activity]
     Mockito.when(result.getType).thenReturn(activityType)
     result
   }

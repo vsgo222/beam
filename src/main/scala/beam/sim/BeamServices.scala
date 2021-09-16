@@ -2,7 +2,6 @@ package beam.sim
 
 import akka.actor.ActorRef
 import beam.agentsim.agents.modalbehaviors.ModeChoiceCalculator.ModeChoiceCalculatorFactory
-import beam.api.BeamCustomizationAPI
 import beam.router.gtfs.FareCalculator
 import beam.router.osm.TollCalculator
 import beam.router.r5.BikeLanesAdjustment
@@ -67,7 +66,6 @@ trait BeamServices {
   var modeChoiceCalculatorFactory: ModeChoiceCalculatorFactory
 
   var beamRouter: ActorRef
-  var eventBuilderActor: ActorRef
 
   def matsimServices: MatsimServices
   def networkHelper: NetworkHelper
@@ -77,8 +75,6 @@ trait BeamServices {
 
   def simMetricCollector: SimulationMetricCollector
   def bikeLanesAdjustment: BikeLanesAdjustment
-
-  def beamCustomizationAPI: BeamCustomizationAPI
 }
 
 class BeamServicesImpl @Inject()(val injector: Injector) extends BeamServices {
@@ -96,7 +92,6 @@ class BeamServicesImpl @Inject()(val injector: Injector) extends BeamServices {
 
   var modeChoiceCalculatorFactory: ModeChoiceCalculatorFactory = _
   var beamRouter: ActorRef = _
-  var eventBuilderActor: ActorRef = _
 
   override val matsimServices: MatsimServices = injector.getInstance(classOf[MatsimServices])
 
@@ -107,6 +102,4 @@ class BeamServicesImpl @Inject()(val injector: Injector) extends BeamServices {
 
   override lazy val simMetricCollector: SimulationMetricCollector =
     injector.getInstance(classOf[SimulationMetricCollector])
-
-  override def beamCustomizationAPI: BeamCustomizationAPI = injector.getInstance(classOf[BeamCustomizationAPI])
 }

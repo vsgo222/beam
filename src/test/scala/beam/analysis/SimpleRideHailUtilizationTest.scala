@@ -3,10 +3,9 @@ package beam.analysis
 import beam.agentsim.events.PathTraversalEvent
 import beam.router.Modes.BeamMode
 import org.matsim.api.core.v01.Id
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.{FunSuite, Matchers}
 
-class SimpleRideHailUtilizationTest extends AnyFunSuite with Matchers {
+class SimpleRideHailUtilizationTest extends FunSuite with Matchers {
 
   val pathTraversalEvent: PathTraversalEvent = PathTraversalEvent(
     time = 1,
@@ -34,8 +33,7 @@ class SimpleRideHailUtilizationTest extends AnyFunSuite with Matchers {
     endLegSecondaryFuelLevel = 4,
     amountPaid = 1,
     None,
-    None,
-    riders = Vector()
+    None
   )
 
   test("Should ignore non-ridehail vehicles") {

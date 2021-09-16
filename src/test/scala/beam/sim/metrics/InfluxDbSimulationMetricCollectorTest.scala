@@ -3,14 +3,13 @@ package beam.sim.metrics
 import java.util.concurrent.ConcurrentHashMap
 
 import org.junit.runner.RunWith
-import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.{Matchers, WordSpecLike}
 import org.scalatestplus.junit.JUnitRunner
 
 import scala.collection.mutable
 
 @RunWith(classOf[JUnitRunner])
-class InfluxDbSimulationMetricCollectorTest extends AnyWordSpecLike with Matchers {
+class InfluxDbSimulationMetricCollectorTest extends WordSpecLike with Matchers {
 
   val concurrentMap = new ConcurrentHashMap[String, Long]()
   val metricName = "test_name"

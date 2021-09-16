@@ -11,12 +11,10 @@ import beam.router.model.{BeamLeg, BeamPath, EmbodiedBeamLeg, EmbodiedBeamTrip}
 import beam.sim.population.{AttributesOfIndividual, HouseholdAttributes}
 import org.apache.avro.generic.GenericData
 import org.matsim.api.core.v01.{Coord, Id}
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers
-
+import org.scalatest.{FunSuite, Matchers}
 import scala.collection.JavaConverters._
 
-class RouteDumperTest extends AnyFunSuite with Matchers {
+class RouteDumperTest extends FunSuite with Matchers {
   test("Should be able to convert RoutingRequest to Record") {
     val origin = new Location(166027.034662, 2208.12088093)
     val time = 3000
@@ -26,8 +24,7 @@ class RouteDumperTest extends AnyFunSuite with Matchers {
       Id.create("beamVilleCar", classOf[BeamVehicleType]),
       new SpaceTime(new Coord(origin.getX, origin.getY), time),
       Modes.BeamMode.CAR,
-      asDriver = true,
-      needsToCalculateCost = true
+      asDriver = true
     )
     val attributesOfIndividual = AttributesOfIndividual(
       HouseholdAttributes("1", 200, 300, 400, 500),
@@ -45,8 +42,7 @@ class RouteDumperTest extends AnyFunSuite with Matchers {
       withTransit = false,
       streetVehicles = Vector(streetVehicle),
       attributesOfIndividual = Some(attributesOfIndividual),
-      requestId = 123,
-      triggerId = 0
+      requestId = 123
     )
     val record = RouteDumper.toRecord(request)
     record.get("requestId") shouldBe 123
@@ -115,8 +111,7 @@ class RouteDumperTest extends AnyFunSuite with Matchers {
       leg = beamLeg,
       vehicleId = Id.createVehicleId("car"),
       vehicleTypeId = Id.create("beamVilleCar", classOf[BeamVehicleType]),
-      requestId = 123,
-      triggerId = 0
+      requestId = 123
     )
 
     val record = RouteDumper.toRecord(embodyWithCurrentTravelTime)
@@ -176,8 +171,7 @@ class RouteDumperTest extends AnyFunSuite with Matchers {
       ),
       requestId = 123,
       request = None,
-      isEmbodyWithCurrentTravelTime = false,
-      triggerId = 0
+      isEmbodyWithCurrentTravelTime = false
     )
 
     val records = RouteDumper.toRecords(routingResposne)

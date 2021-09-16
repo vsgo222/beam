@@ -40,7 +40,7 @@ case class UniformVehiclesAdjustment(beamScenario: BeamScenario) extends Vehicle
     }.toList
   }
 
-  override def sampleVehicleTypes(
+  override def sampleRideHailVehicleTypes(
     numVehicles: Int,
     vehicleCategory: VehicleCategory,
     realDistribution: UniformRealDistribution
@@ -49,9 +49,9 @@ case class UniformVehiclesAdjustment(beamScenario: BeamScenario) extends Vehicle
       (vehicleCategory, "Ride Hail Vehicle"),
       vehicleTypesAndProbabilitiesByCategory(vehicleCategory, "Usage Not Set")
     )
-    (1 to numVehicles).flatMap { _ =>
+    (1 to numVehicles).map { _ =>
       val newRand = realDistribution.sample()
-      val vehType = vehTypeWithProbability.find { case (_, prob) => prob >= newRand }.map(_._1)
+      val (vehType, _) = vehTypeWithProbability.find { case (_, prob) => prob >= newRand }.get
       vehType
     }.toList
   }

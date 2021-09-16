@@ -1,11 +1,9 @@
 package beam.utils.matsim_conversion
 
-import org.matsim.api.core.v01.Id
-
 import java.io.{FileOutputStream, OutputStreamWriter}
 import java.nio.charset.StandardCharsets
 import java.util.zip.GZIPOutputStream
-import scala.reflect.ClassTag
+
 import scala.xml._
 import scala.xml.dtd.{DocType, SystemID}
 import scala.xml.transform.{RewriteRule, RuleTransformer}
@@ -46,7 +44,7 @@ object MatsimPlanConversion {
     println("plan2")
 
     val houseHolds =
-      generateHouseholds(persons, vehiclesWithTypeId.flatMap(_.headOption), conversionConfig.income)
+      generateHouseholds(persons, vehiclesWithTypeId.map(_.head), conversionConfig.income)
 
     val populationAttrs = generatePopulationAttributes(persons)
 
@@ -225,10 +223,5 @@ object MatsimPlanConversion {
 
   def mapMetaData(m: MetaData)(f: GenAttr => GenAttr): MetaData =
     chainMetaData(unchainMetaData(m).map(f))
-
-  implicit class IdOps(val id: String) extends AnyVal {
-    import scala.reflect.classTag
-    def createId[T: ClassTag]: Id[T] = Id.create(id, classTag[T].runtimeClass.asInstanceOf[Class[T]])
-  }
 
 }

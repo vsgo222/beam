@@ -38,8 +38,7 @@ object BeamSigoptTuner {
     val experimentList = Experiment.list().call().getData
     val optExperiment = experimentList.stream
       .filter(
-        (experiment: Experiment) =>
-          experiment.getId == experimentId && experiment.getDevelopment.booleanValue() == development
+        (experiment: Experiment) => experiment.getId == experimentId & experiment.getDevelopment == development
       )
       .findFirst
     optExperiment.toOption

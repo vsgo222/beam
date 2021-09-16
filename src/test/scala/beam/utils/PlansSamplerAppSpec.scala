@@ -6,10 +6,9 @@ import beam.utils.plan.sampling.PlansSampler
 import org.matsim.core.config.ConfigUtils
 import org.matsim.core.scenario.{MutableScenario, ScenarioUtils}
 import org.matsim.utils.objectattributes.ObjectAttributes
-import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.{Matchers, WordSpecLike}
 
-class PlansSamplerAppSpec extends AnyWordSpecLike with Matchers {
+class PlansSamplerAppSpec extends WordSpecLike with Matchers {
 
   val inputData: Array[String] = Array(
     "test/input/sf-light/sample/1k/population.xml.gz",

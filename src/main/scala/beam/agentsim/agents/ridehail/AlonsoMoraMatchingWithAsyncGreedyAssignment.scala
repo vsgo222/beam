@@ -59,8 +59,7 @@ class AlonsoMoraMatchingWithAsyncGreedyAssignment(
             List(r.pickup, r.dropoff),
             v.vehicleRemainingRangeInMeters.toInt,
             v.getRequestWithCurrentVehiclePosition,
-            beamServices,
-            Some(v.vehicle.beamVehicleType)
+            beamServices
           )
           .foreach { schedule =>
             val t = RideHailTrip(List(r), schedule, Some(v))

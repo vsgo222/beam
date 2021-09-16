@@ -2,16 +2,17 @@ package beam.sim
 
 import java.util.concurrent.TimeUnit
 
+import beam.analysis.plots.PersonTravelTimeAnalysis
+import beam.utils.FileUtils
 import beam.utils.TestConfigUtils.testConfig
 import beam.utils.csv.GenericCsvReader
 import com.typesafe.config.ConfigFactory
 import org.matsim.core.controler.OutputDirectoryHierarchy
-import org.scalatest.BeforeAndAfterAllConfigMap
-import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.matchers.must.Matchers
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.{BeforeAndAfterAllConfigMap, Matchers, WordSpecLike}
 
-class BeamWarmStartRunSpec extends AnyWordSpecLike with Matchers with BeamHelper with BeforeAndAfterAllConfigMap {
+import scala.io.Source
+
+class BeamWarmStartRunSpec extends WordSpecLike with Matchers with BeamHelper with BeforeAndAfterAllConfigMap {
 
   "Beam WarmStart" must {
     "run sf-light scenario for two iteration with warmstart" in {
@@ -19,7 +20,7 @@ class BeamWarmStartRunSpec extends AnyWordSpecLike with Matchers with BeamHelper
       val baseConf = ConfigFactory
         .parseString(s"""
                        |beam.agentsim.lastIteration = 1
-                       |beam.warmStart.type = full
+                       |beam.warmStart.enabled = true
                        |beam.warmStart.path = test/input/sf-light/warmstart
                      """.stripMargin)
         .withFallback(testConfig("test/input/sf-light/sf-light.conf"))

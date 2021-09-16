@@ -10,13 +10,11 @@ import beam.sim.config.BeamConfig.Beam.Debug.StuckAgentDetection
 import beam.sim.config.BeamConfig.Beam.Debug.StuckAgentDetection.Thresholds$Elm
 import beam.sim.config.BeamConfig.Beam.Debug.StuckAgentDetection.Thresholds$Elm.ActorTypeToMaxNumberOfMessages
 import org.matsim.api.core.v01.Id
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 class StuckFinderSpec
     extends TestKit(ActorSystem("StuckFinderSpec"))
-    with AnyWordSpecLike
+    with WordSpecLike
     with Matchers
     with BeforeAndAfterAll {
 

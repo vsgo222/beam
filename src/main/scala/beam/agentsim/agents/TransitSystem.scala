@@ -1,41 +1,39 @@
 package beam.agentsim.agents
 
+import scala.util.{Random, Try}
+
+import akka.actor.{Actor, ActorLogging, ActorRef, OneForOneStrategy, Terminated}
 import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{ActorLogging, ActorRef, OneForOneStrategy, Terminated}
 import beam.agentsim.agents.BeamAgent.Finish
+import beam.agentsim.agents.vehicles.{BeamVehicle, BeamVehicleType}
 import beam.agentsim.agents.vehicles.EnergyEconomyAttributes.Powertrain
-import beam.agentsim.agents.vehicles.{BeamVehicle, BeamVehicleType, VehicleManager}
 import beam.agentsim.scheduler.BeamAgentScheduler.{CompletionNotice, ScheduleTrigger}
 import beam.agentsim.scheduler.Trigger.TriggerWithId
+import beam.router.{BeamRouter, Modes, TransitInitializer}
 import beam.router.Modes.BeamMode.{BUS, CABLE_CAR, FERRY, GONDOLA, RAIL, SUBWAY, TRAM}
 import beam.router.model.BeamLeg
 import beam.router.osm.TollCalculator
-import beam.router.{BeamRouter, Modes, TransitInitializer}
+import beam.sim.BeamScenario
 import beam.sim.common.GeoUtils
 import beam.sim.config.BeamConfig
-import beam.sim.{BeamScenario, BeamServices}
-import beam.utils.logging.{ExponentialLazyLogging, LoggingMessageActor}
 import beam.utils.{FileUtils, NetworkHelper}
+import beam.utils.logging.ExponentialLazyLogging
 import com.conveyal.r5.transit.{RouteInfo, TransitLayer, TransportNetwork}
 import org.matsim.api.core.v01.{Id, Scenario}
 import org.matsim.core.api.experimental.events.EventsManager
 import org.matsim.vehicles.Vehicle
 
-import scala.util.{Random, Try}
-
 class TransitSystem(
-  val beamServices: BeamServices,
   val beamScenario: BeamScenario,
   val scenario: Scenario,
   val transportNetwork: TransportNetwork,
   val scheduler: ActorRef,
   val parkingManager: ActorRef,
-  val chargingNetworkManager: ActorRef,
   val tollCalculator: TollCalculator,
   val geo: GeoUtils,
   val networkHelper: NetworkHelper,
   val eventsManager: EventsManager
-) extends LoggingMessageActor
+) extends Actor
     with ActorLogging {
 
   override val supervisorStrategy: OneForOneStrategy =
@@ -47,7 +45,7 @@ class TransitSystem(
   initDriverAgents()
   log.info("Transit schedule has been initialized")
 
-  override def loggedReceive: PartialFunction[Any, Unit] = {
+  override def receive: PartialFunction[Any, Unit] = {
     case TriggerWithId(InitializeTrigger(_), triggerId) =>
       sender ! CompletionNotice(triggerId, Vector())
     case Terminated(_) =>
@@ -55,7 +53,7 @@ class TransitSystem(
     case Finish =>
       context.children.foreach(_ ! Finish)
       dieIfNoChildren()
-      contextBecome {
+      context.become {
         case Terminated(_) =>
           dieIfNoChildren()
       }
@@ -86,13 +84,11 @@ class TransitSystem(
           val transitDriverId = TransitDriverAgent.createAgentIdFromVehicleId(tripVehId)
           val transitDriverAgentProps = TransitDriverAgent.props(
             scheduler,
-            beamServices,
             beamScenario,
             transportNetwork,
             tollCalculator,
             eventsManager,
             parkingManager,
-            chargingNetworkManager,
             transitDriverId,
             vehicle,
             legs,
@@ -106,8 +102,6 @@ class TransitSystem(
     }
   }
 }
-
-object TransitSystem {}
 
 class TransitVehicleInitializer(val beamConfig: BeamConfig, val vehicleTypes: Map[Id[BeamVehicleType], BeamVehicleType])
     extends ExponentialLazyLogging {
@@ -124,7 +118,9 @@ class TransitVehicleInitializer(val beamConfig: BeamConfig, val vehicleTypes: Ma
     val vehicleType = getVehicleType(route, mode)
     mode match {
       case BUS | SUBWAY | TRAM | CABLE_CAR | RAIL | FERRY | GONDOLA if vehicleType != null =>
-        val powertrain = Powertrain(Option(vehicleType.primaryFuelConsumptionInJoulePerMeter))
+        val powertrain = Option(vehicleType.primaryFuelConsumptionInJoulePerMeter)
+          .map(new Powertrain(_))
+          .getOrElse(Powertrain.PowertrainFromMilesPerGallon(Powertrain.AverageMilesPerGallon))
 
         val beamVehicleId = BeamVehicle.createId(transitVehId) //, Some(mode.toString)
 
@@ -132,7 +128,7 @@ class TransitVehicleInitializer(val beamConfig: BeamConfig, val vehicleTypes: Ma
           beamVehicleId,
           powertrain,
           vehicleType,
-          randomSeed = randomSeed
+          randomSeed
         ) // TODO: implement fuel level later as needed
         Some(vehicle)
       case _ =>

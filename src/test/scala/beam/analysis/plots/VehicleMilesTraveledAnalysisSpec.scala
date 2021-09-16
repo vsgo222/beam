@@ -3,8 +3,7 @@ package beam.analysis.plots
 import beam.agentsim.agents.vehicles.BeamVehicleType
 import beam.analysis.summary.VehicleMilesTraveledAnalysis
 import org.matsim.api.core.v01.Id
-import org.scalatest.matchers.must.Matchers
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.Matchers
 
 import scala.collection.Set
 

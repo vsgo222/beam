@@ -11,7 +11,7 @@ case class DefaultVehiclesAdjustment(beamServices: BeamServices, beamScenario: B
   val carId: Id[BeamVehicleType] = Id.create("Car", classOf[BeamVehicleType])
   val vehicleTypesByCategory: BeamVehicleType = beamScenario.vehicleTypes.values.find(vt => vt.id == carId).get
 
-  override def sampleVehicleTypes(
+  override def sampleRideHailVehicleTypes(
     numVehicles: Int,
     vehicleCategory: VehicleCategory,
     realDistribution: UniformRealDistribution

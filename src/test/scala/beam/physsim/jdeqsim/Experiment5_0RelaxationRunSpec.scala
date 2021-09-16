@@ -3,12 +3,10 @@ package beam.physsim.jdeqsim
 import beam.sim.BeamHelper
 import beam.utils.TestConfigUtils.testConfig
 import com.typesafe.config.ConfigFactory
-import org.scalatest.BeforeAndAfterAllConfigMap
-import org.scalatest.matchers.must.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.{BeforeAndAfterAllConfigMap, Matchers, WordSpecLike}
 
 class Experiment5_0RelaxationRunSpec
-    extends AnyWordSpecLike
+    extends WordSpecLike
     with Matchers
     with BeamHelper
     with BeforeAndAfterAllConfigMap {

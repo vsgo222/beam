@@ -1,6 +1,5 @@
 package beam.agentsim.infrastructure.parking
 
-import beam.agentsim.agents.vehicles.VehicleManager
 import beam.agentsim.infrastructure.parking.ParkingZoneSearch.ZoneSearchTree
 import beam.agentsim.infrastructure.taz.{TAZ, TAZTreeMap}
 import com.typesafe.scalalogging.StrictLogging
@@ -70,18 +69,13 @@ object TazToLinkLevelParkingApp extends App with StrictLogging {
     .map {
       case (zone, idx) =>
         new ParkingZone[Link](
-          parkingZoneId = idx,
-          geoId = zone.geoId,
-          parkingType = zone.parkingType,
-          stallsAvailable = zone.stallsAvailable,
-          maxStalls = zone.maxStalls,
-          reservedFor = zone.reservedFor,
-          vehicleManager = zone.vehicleManager,
-          chargingPointType = zone.chargingPointType,
-          pricingModel = zone.pricingModel,
-          timeRestrictions = zone.timeRestrictions,
-          parkingZoneName = zone.parkingZoneName,
-          landCostInUSDPerSqft = zone.landCostInUSDPerSqft,
+          idx,
+          zone.geoId,
+          zone.parkingType,
+          zone.stallsAvailable,
+          zone.maxStalls,
+          zone.chargingPointType,
+          zone.pricingModel
         )
     }
     .toArray
@@ -125,18 +119,13 @@ object TazToLinkLevelParkingApp extends App with StrictLogging {
         val zonesPerMeter = zone.maxStalls * multiplier / totalLength
         val numZones = Math.round(zonesPerMeter * link.getLength).toInt
         new ParkingZone[Link](
-          parkingZoneId = -1,
-          geoId = link.getId,
-          parkingType = zone.parkingType,
-          stallsAvailable = numZones,
-          maxStalls = numZones,
-          reservedFor = zone.reservedFor,
-          vehicleManager = zone.vehicleManager,
-          chargingPointType = zone.chargingPointType,
-          pricingModel = zone.pricingModel,
-          timeRestrictions = zone.timeRestrictions,
-          parkingZoneName = zone.parkingZoneName,
-          landCostInUSDPerSqft = zone.landCostInUSDPerSqft,
+          -1,
+          link.getId,
+          zone.parkingType,
+          numZones,
+          numZones,
+          zone.chargingPointType,
+          zone.pricingModel
         )
       }
     }

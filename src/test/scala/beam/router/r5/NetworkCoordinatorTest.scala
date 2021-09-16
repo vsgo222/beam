@@ -3,10 +3,9 @@ package beam.router.r5
 import beam.sim.config.BeamConfig.Beam.Physsim.Network
 import beam.sim.config.BeamConfig.Beam.Physsim.Network.OverwriteRoadTypeProperties
 import beam.sim.config.BeamConfig.Beam.Physsim.Network.OverwriteRoadTypeProperties._
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.{FunSuite, Matchers}
 
-class NetworkCoordinatorTest extends AnyFunSuite with Matchers {
+class NetworkCoordinatorTest extends FunSuite with Matchers {
   private val highwayType: Network.OverwriteRoadTypeProperties = Network.OverwriteRoadTypeProperties(
     enabled = true,
     livingStreet = OverwriteRoadTypeProperties.LivingStreet(capacity = Some(1), lanes = Some(2), speed = Some(3)),

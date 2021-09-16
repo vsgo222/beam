@@ -20,7 +20,7 @@ trait VehiclesAdjustment extends ExponentialLazyLogging {
     realDistribution: UniformRealDistribution
   ): List[BeamVehicleType]
 
-  def sampleVehicleTypes(
+  def sampleRideHailVehicleTypes(
     numVehicles: Int,
     vehicleCategory: VehicleCategory,
     realDistribution: UniformRealDistribution

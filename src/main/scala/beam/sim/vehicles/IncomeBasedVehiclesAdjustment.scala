@@ -30,7 +30,6 @@ case class IncomeBasedVehiclesAdjustment(beamScenario: BeamScenario) extends Veh
   ): List[BeamVehicleType] = {
     val matchedGroups =
       vehicleTypesAndProbabilityByCategoryAndGroup.keys.filter(x => isThisHouseholdInThisGroup(householdIncome, x))
-    @SuppressWarnings(Array("UnsafeTraversableMethods"))
     val categoryAndGroup = if (matchedGroups.size > 1) {
       logger.warn(
         s"Multiple categories defined for household with income ${householdIncome}, choosing a default one"
@@ -60,7 +59,7 @@ case class IncomeBasedVehiclesAdjustment(beamScenario: BeamScenario) extends Veh
     }.toList
   }
 
-  override def sampleVehicleTypes(
+  override def sampleRideHailVehicleTypes(
     numVehicles: Int,
     vehicleCategory: VehicleCategory,
     realDistribution: UniformRealDistribution

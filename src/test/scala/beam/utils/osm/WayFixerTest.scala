@@ -1,10 +1,9 @@
 package beam.utils.osm
 
 import com.conveyal.osmlib.Way
-import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.{Matchers, WordSpec}
 
-class WayFixerTest extends AnyWordSpec with Matchers {
+class WayFixerTest extends WordSpec with Matchers {
   "A WayFixer" should {
     "be able to fix lanes" in {
       {
