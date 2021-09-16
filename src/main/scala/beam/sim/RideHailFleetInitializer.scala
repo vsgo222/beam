@@ -1,20 +1,27 @@
 package beam.sim
 
 import java.nio.file.{Files, Paths}
-
+import scala.util.Try
 import beam.analysis.plots.GraphsStatsAgentSimEventsListener
 import beam.sim.common.{GeoUtils, Range}
 import beam.utils.OutputDataDescriptor
 import beam.utils.csv.{CsvWriter, GenericCsvReader}
 import com.typesafe.scalalogging.LazyLogging
-import org.matsim.api.core.v01.Coord
+import org.apache.commons.math3.distribution.UniformRealDistribution
+import org.matsim.api.core.v01.population.{Activity, Person}
+import org.matsim.api.core.v01.{Coord, Id, Scenario}
 import org.matsim.core.controler.OutputDirectoryHierarchy
 
-import scala.util.Try
+import java.nio.file.{Files, Paths}
+import scala.collection.JavaConverters._
+import scala.collection.mutable.ArrayBuffer
+import scala.io.Source
+import scala.math.{max, min}
+import scala.util.Random
 import scala.util.control.NonFatal
 
 object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
-
+  type FleetId = String
   val outputFileBaseName = "rideHailFleet"
 
   private[sim] def toRideHailAgentInputData(rec: java.util.Map[String, String]): RideHailAgentInputData = {
@@ -45,7 +52,7 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
   /**
     * A writer that writes the initialized fleet data to a csv on all iterations
     *
-    * @param beamServices beam services isntance
+    * @param beamServices beam services instance
     * @param fleetData data to be written
     */
   def writeFleetData(beamServices: BeamServices, fleetData: Seq[RideHailAgentInputData]): Unit = {
@@ -106,7 +113,7 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
     */
   def readFleetFromCSV(filePath: String): List[RideHailAgentInputData] = {
     // This is lazy, to make it to read the data we need to call `.toList`
-    val (iter, toClose) = GenericCsvReader.readAs[RideHailAgentInputData](filePath, toRideHailAgentInputData, x => true)
+    val (iter, toClose) = GenericCsvReader.readAs[RideHailAgentInputData](filePath, toRideHailAgentInputData, _ => true)
     try {
       // Read the data
       val fleetData = iter.toList
