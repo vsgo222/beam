@@ -2,11 +2,12 @@
 /.idea/**
 /build/**
 /log-path_IS_UNDEFINED/**
+/.Rproj.user/**
 
 *.log
-*.Rhistory
+*.RHistory
+*.RData
 
 /output/**
 
 #/input_scenarios/**
-.Rproj.user
