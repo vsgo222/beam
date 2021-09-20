@@ -67,6 +67,11 @@ class ModeChoiceTPCM(
       // Fill out the input data structures required by the MNL models
       val modeChoiceInputData = bestInGroup.map { alt =>
         val theParams = attributes(
+          if (alt.ivttMode == "car/bus"){ alt.vehicleTime } else { 0.0 },
+          if (alt.ivttMode == "light-rail"){ alt.vehicleTime } else { 0.0 },
+          if (alt.ivttMode == "ferry"){ alt.vehicleTime } else { 0.0 },
+          if (alt.ivttMode == "express-bus"){ alt.vehicleTime } else { 0.0 },
+          if (alt.ivttMode == "heavy-rail"){ alt.vehicleTime } else { 0.0 },
           alt.cost,
           alt.walkTime + alt.bikeTime + alt.vehicleTime + alt.waitTime,
           alt.numTransfers,
@@ -94,8 +99,23 @@ class ModeChoiceTPCM(
     }
   }
 
-  private def attributes(cost: Double, time: Double, numTransfers: Double, transitOccupancy: Double) = {
+  private def attributes(
+    ivtt_car: Double,
+    ivtt_lightrail: Double,
+    ivtt_ferry: Double,
+    ivtt_bus: Double,
+    ivtt_heavyrail: Double,
+    cost: Double,
+    time: Double,
+    numTransfers: Double,
+    transitOccupancy: Double
+  ) = {
     Map(
+      "ivtt_car"              -> ivtt_car,
+      "ivtt_lightrail"        -> ivtt_lightrail,
+      "ivtt_ferry"            -> ivtt_ferry,
+      "ivtt_bus"              -> ivtt_bus,
+      "ivtt_heavyrail"        -> ivtt_heavyrail,
       "cost"                  -> cost,
       "time"                  -> time,
       "transfer"              -> numTransfers.toDouble,
@@ -114,7 +134,7 @@ class ModeChoiceTPCM(
       alternatives.zipWithIndex.map { altAndIdx =>
         //get mode and total cost of current trip
           val mode = altAndIdx._1.tripClassifier
-          val transitMode = TPCMCalculator.getTransitMode(mode,altAndIdx)
+          val ivttMode = TPCMCalculator.getIVTTMode(mode, altAndIdx)
           val totalCost = TPCMCalculator.getTotalCost(mode, altAndIdx, transitFareDefaults)
         //TODO verify wait time is correct, look at transit and ride_hail in particular
           val walkTime = TPCMCalculator.getWalkTime(altAndIdx)
@@ -132,8 +152,9 @@ class ModeChoiceTPCM(
           val embodiedBeamTrip = altAndIdx._1
         ModeChoiceData(
           embodiedBeamTrip,
-          mode,
           tourType,
+          mode,
+          ivttMode,
           vehicleTime,
           walkTime,
           waitTime,
@@ -184,7 +205,7 @@ class ModeChoiceTPCM(
     tourPurpose: String
   ): Double = {
     val beamTrip = mcd.embodiedBeamTrip
-    val theParams = attributes(
+    val theParams = attributes(1,0,0,0,0,
       mcd.cost,
       mcd.walkTime + mcd.bikeTime + mcd.vehicleTime + mcd.waitTime,
       mcd.numTransfers,
@@ -202,7 +223,7 @@ class ModeChoiceTPCM(
     numTransfers: Int = 0,
     transitOccupancyLevel: Double
   ): Double = {
-    val theParams = attributes(
+    val theParams = attributes(1,0,0,0,0,
       cost,
       time,
       numTransfers,
@@ -237,8 +258,9 @@ class ModeChoiceTPCM(
 
   case class ModeChoiceData(
     embodiedBeamTrip: EmbodiedBeamTrip,
-    mode: BeamMode,
     tourType: TourType,
+    mode: BeamMode,
+    ivttMode: String,
     vehicleTime: Double,
     walkTime: Double,
     waitTime: Double,
