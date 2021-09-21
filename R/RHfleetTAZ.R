@@ -8,7 +8,7 @@ pacman::p_load(pacman, tidyverse, dplyr)
 
 attributeTableDirectory <- "GIS/SLC_TAZ/attribute_tables/" #Include '/' at end
 zoneCSVFile <- "SLC_South.csv"
-TAZIDFile <- "SLC_South_TAZ.txt"
+TAZIDFile <- "SLC_South_TAZ"
 
 numVehicles <- 12
 #Add support for multiple fleets?
@@ -32,7 +32,7 @@ read_csv(paste0(attributeTableDirectory, zoneCSVFile)) %>%
   select(TAZID) %>%
   pull(name = 'TAZID') %>%
   cat(file = TAZIDPath,
-    sep = ",")
+    sep = "\n")
 
 ## Create a dataframe and write RH Fleet data to it ############################
 
