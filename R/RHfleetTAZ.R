@@ -6,9 +6,12 @@ pacman::p_load(pacman, tidyverse, dplyr)
 
 ## Set values ##################################################################
 
-attributeTableDirectory <- "GIS/SLC_TAZ/attribute_tables/" #Include '/' at end
-zoneCSVFile <- "SLC_South.csv"
-TAZIDFile <- "SLC_South_TAZ"
+zoneCSVFile <- "GIS/SLC_TAZ/attribute_tables/SLC_South.csv"
+TAZIDFileDir <- "S:/Documents/scenarios/ridehail_fleets/geofencing"
+TAZRelativeDir <- "scenarios/ridehail_fleets/geofencing"
+rideHailOutDirectory <- "S:/Documents/scenarios/ridehail_fleets"
+
+zoneName <- "SLC_South"
 
 numVehicles <- 12
 #Add support for multiple fleets?
@@ -21,17 +24,21 @@ shifts <- "{10:25200};{25300:80000}"
 initialX <- 419810
 initialY <- 4486323
 
-outputFile <- "test/input/slc_test/rhFleet-12-micro.csv"
+outputFile <- paste0(
+  rideHailOutDirectory,
+  "/", zoneName, "_TAZ",
+  "-", numVehicles,
+  "-", vehicleType,
+  ".csv"
+)
 
 
 ## Read in the attribute table and find TAZ IDs, then write to file ############
 
-TAZIDPath <- paste0(attributeTableDirectory, TAZIDFile)
-
-read_csv(paste0(attributeTableDirectory, zoneCSVFile)) %>%
+read_csv(zoneCSVFile) %>%
   select(TAZID) %>%
   pull(name = 'TAZID') %>%
-  cat(file = TAZIDPath,
+  cat(file = paste0(TAZIDFileDir, "/", zoneName, "_TAZ"),
     sep = "\n")
 
 ## Create a dataframe and write RH Fleet data to it ############################
@@ -51,7 +58,7 @@ RHFleet <- data.frame(
   geofenceX,
   geofenceY,
   geofenceRadius,
-  TAZIDPath
+  paste0(TAZRelativeDir, "/", zoneName, "_TAZ")
 )
 
 colnames(RHFleet) <- c(
