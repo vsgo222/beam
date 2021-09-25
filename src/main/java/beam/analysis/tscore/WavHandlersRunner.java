@@ -28,7 +28,13 @@ public class WavHandlersRunner {
 
 
     public static void main(String[] args) throws IOException {
-
+        /**
+         * This handler reads the output_events and output_network files and provides data re: ridehail.
+         * It uses a few CLI arguments:
+         * --inputDir [i]: Directory of input files (BEAM output files)
+         * --rideHailFleetFile [r]: Path of ridehail fleet file (used as an input for BEAM)
+         * --outputFile [o]: Name of output file (not required, there is a default)
+         */
         OptionsParser parser = OptionsParser.newOptionsParser(CLIOptions.class);
         parser.parseAndExitUponError(args);
         CLIOptions options = parser.getOptions(CLIOptions.class);
@@ -99,9 +105,19 @@ public class WavHandlersRunner {
         log.info("----- General WAV utilization statistics ----------");
 
         // write into text file
-        File fout = new File(outputFile);
-        FileOutputStream fos = new FileOutputStream(fout);
-        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(fos));
+//        File fout = new File(outputFile);
+//        FileOutputStream fos = new FileOutputStream(fout);
+//        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(fos));
+        
+        BufferedWriter out = new BufferedWriter(
+                new OutputStreamWriter(
+                        new FileOutputStream(
+                                new File(
+                                        outputFile
+                                )
+                        )
+                )
+        );
 
         writeLine(out, "WAV Stats");
         writeLine(out, "=============================================");
