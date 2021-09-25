@@ -45,6 +45,7 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
     val geofenceTazIds = Option(rec.get("geofenceTAZFile")).map(readTazIdsFile)
     val fleetId = rec.getOrDefault("fleetId", "default")
     val initialStateOfCharge = rec.getOrDefault("initialStateOfCharge", "1.0").toDouble
+    val geofencePolygon = Option(rec.get("geofencePolygon"))
 
     RideHailAgentInputData(
       id = id,
@@ -59,7 +60,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
       geofenceTazs = geofenceTazIds,
       geofenceTAZFile = geofenceTAZFile,
       fleetId = fleetId,
-      initialStateOfCharge = initialStateOfCharge
+      initialStateOfCharge = initialStateOfCharge,
+      geofencePolygon = geofencePolygon
     )
   }
 
@@ -109,7 +111,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
       "geofenceRadius",
       "geofenceTAZFile",
       "fleetId",
-      "initialStateOfCharge"
+      "initialStateOfCharge",
+      "geofencePolygon"
     )
     if (Files.exists(Paths.get(filePath).getParent)) {
       val csvWriter = new CsvWriter(filePath, fileHeader)
@@ -128,7 +131,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
             fleetData.geofenceRadius.getOrElse(""),
             fleetData.geofenceTAZFile.getOrElse(""),
             fleetData.fleetId,
-            fleetData.initialStateOfCharge
+            fleetData.initialStateOfCharge,
+            fleetData.geofencePolygon
           )
         }
 
@@ -234,14 +238,18 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
     geofenceTazs: Option[Set[Id[TAZ]]],
     geofenceTAZFile: Option[String],
     fleetId: String,
-    initialStateOfCharge: Double = 1.0
+    initialStateOfCharge: Double = 1.0,
+    geofencePolygon: Option[String]
   ) {
 
     /*
      * If both a taz based geofence and a circular one are defined, the taz based takes precedence.
+     * If a polygon geofence is defined, it takes precedence over either
      */
     def geofence(tazTreeMap: TAZTreeMap): Option[Geofence] = {
-      if (geofenceTazs.isDefined) {
+      if(geofencePolygon.isDefined) {
+        Some(PolygonGeofence(geofencePolygon.get))
+      } else if (geofenceTazs.isDefined) {
         Some(TAZGeofence(geofenceTazs.get, tazTreeMap, geofenceTAZFile.get))
       } else if (geofenceX.isDefined && geofenceY.isDefined && geofenceRadius.isDefined) {
         Some(CircularGeofence(geofenceX.get, geofenceY.get, geofenceRadius.get))
@@ -340,12 +348,13 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
     /** Creates an instance of RideHailAgentInputData from the data in this instance */
     def createRideHailAgentInputData: RideHailAgentInputData = {
 
-      val (geofenceCircularMaybe, geofenceTazMaybe) = geofence
+      val (geofencePolygonMaybe, geofenceCircularMaybe, geofenceTazMaybe) = geofence
         .map {
-          case g: CircularGeofence => (Some(g), None)
-          case g: TAZGeofence      => (None, Some(g))
+          case g: PolygonGeofence  => (Some(g), None, None)
+          case g: CircularGeofence => (None, Some(g), None)
+          case g: TAZGeofence      => (None, None, Some(g))
         }
-        .getOrElse((None, None))
+        .getOrElse((None, None, None))
 
       RideHailAgentInputData(
         id,
@@ -360,7 +369,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
         geofenceTazMaybe.map(_.tazs),
         geofenceTazMaybe.map(_.geofenceTAZFile),
         fleetId,
-        initialStateOfCharge
+        initialStateOfCharge,
+        geofencePolygonMaybe.map(_.geofencePolygon)
       )
     }
   }
@@ -780,6 +790,20 @@ case class CircularGeofence(
   override def contains(x: Double, y: Double): Boolean = {
     val dist = GeoUtils.distFormula(geofenceX, geofenceY, x, y)
     dist <= geofenceRadius
+  }
+
+}
+
+/**
+  * Polygon geofence defined by polygon in well-known text
+  */
+case class PolygonGeofence(
+  geofencePolygon: String
+) extends Geofence {
+
+  override def contains(x: Double, y: Double): Boolean ={
+    val gfPolygon = GeoUtils.wkt2geom(geofencePolygon)
+    GeoUtils.polyContains(gfPolygon,x,y)
   }
 
 }
