@@ -77,7 +77,8 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
                 Pattern pattern = Pattern.compile("ridehailvehicle-ridehailvehicle", Pattern.CASE_INSENSITIVE);
                 Matcher match = pattern.matcher(thisVehicle);
                 if (match.find()) {
-                    thisVehicle = thisVehicle.replaceAll("\\w+-([\\w-]+)@\\w+", "$1");
+//                    thisVehicle = thisVehicle.replaceAll("\\w+-([\\w-]+)@\\w+", "$1");
+                    thisVehicle = thisVehicle.replaceAll("([\\w-]+)@\\w+", "$1");
                 }
                 //Now we can use the vehicle ID
                 String thisVehicleType = rhm.get(thisVehicle).vehicleType();
@@ -170,7 +171,8 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
                 Pattern pattern = Pattern.compile("ridehailvehicle-ridehailvehicle", Pattern.CASE_INSENSITIVE);
                 Matcher match = pattern.matcher(thisVehicle);
                 if (match.find()) {
-                    thisVehicle = thisVehicle.replaceAll("\\w+-([\\w-]+)@\\w+", "$1");
+//                    thisVehicle = thisVehicle.replaceAll("\\w+-([\\w-]+)@\\w+", "$1");
+                    thisVehicle = thisVehicle.replaceAll("([\\w-]+)@\\w+", "$1");
                 }
                 //Now we can use the vehicle ID
                 String thisVehicleType = rhm.get(thisVehicle).vehicleType();
