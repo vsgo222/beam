@@ -763,7 +763,7 @@ class RideHailFleetInitializerProvider @Inject() (
 }
 
 /**
-  * Geofence defining the area, where a ride hail vehicle should stay
+  * Geofence defining the area where a ride hail vehicle should stay
   */
 trait Geofence {
 
