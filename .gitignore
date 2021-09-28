@@ -5,7 +5,7 @@
 
 *.log
 *.Rhistory
+*.Rdata
 
 /output/**
-
-#/input_scenarios/**
+.Rproj.user
