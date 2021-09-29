@@ -1,0 +1,567 @@
+---
+title: "Modechoice Model Investigation"
+author: "Chris Day"
+date: "9/15/2021"
+output: html_document
+---
+# {.tabset}
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(readr)
+library(tufte)
+library(dotwhisker)
+library(ggpubr)
+library(scales)
+source("table_maker.R")
+```
+
+## Introduction
+### Background
+Directly inserting the structure of the ActivitySim/MTC mode choice model structure into BEAM has proven difficult. One reason is that the fundamentals behind BEAM's mode choice structure is that it determines modes linearly one trip after the other. On the other hand, ActivitySim calculates an overarching *tour mode* for each tour, and then a *trip mode* is decided based on that *tour mode* value. Two mode choice models exist within ActivitySim, with the trip mode being directly affected by the tour mode. It would not make sense to calculate a tour mode within BEAM, as it goes against its primary structure. And simply inserting ActivitySim's trip mode choice model into BEAM doesn't make complete sense, as it is entirely dependent on the tour mode value calculated from the tour mode choice model.
+
+As a result, I have been assigned to create a frankenstein mode choice model. This model will be dependent on trip tour purpose. The code for this has already been applied to BEAM. The next step is to attain the utility mode choice parameters based on tour type. These values will be gathered from a multitude of difference sources.
+
+### Goal
+As described in the previous section, the mission is to learn about utility mode choice parameters for a variety of different mode choice models. I need to not only find out their values, but understand which values are commonly used. This will help me create my own mode choice utility parameter input file, based on tour type, to be used to calculate mode choice in BEAM.
+
+The following sources will be used to learn about mode choice model utility values and parameters
+
+  - Utah Statewide Model
+  - Wasatch Front Regional Counsel 2019 Model 
+  - NCHRP Report#716 Default Model
+  - ActivitySim/MTC Trip Based Model
+  
+I have included the ActivitySim/MTC Trip Based Model because it provides a wonderful starting point. It actual includes variables that are probably too specific. Therefore, I will be mainly comparing the other models to this one, and decided which values from the ActivitySim model are useful, and which ones are not. Although this is the main goal, I will also be comparing the models with each other. Either way the point is to learn more about differing mode choice model utility parameter values, and create my own specific to improving BEAM's current mode choice model.
+
+## Utah Statewide
+### Utah Mode Choice Model
+First I will be analyzing the Utah Statewide Mode Choice Model's coefficients and constants. I got this information from Natalie. I have no idea where it came from, except for this site: (https://byu.app.box.com/s/rmyv38tjqkvbg7nz5uqf6djiake9csfm/folder/145843487263) All the data exists in separate text files, so I will read them all in and attempt to create one table to house all the data. 
+
+### Reading in Data
+Here we read in the coefficient values and create a table of them. To be specific, 5 separate files are read in and parsed to create one table.
+
+```{r, warning = FALSE, message = FALSE}
+cf_files <- list.files("utah_statewide/coeffs/coeffs/")
+cf_path <- "utah_statewide/coeffs/coeffs/"
+
+for(i in 1:length(cf_files)) { 
+  assign(paste0("cf", i),
+    read_fwf(file = paste0(cf_path, cf_files[i]), skip = 1, fwf_widths(c(30,1,19,1,100))) %>% 
+      na_if("") %>% na.omit %>%
+      mutate(purpose = substr(cf_files[i],14,16),
+             variable_type = "coefficient") %>%
+      rename(variable = X1, value = X3, description = X5) %>%
+      select(purpose, variable, variable_type, value, description)
+  )
+}
+utah_coeff <- rbind(cf1,cf2,cf3,cf4,cf5)
+tibble(utah_coeff)
+```
+
+Here we read in the constant values and make a table out of it. To be specific, 5 separate text files are read in and joined together. 
+
+
+```{r, warning = FALSE, message = FALSE}
+cst_files <- list.files("utah_statewide/coeffs/const/")
+cst_path <- "utah_statewide/coeffs/const/"
+
+for(i in 1:length(cst_files)) { 
+  assign(paste0("cst", i),
+    read_fwf(file = paste0(cst_path, cst_files[i]), skip = 0, fwf_widths(c(13,1,8))) %>% 
+      na_if("") %>% na.omit %>%
+      mutate(purpose = substr(cst_files[i],11,13),
+             variable_type = "constant") %>%
+      rename(variable = X1, value = X3) %>%
+      select(purpose, variable, variable_type, value)
+  )
+}
+utah_const <- rbind(cst1,cst2,cst3,cst4,cst5)
+tibble(utah_const)
+```
+
+
+Here is the final outpout of all the values in one table.
+
+```{r}
+#utah_state_mc <- rbind(utah_coeff,utah_const)
+#write_csv(utah_state_mc,"utah_statewide/coeffs/utah_mc_params.csv")
+```
+
+### Data Values
+**Purposes:**
+
+  - Home-based Work
+  - Home-based Other
+  - Home-based College
+  - Non home-based
+  - Recreational
+
+**Utility Values:**
+
+*Coeff Values:*
+
+  - IVTT
+  - First Mile Walk / OVTT
+  - Over 1 Mile Walk / OVTT
+  - Bike Time
+  - Auto Cost / Transit Fare
+  - Parking Cost
+  - Transit Bias / Zonal Density Value
+  
+*Const Values:*
+
+  - Motorized
+  - Nonmotorized
+  - Walk
+  - Bike
+
+## WFRC 2019
+### WFRC Mode Choice Model
+In this section I read in and analyze the mode choice coefficients and constants that below to the Wasatch Front Regional Council's (WFRC) model from 2019. The data comes in multiple text files, so they will all be read and parsed to create a joint table with all the information. 
+
+Here, I read in the values that correspond to all the coefficient values. 4 text files are read in to be parsed and then combined. 
+
+```{r, warning = FALSE, message = FALSE}
+coeff_files <- list.files("wfrc/WF TDM v8.3.1 - 2020-08-17/2_ModelScripts/4_ModeChoice/coeffs/coeffs/")
+coeff_path <- "wfrc/WF TDM v8.3.1 - 2020-08-17/2_ModelScripts/4_ModeChoice/coeffs/coeffs/"
+
+for(i in 1:length(coeff_files)) { 
+  assign(paste0("coeff", i),
+    read_fwf(file = paste0(coeff_path, coeff_files[i]), skip = 1, fwf_widths(c(28,1,19,1,100))) %>% 
+      na_if("") %>% na.omit %>%
+      mutate(purpose = substr(coeff_files[i],1,3),
+             variable_type = "coefficient") %>%
+      rename(variable = X1, value = X3, description = X5) %>%
+      select(purpose, variable, variable_type, value, description,-X2,-X4)
+  )
+}
+wfrc_coeff <- rbind(coeff1,coeff2,coeff3,coeff4)
+tibble(wfrc_coeff)
+```
+
+Here I read in the constant values. There are a total of 7 text files that are parsed through and combined into one table. 
+
+```{r, warning = FALSE, message = FALSE}
+const_files <- list.files("wfrc/WF TDM v8.3.1 - 2020-08-17/2_ModelScripts/4_ModeChoice/coeffs/const/")
+const_path <- "wfrc/WF TDM v8.3.1 - 2020-08-17/2_ModelScripts/4_ModeChoice/coeffs/const/"
+
+for(i in 1:length(const_files)) { 
+  assign(paste0("const", i),
+    read_fwf(file = paste0(const_path, const_files[i]), skip = 0, fwf_widths(c(19,1,14))) %>% 
+      na_if("") %>% na.omit %>%
+      mutate(purpose = paste0(substr(const_files[i],1,3),"_",substr(const_files[i],18,19)),
+             variable_type = "constant") %>%
+      rename(variable = X1, value = X3) %>%
+      select(purpose, variable, variable_type, value)
+  )
+}
+wfrc_const <- rbind(const1,const2,const3,const4,const5,const6,const7)
+tibble(wfrc_const)
+```
+
+
+### Data Values
+**Purposes:**
+
+  - Home-based Work
+  - Home-based Other
+  - Home-based College
+  - Non home-based
+  - Recreational
+
+**Utility Values:**
+
+*Coeff Values:*
+
+  - IVTT
+  - Transit Wait Time
+  - Transfer Wait Time
+  - First Mile Walk / OVTT
+  - Over 1 Mile Walk / OVTT
+  - Bike Time
+  - Drive to Transit Time
+  - Auto Cost / Transit Fare
+  - Auto Cost / Transit Fare
+  - Parking Cost
+  - Walk to Rail
+  - Drive to Transit Time / IVTT
+  - Drive to Transit Time / Auto Distance
+  - Transit Transfers
+  - Bus Transfers
+  - Walk-Rail Distance Coeff
+  - Drive-Rail Distance Coeff
+  - Transit & Walk CBD
+  - Transit Bias / Zonal Density Value
+  - ASC Value
+
+*Const Values:*
+
+  - Motorized
+  - Nonmotorized
+  - Transit
+  - Auto, SR3, SR3, Alone, Shared
+  - HOV, Toll
+  - Local, Express, LRT, CRT
+  - Walk (Access, Local, Express, LRT, CRT)
+  - Drive (Access, Local, Express, LRT, CRT)
+  - All values dependent on vehicle ownership (0, 1, 2, 3+ veh)
+
+## NCHRP Report716
+### NCHRP Default Model
+The NCHRP Report716 explains and outlines parameters and techniques used in travel demand forecasting. This report provides an excellent source of what a mode choice model's parameter values should look like. The report can be downloaded from here: https://www.nap.edu/download/14665
+
+### Important Notes from the Text
+Before diving into the mode choice models explained in the report, I have listed a few important notes that should be taken into account when doing a mode choice model.
+
+  - "Mode choice model accuracy can be enhanced by segmenting the model by income or vehicle availability level" (55).
+  - "When there are more than two modal alternatives the multinomial logit model can introduce inaccuracies in the way it estimates how people choose among alternatives. One way of dealing with this issue is the use of a nested logit model" (55).
+  - "The values for specific coefficients may differ significantly between models. The alternative definitions, nesting structures, and presence or absence of other variables in a model can affect the coefficients of any variable. So it is much more valid to transfer individual models rather than composites of models with different variables or structures" (55). **Aren't we transfering composites of models?**
+  - Before using the values in this report, "analysts are encouraged to research specific models from likely estimation contexts and obtain information from sources such as direct contact of MPOs or on-line model documentation" (56).
+  - "Note that values for the alternative-specific constants (bn0 in Equation 4-1) are not provided in Tables 4.8, 4.11, and 4.14. These constants are not considered transferable, and their values are determined during mode choice model calibration or transfer scaling" (58). 
+  - "The in-vehicle time coefficients range from -0.019 to -0.044, indicating similar sensitivity to travel time. It should be noted that the FTA guidance for New Starts forecasts indicates that compelling evidence is needed if the in-vehicle time coefficient does not fall between -0.020 and -0.030 (Federal Transit Administration, 2006), and most are close to this range. All of the models have out-of-vehicle time coefficients that are greater in absolute value than the in-vehicle time coefficients, with the ratios ranging from 1.5 to 4.7. FTA guidance for New Starts forecasts also indicates that compelling evidence is needed if the ratio does not fall between 2.0 and 3.0, and most are within this range " (56)
+
+### Utility Function Explanatory Variables
+To begin with, on page 54, three types of variables are to be used in the utility functions. The specific variables are then also explained. For convenience, they are listed below:
+
+  1. *Modal level of service:* 
+  
+      - Auto IVTT
+      - Transit IVTT
+      - Wait Time
+      - Walk Access/Egress Time
+      - Auto Access Time
+      - Walk Acess/Egress Time
+      - Auto Access Time
+      - Transit Fare
+      - Parking Cost
+      - Number of Transfers
+  
+  2. *Traveler Characteristics:*
+  
+      - Vehicle Availability
+      - Household Income
+      - Gender
+      - Age
+      - Worker/Student Status
+      
+  3. *Area Characteristics:*
+  
+      - Development Density
+      - Pedestrian Environment
+      
+An example of the actual utility function that is used for the Report's default HBW, HBO, and NHB trips is found on page 58. It is also referenced below. (This specific example is for transit with auto access for Model B)
+
+<center>
+
+![**Default Utility Equation for Mode Choice Models**](nchrp_report716/utility_equation.png)
+</center>
+
+In addition, the specific parameter values for this equation are found in the following sections:
+
+  - **HBW Models**
+  - **HBO Models**
+  - **NHB Models**
+
+#### HBW Models
+The Report gives default parameter values for 9 different types of models for HBW values. These differing types can be seen in the table below. 
+
+<center>
+
+![**Table 1: Home-Based Work Mode Choice Model Options**](nchrp_report716/models_hbw.png)
+
+</center>
+
+Each model type is slightly different than the other. The report gives this advice when deciding which one to apply to your situation: 
+
+> "Look for a model with similar modal alternatives to those that the analyst wishes to model in the application context. For example, if nonmotorized modes are to be included, Models H and I can be considered. Other considerations include whether a nested logit model is desired or required (A, E, F, G, H, or I), perhaps the population of the area (although most of the models in the tables
+are for large urban areas), the variables the analyst wishes
+to include, the prevalence of existing transportation modes,
+and the analyst’s assessment of the reasonableness of the
+parameters"
+`r tufte::quote_footer('--- NCHRP Report 716, pg. 57')`
+
+After looking at the table, and following the advice given, I beleive that the values in Model H and I will be the most relavant. Although BEAM's mode choice model is not a nested logit, we do want to include nonmotorized alternatives and the population of Salt Lake is > 1 million. In addition, the MTC/ActivitySim, WFRC, and Utah Statewide mode choice models are nested logit. 
+
+Lets create a data structure to house the HBW values from Model H and I. 
+```{r}
+nchrp_hbw <- data.frame(
+  purpose = "HBW", 
+  variable = c("ivt_coef","ovt_coef","walk_coef","initwait_coef","xferwait_coef","cost_coef"), 
+  variable_type = "coefficient",
+  model_source = c("H","I","H","H","H","H"),
+  value = c(-0.033,-0.05,-0.093,-0.038,-0.038,-0.0021))
+tibble(nchrp_hbw)
+```
+
+#### HBO Models
+The report gives default parameter values for 8 different types of models for HBO type trips. The options are shown in the table below:
+
+<center>
+
+![**Table 2: Home-Based Other Mode Choice Model Options**](nchrp_report716/models_hbo.png)
+
+</center>
+
+Similar to the reasons why we picked a certain model for HBW, I think Model I is the best for the scenario at hand. The Salt Lake region has a population range > 1 million, and we want to include nonmotorized travel. Since the other models form WFRC and the Utah statewide model are nested logit, we pick one with a nested logit as well. Therefore, Model I is best. 
+
+Unfortunately, Model I does not include all the coefficient values we need, like walk time, first wait time, transfer wait time, and cost values. Since this is the case, we will steal needed values from model J and D. Although Model J and D do not fit the criteria, they does have the missing values we need.
+
+Lets create a data table to house the HBO values from Model I, J, and D.
+
+```{r}
+nchrp_hbo <- data.frame(
+  purpose = "HBO",
+  variable = c("ivt_coef","ovt_coef","walk_coef","initwait_coef","xferwait_coef","cost_coef","autocost_coef","parkcost_coef","transitcost_coef"), 
+  variable_type = "coefficient",
+  model_source = c("I","I","J","J","J","D","I","I","I"),
+  value = c(-0.008,-0.025,-0.075,-0.050,-0.050,-0.033,-0.01,-0.025,-0.01))
+tibble(nchrp_hbo)
+```
+
+#### NHB Models
+The report gives default parameter values for 11 different types of models for NHB trips. The options are shown in the table below:
+
+<center>
+
+![**Table 3: Non Home-Based Mode Choice Model Options**](nchrp_report716/models_nhb.png)
+
+</center>
+
+From analyzing the table, it looks like Model m will be a good fit. It includes nonmotorized data as well as is for a population range > 1 million people. It does not have a nested logit structure though. For the missing values, Model I seems like a pretty good fit. 
+
+Lets create a data table to house the NHB values from Model M and I.
+
+```{r}
+nchrp_nhb <- data.frame(
+  purpose = "NHB",
+  variable = c("ivt_coef","ovt_coef","walk_coef","initwait_coef","xferwait_coef","cost_coef","autocost_coef","parkcost_coef","transitcost_coef"), 
+  variable_type = "coefficient",
+  model_source = c("M","I","M","M","M","M","I","I","I"),
+  value = c(-0.013,-0.05,-0.032,-0.032,-0.050,-0.002,-0.006,-0.016,-0.006))
+tibble(nchrp_hbo)
+```
+
+#### Combined Values
+Now lets combine all the coefficient values into one table. It will have the HBW, HBO, and NHB tour types. Also, remember that there are no default constant parameter values found in the NCHRP report because these are entirely specfic to the model at hand.
+
+```{r}
+nchrp_coeff <- rbind(nchrp_hbw,nchrp_hbo,nchrp_nhb)
+tibble(nchrp_coeff)
+```
+
+
+### Data Values
+**Purposes:**
+
+  - Home-based Work
+  - Home-based Other
+  - Non home-based
+
+**Utility Values:**
+
+*Coeff Values:*
+
+  - IVTT
+  - OVTT
+  - Walk Time
+  - Transit Wait Time
+  - Transfer Wait Time
+  - Cost
+  - Auto Cost
+  - Parking Cost
+  - Transit Cost (Fare)
+
+*Const Values:*
+
+  - None
+
+## MTC/ActivitySim
+### ActivitySim Tour Model
+The parameters and utility values that correspond to the MTC/ActivitySim model is not hard to get. Since ActivitySim is on GitHub, the tour mode choice coefficients are found here: [ActivitySim Tour Mode Choice Values](https://github.com/ActivitySim/activitysim/blob/master/activitysim/examples/example_mtc/configs/tour_mode_choice_coefficients.csv)
+
+That file was copied, and the table is read in.
+
+```{r, warning=FALSE,message=FALSE}
+asim_coeff <- read_csv("mtc/tour_mode_choice_coefficients.txt")
+asim_tour_coeffs <- read_csv("mtc/mtc_2012_tour_mode_choice_coefficients.txt")
+
+# multiply all values in table by 2 (tour values need to be compared with trip values later on, and this will allow that)
+cols <- sapply(asim_tour_coeffs, is.numeric)
+asim_tour_coeffs[, cols] <- asim_tour_coeffs[, cols] * 2
+tibble(asim_tour_coeffs) 
+```
+
+As you can see, there are a TON of utility values. Lets list them below.
+
+### Data Values
+**Purposes:**
+
+  - Work
+  - University
+  - School
+  - Escort
+  - Shop
+  - Eatout
+  - Maintenance
+  - Social
+  - Discretion
+  - At-Work
+
+**Utility Values:**
+
+*Coeff Values:*
+
+  - IVTT (varied by transit mode)
+  - Wait Time up to 10 min
+  - Wait Time beyond 10 min
+  - Egress Time
+  - Transfer Time
+  - Origin's Proximity to Transit
+  - Destination's Proximity to Transit
+  - Number of Transfers
+  - Distance in relation to 1.5 miles
+  - Cost
+  - Zonal Topography Index
+  - Zonal Density Index
+
+*Const Values:*
+
+  - Drive Alone Individual Tour Constant
+  - Shared Ride 2 Individual Tour Constant
+  - Shared Ride 3+ Individual Tour Constant
+  - Bike Individual Tour Constant
+  - Transit Individual Tour Constant (dependent on transit mode)
+  
+  
+## Comparison
+### Intro
+Now that we have read in all the data for the utah statewide, wfrc, nchrp, and activitysim models, it is time to compare them with each other. 
+
+### Path Variables
+Lets take a look at the differences in the models' path variables. Specifically, these are the values that we are going to look at:
+
+  - IVTT
+  - OVTT (wait, egress, transfer)
+  - Number of Transfers
+  - Walk Distance
+  - Bike Distance
+
+```{r,echo=FALSE}
+#neg_log_trans = function() trans_new("neg_log", function(x) log(abs(x)), function(x) log(abs(x)))
+```
+
+
+#### Home Based Work
+First, lets organize the activitysim model to the correct table format. We need the correct table format in order to graph the values. 
+```{r, message=FALSE,warning=FALSE}
+asim_hbw <- asim_table(asim_tour_coeffs,Work)
+asim_hbw_ivtt <- as.numeric(asim_hbw[4,"estimate"])
+asim_hbw_ratio <- asim_hbw %>% mutate(estimate = estimate/asim_hbw_ivtt,std.error = 0)
+```
+
+Now, lets organize the utah statewide model to match the same table format as activitysim. 
+```{r}
+ovtt_shortwalk <-c("wait_time_under_10_min","egress_time","transfer_time","walk_short_dist")
+ovtt_longwalk <-c("wait_time_over_10_min","walk_long_dist")
+
+utah_hbw_ivtt <- as.numeric(utah_coeff[15,"value"])
+utah_hbw_ratio <- utah_table(utah_coeff,"HBW",ovtt_shortwalk,ovtt_longwalk,utah_hbw_ivtt)
+utah_hbw <- utah_table(utah_coeff,"HBW",ovtt_shortwalk,ovtt_longwalk,1)
+```
+
+Here, we organize the wfrc model to match the same table format as activitysim.
+```{r}
+wfrc_ovt_long <-c("wait_time_over_10_min","walk_long_dist")
+
+wfrc_hbw_ivtt <- as.numeric(wfrc_coeff[41,"value"])
+wfrc_hbw_ratio <- wfrc_table(wfrc_coeff,"HBW",ovt_long,wfrc_hbw_ivtt)
+wfrc_hbw <- wfrc_table(wfrc_coeff,"HBW",ovt_long,1)
+
+```
+
+Finally, we organize the nchrip report model to match the same table format as activitysim. 
+```{r}
+nchrp_ovt_long <-c("wait_time_over_10_min","egress_time")
+
+nchrp_hbw_ivtt <- as.numeric(nchrp_coeff[1,"value"])
+nchrp_hbw_ratio <- nchrp_table(nchrp_coeff,"HBW",nchrp_ovt_long,nchrp_hbw_ivtt)
+nchrp_hbw <- nchrp_table(nchrp_coeff,"HBW",nchrp_ovt_long,1)
+```
+
+Here is the final comparison output graph showing the difference between the path variables of each model. 
+```{r fig.align="center", echo = FALSE,warning=FALSE,fig.width = 11}
+#comparison graph
+hbwg <- loggrapher("Home-Based Work",asim_hbw,utah_hbw,wfrc_hbw,nchrp_hbw)
+hbwg
+
+#ivtt ratio graph
+hbw_graph <- ivtt_ratio_grapher("Home-Based Work",asim_hbw_ratio,utah_hbw_ratio,wfrc_hbw_ratio,nchrp_hbw_ratio)
+hbw_graph
+```
+
+#### Home Based School
+Now we will follow the same process as above, but do it for the home based school/college values. Unfortunately, the utah statewide and nchrp models do not have a school value, so the home based other values will be used instead.
+
+```{r}
+asim_hbs <- asim_table(asim_tour_coeffs,School)
+asim_hbs_ivtt <- as.numeric(asim_hbs[4,"estimate"])
+
+utah_hbs <- utah_table(utah_coeff,"HBO",ovtt_shortwalk,ovtt_longwalk,1)
+utah_hbs_ivtt <- as.numeric(utah_coeff[8,"value"])
+
+wfrc_hbs <- wfrc_table(wfrc_coeff,"HBC",ovt_long,1)
+wfrc_hbs_ivtt <- as.numeric(wfrc_coeff[1,"value"])
+
+nchrp_hbs <- nchrp_table(nchrp_coeff,"HBO",nchrp_ovt_long,1)
+nchrp_hbs_ivtt <- as.numeric(nchrp_coeff[7,"value"])
+```
+
+```{r, message=FALSE,warning=FALSE}
+asim_hbs_ratio <- asim_hbs %>% mutate(estimate = estimate/asim_hbs_ivtt,std.error = 0)
+utah_hbs_ratio <- utah_table(utah_coeff,"HBO",ovtt_shortwalk,ovtt_longwalk,utah_hbs_ivtt)
+wfrc_hbs_ratio <- wfrc_table(wfrc_coeff,"HBC",ovt_long,wfrc_hbs_ivtt)
+nchrp_hbs_ratio <- nchrp_table(nchrp_coeff,"HBO",nchrp_ovt_long,nchrp_hbs_ivtt)
+```
+
+Here is the final comparison output graph.
+```{r fig.align="center", echo = FALSE,warning=FALSE,fig.width = 11}
+hbsg <- loggrapher("Home-Based School",asim_hbs,utah_hbs,wfrc_hbs,nchrp_hbs)
+hbsg
+
+hbs_graph <- ivtt_ratio_grapher("Home-Based School",asim_hbs_ratio,utah_hbs_ratio,wfrc_hbs_ratio,nchrp_hbs_ratio)
+hbs_graph
+```
+
+
+#### Home Based Other
+Similarly, lets do the same stuff for home based other.
+
+```{r}
+asim_hbo <- asim_table(asim_tour_coeffs,Shop)
+asim_hbo_ivtt <- as.numeric(asim_hbo[4,"estimate"])
+
+utah_hbo <- utah_table(utah_coeff,"HBO",ovtt_shortwalk,ovtt_longwalk,1)
+utah_hbo_ivtt <- as.numeric(utah_coeff[8,"value"])
+
+wfrc_hbo <- wfrc_table(wfrc_coeff,"HBO",ovt_long,1)
+wfrc_hbo_ivtt <- as.numeric(wfrc_coeff[20,"value"])
+
+nchrp_hbo <- nchrp_table(nchrp_coeff,"HBO",nchrp_ovt_long,1)
+nchrp_hbo_ivtt <- as.numeric(nchrp_coeff[7,"value"])
+```
+
+```{r, message=FALSE,warning=FALSE}
+asim_hbo_ratio <- asim_hbs %>% mutate(estimate = estimate/asim_hbo_ivtt,std.error = 0)
+utah_hbo_ratio <- utah_table(utah_coeff,"HBO",ovtt_shortwalk,ovtt_longwalk,utah_hbo_ivtt)
+wfrc_hbo_ratio <- wfrc_table(wfrc_coeff,"HBO",ovt_long,wfrc_hbo_ivtt)
+nchrp_hbo_ratio <- nchrp_table(nchrp_coeff,"HBO",nchrp_ovt_long,nchrp_hbo_ivtt)
+```
+
+Here is the final comparison output graph.
+```{r fig.align="center", echo = FALSE,warning=FALSE,fig.width = 11}
+hbog <- loggrapher("Home-Based Other",asim_hbo,utah_hbo,wfrc_hbo,nchrp_hbo)
+hbog
+
+hbo_graph <- ivtt_ratio_grapher("Home-Based Other",asim_hbo_ratio,utah_hbo_ratio,wfrc_hbo_ratio,nchrp_hbo_ratio)
+hbo_graph
+```
