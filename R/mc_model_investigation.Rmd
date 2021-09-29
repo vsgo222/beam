@@ -382,8 +382,7 @@ The parameters and utility values that correspond to the MTC/ActivitySim model i
 That file was copied, and the table is read in.
 
 ```{r, warning=FALSE,message=FALSE}
-asim_coeff <- read_csv("model_data/mtc/trip_mode_choice_coefficients.txt")
-asim_tour_coeffs <- read_csv("model_data/mtc/mtc_2012_trip_mode_choice_coefficients.txt")
+asim_tour_coeffs <- read_table2("model_data/mtc/mtc_2012_tour_mode_choice_coefficients_path.txt")
 
 # multiply all values in table by 2 (tour values need to be compared with trip values later on, and this will allow that)
 cols <- sapply(asim_tour_coeffs, is.numeric)
