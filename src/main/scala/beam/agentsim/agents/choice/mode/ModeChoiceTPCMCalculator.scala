@@ -44,7 +44,7 @@ class ModeChoiceTPCMCalculator(
   }
 
 
-  def getEgressTime(altAndIdx: (EmbodiedBeamTrip, Int)): Double = {
+  def getEgressTime(altAndIdx: (EmbodiedBeamTrip, Int)): Double = { // should this include BIKE_TRANSIT?
     altAndIdx._1.legs.view
       .filter(_.beamLeg.mode == CAR)
       .map(_.beamLeg.duration)

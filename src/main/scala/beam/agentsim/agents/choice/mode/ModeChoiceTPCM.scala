@@ -24,15 +24,15 @@ import scala.collection.mutable.ListBuffer
   * ModeChoiceTPCM
   *
   * Data used by mode choice model:
-  * --vehicleTime
-  * --walkTime
-  * --bikeTime
-  * --waitTime
-  * --transfer
-  * --transitOccupancy
   * --cost
+  * --vehicleTime
+  * --waitTime
+  * --egressTime
+  * --transfer
+  * --walkDistance
+  * --bikeDistance
   *
-  * The TPCM models are structured to differentiate between Mandatory and Nonmandatory trips, but for this preliminary
+  * The TPCM model is based on the LCCM model so it can differentiate between Mandatory and Nonmandatory trips, but for this
   * implementation only the Mandatory models is used...
   * TODO pass TourType so correct model can be applied
   */
