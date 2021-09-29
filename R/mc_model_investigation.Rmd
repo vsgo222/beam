@@ -41,8 +41,8 @@ First I will be analyzing the Utah Statewide Mode Choice Model's coefficients an
 Here we read in the coefficient values and create a table of them. To be specific, 5 separate files are read in and parsed to create one table.
 
 ```{r, warning = FALSE, message = FALSE}
-cf_files <- list.files("utah_statewide/coeffs/coeffs/")
-cf_path <- "utah_statewide/coeffs/coeffs/"
+cf_files <- list.files("model_data/utah_statewide/coeffs/coeffs/")
+cf_path <- "model_data/utah_statewide/coeffs/coeffs/"
 
 for(i in 1:length(cf_files)) { 
   assign(paste0("cf", i),
@@ -62,8 +62,8 @@ Here we read in the constant values and make a table out of it. To be specific, 
 
 
 ```{r, warning = FALSE, message = FALSE}
-cst_files <- list.files("utah_statewide/coeffs/const/")
-cst_path <- "utah_statewide/coeffs/const/"
+cst_files <- list.files("model_data/utah_statewide/coeffs/const/")
+cst_path <- "model_data/utah_statewide/coeffs/const/"
 
 for(i in 1:length(cst_files)) { 
   assign(paste0("cst", i),
@@ -122,8 +122,8 @@ In this section I read in and analyze the mode choice coefficients and constants
 Here, I read in the values that correspond to all the coefficient values. 4 text files are read in to be parsed and then combined. 
 
 ```{r, warning = FALSE, message = FALSE}
-coeff_files <- list.files("wfrc/WF TDM v8.3.1 - 2020-08-17/2_ModelScripts/4_ModeChoice/coeffs/coeffs/")
-coeff_path <- "wfrc/WF TDM v8.3.1 - 2020-08-17/2_ModelScripts/4_ModeChoice/coeffs/coeffs/"
+coeff_files <- list.files("model_data/wfrc/coeffs/coeffs/")
+coeff_path <- "model_data/wfrc/coeffs/coeffs/"
 
 for(i in 1:length(coeff_files)) { 
   assign(paste0("coeff", i),
@@ -142,8 +142,8 @@ tibble(wfrc_coeff)
 Here I read in the constant values. There are a total of 7 text files that are parsed through and combined into one table. 
 
 ```{r, warning = FALSE, message = FALSE}
-const_files <- list.files("wfrc/WF TDM v8.3.1 - 2020-08-17/2_ModelScripts/4_ModeChoice/coeffs/const/")
-const_path <- "wfrc/WF TDM v8.3.1 - 2020-08-17/2_ModelScripts/4_ModeChoice/coeffs/const/"
+const_files <- list.files("model_data/wfrc/coeffs/const/")
+const_path <- "model_data/wfrc/coeffs/const/"
 
 for(i in 1:length(const_files)) { 
   assign(paste0("const", i),
@@ -253,7 +253,7 @@ An example of the actual utility function that is used for the Report's default 
 
 <center>
 
-![**Default Utility Equation for Mode Choice Models**](nchrp_report716/utility_equation.png)
+![**Default Utility Equation for Mode Choice Models**](model_data/nchrp_report716/utility_equation.png)
 </center>
 
 In addition, the specific parameter values for this equation are found in the following sections:
@@ -267,7 +267,7 @@ The Report gives default parameter values for 9 different types of models for HB
 
 <center>
 
-![**Table 1: Home-Based Work Mode Choice Model Options**](nchrp_report716/models_hbw.png)
+![**Table 1: Home-Based Work Mode Choice Model Options**](model_data/nchrp_report716/models_hbw.png)
 
 </center>
 
@@ -298,7 +298,7 @@ The report gives default parameter values for 8 different types of models for HB
 
 <center>
 
-![**Table 2: Home-Based Other Mode Choice Model Options**](nchrp_report716/models_hbo.png)
+![**Table 2: Home-Based Other Mode Choice Model Options**](model_data/nchrp_report716/models_hbo.png)
 
 </center>
 
@@ -323,7 +323,7 @@ The report gives default parameter values for 11 different types of models for N
 
 <center>
 
-![**Table 3: Non Home-Based Mode Choice Model Options**](nchrp_report716/models_nhb.png)
+![**Table 3: Non Home-Based Mode Choice Model Options**](model_data/nchrp_report716/models_nhb.png)
 
 </center>
 
@@ -382,8 +382,8 @@ The parameters and utility values that correspond to the MTC/ActivitySim model i
 That file was copied, and the table is read in.
 
 ```{r, warning=FALSE,message=FALSE}
-asim_coeff <- read_csv("mtc/tour_mode_choice_coefficients.txt")
-asim_tour_coeffs <- read_csv("mtc/mtc_2012_tour_mode_choice_coefficients.txt")
+asim_coeff <- read_csv("model_data/mtc/trip_mode_choice_coefficients.txt")
+asim_tour_coeffs <- read_csv("model_data/mtc/mtc_2012_trip_mode_choice_coefficients.txt")
 
 # multiply all values in table by 2 (tour values need to be compared with trip values later on, and this will allow that)
 cols <- sapply(asim_tour_coeffs, is.numeric)
