@@ -488,7 +488,7 @@ nchrp_hbw <- nchrp_table(nchrp_coeff,"HBW",nchrp_ovt_long,1)
 ```
 
 Here is the final comparison output graph showing the difference between the path variables of each model. 
-```{r fig.align="center", echo = FALSE,warning=FALSE,fig.width = 11}
+```{r fig.align="center", echo = FALSE,warning=FALSE,fig.width = 7}
 #comparison graph
 hbwg <- loggrapher("Home-Based Work",asim_hbw,utah_hbw,wfrc_hbw,nchrp_hbw)
 hbwg
@@ -523,7 +523,7 @@ nchrp_hbs_ratio <- nchrp_table(nchrp_coeff,"HBO",nchrp_ovt_long,nchrp_hbs_ivtt)
 ```
 
 Here is the final comparison output graph.
-```{r fig.align="center", echo = FALSE,warning=FALSE,fig.width = 11}
+```{r fig.align="center", echo = FALSE,warning=FALSE,fig.width = 7}
 hbsg <- loggrapher("Home-Based School",asim_hbs,utah_hbs,wfrc_hbs,nchrp_hbs)
 hbsg
 
@@ -557,7 +557,7 @@ nchrp_hbo_ratio <- nchrp_table(nchrp_coeff,"HBO",nchrp_ovt_long,nchrp_hbo_ivtt)
 ```
 
 Here is the final comparison output graph.
-```{r fig.align="center", echo = FALSE,warning=FALSE,fig.width = 11}
+```{r fig.align="center", echo = FALSE,warning=FALSE,fig.width = 7}
 hbog <- loggrapher("Home-Based Other",asim_hbo,utah_hbo,wfrc_hbo,nchrp_hbo)
 hbog
 

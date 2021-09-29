@@ -78,7 +78,7 @@ wgrapher <- function(purp,asim,utah,wfrc,nchrp){
   "ActivitySim" = asim,
   "Utah Statewide" = utah,
   "WFRC 2019" = wfrc,
-  "NCHRP Report719" = nchrp
+  "NCHRP Report716" = nchrp
 ) %>%
   bind_rows(.id = "model") %>%
   dwplot() + 
@@ -94,7 +94,7 @@ loggrapher <- function(purp,asim,utah,wfrc,nchrp){
     "ActivitySim" = asim,
     "Utah Statewide" = utah,
     "WFRC 2019" = wfrc,
-    "NCHRP Report719" = nchrp
+    "NCHRP Report716" = nchrp
   ) %>%
   bind_rows(.id = "model") %>%
   dwplot(dot_args = list(size=2)) + 
@@ -114,7 +114,7 @@ ivtt_ratio_grapher <- function(purp,asim,utah,wfrc,nchrp){
     "ActivitySim" = asim,
     "Utah Statewide" = utah,
     "WFRC 2019" = wfrc,
-    "NCHRP Report719" = nchrp
+    "NCHRP Report716" = nchrp
   ) %>%
   bind_rows(.id = "model") %>%
   dwplot(dot_args = list(size=2)) + 
