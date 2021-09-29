@@ -29,6 +29,14 @@ class ModeChoiceTPCMCalculator(
     }
   }
 
+  def getTotalTravelTime(
+    altAndIdx: (EmbodiedBeamTrip, Int)
+  ): Double = {
+    altAndIdx._1.legs.view
+      .map(_.beamLeg.duration)
+      .sum
+  }
+
   def getWalkTime(altAndIdx: (EmbodiedBeamTrip, Int)): Double = {
     altAndIdx._1.legs.view
       .filter(_.beamLeg.mode == WALK)
@@ -43,12 +51,16 @@ class ModeChoiceTPCMCalculator(
       .sum
   }
 
-
-  def getEgressTime(altAndIdx: (EmbodiedBeamTrip, Int)): Double = { // should this include BIKE_TRANSIT?
-    altAndIdx._1.legs.view
-      .filter(_.beamLeg.mode == CAR)
-      .map(_.beamLeg.duration)
-      .sum
+  def getEgressTime(
+    mode: BeamMode,
+    altAndIdx: (EmbodiedBeamTrip, Int)
+  ): Double = { // should this include BIKE_TRANSIT?
+    if (mode in(DRIVE_TRANSIT,RIDE_HAIL_TRANSIT,BIKE_TRANSIT,TRANSIT,WALK_TRANSIT)) {
+      altAndIdx._1.legs.view
+        .filter(_.beamLeg.mode in(CAR,WALK,BIKE))
+        .map(_.beamLeg.duration)
+        .sum
+    } else {0.0}
   }
 
   def getVehicleTime(altAndIdx: (EmbodiedBeamTrip, Int)): Double = {
@@ -60,12 +72,11 @@ class ModeChoiceTPCMCalculator(
   }
 
   def getWaitTime(
-    altAndIdx: (EmbodiedBeamTrip, Int),
     walkTime: Double,
     vehicleTime: Double,
-    egressTime: Double
+    totalTravelTime: Double
   ): Double = {
-    altAndIdx._1.totalTravelTimeInSecs - walkTime - vehicleTime - egressTime
+    totalTravelTime - walkTime - vehicleTime
   }
 
   def getNumTransfers(
