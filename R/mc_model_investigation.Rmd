@@ -43,42 +43,18 @@ Here we read in the coefficient values and create a table of them. To be specifi
 ```{r, warning = FALSE, message = FALSE}
 cf_files <- list.files("model_data/utah_statewide/coeffs/coeffs/")
 cf_path <- "model_data/utah_statewide/coeffs/coeffs/"
-
-for(i in 1:length(cf_files)) { 
-  assign(paste0("cf", i),
-    read_fwf(file = paste0(cf_path, cf_files[i]), skip = 1, fwf_widths(c(30,1,19,1,100))) %>% 
-      na_if("") %>% na.omit %>%
-      mutate(purpose = substr(cf_files[i],14,16),
-             variable_type = "coefficient") %>%
-      rename(variable = X1, value = X3, description = X5) %>%
-      select(purpose, variable, variable_type, value, description)
-  )
-}
-utah_coeff <- rbind(cf1,cf2,cf3,cf4,cf5)
+utah_coeff <- read_utah_cf(cf_files,cf_path)
 tibble(utah_coeff)
 ```
 
 Here we read in the constant values and make a table out of it. To be specific, 5 separate text files are read in and joined together. 
 
-
 ```{r, warning = FALSE, message = FALSE}
 cst_files <- list.files("model_data/utah_statewide/coeffs/const/")
 cst_path <- "model_data/utah_statewide/coeffs/const/"
-
-for(i in 1:length(cst_files)) { 
-  assign(paste0("cst", i),
-    read_fwf(file = paste0(cst_path, cst_files[i]), skip = 0, fwf_widths(c(13,1,8))) %>% 
-      na_if("") %>% na.omit %>%
-      mutate(purpose = substr(cst_files[i],11,13),
-             variable_type = "constant") %>%
-      rename(variable = X1, value = X3) %>%
-      select(purpose, variable, variable_type, value)
-  )
-}
-utah_const <- rbind(cst1,cst2,cst3,cst4,cst5)
+utah_const <- read_utah_cst(cst_files,cst_path)
 tibble(utah_const)
 ```
-
 
 Here is the final outpout of all the values in one table.
 
@@ -124,18 +100,7 @@ Here, I read in the values that correspond to all the coefficient values. 4 text
 ```{r, warning = FALSE, message = FALSE}
 coeff_files <- list.files("model_data/wfrc/coeffs/coeffs/")
 coeff_path <- "model_data/wfrc/coeffs/coeffs/"
-
-for(i in 1:length(coeff_files)) { 
-  assign(paste0("coeff", i),
-    read_fwf(file = paste0(coeff_path, coeff_files[i]), skip = 1, fwf_widths(c(28,1,19,1,100))) %>% 
-      na_if("") %>% na.omit %>%
-      mutate(purpose = substr(coeff_files[i],1,3),
-             variable_type = "coefficient") %>%
-      rename(variable = X1, value = X3, description = X5) %>%
-      select(purpose, variable, variable_type, value, description,-X2,-X4)
-  )
-}
-wfrc_coeff <- rbind(coeff1,coeff2,coeff3,coeff4)
+wfrc_coeff <- read_wfrc_cf(coeff_files,coeff_path)
 tibble(wfrc_coeff)
 ```
 
@@ -144,21 +109,9 @@ Here I read in the constant values. There are a total of 7 text files that are p
 ```{r, warning = FALSE, message = FALSE}
 const_files <- list.files("model_data/wfrc/coeffs/const/")
 const_path <- "model_data/wfrc/coeffs/const/"
-
-for(i in 1:length(const_files)) { 
-  assign(paste0("const", i),
-    read_fwf(file = paste0(const_path, const_files[i]), skip = 0, fwf_widths(c(19,1,14))) %>% 
-      na_if("") %>% na.omit %>%
-      mutate(purpose = paste0(substr(const_files[i],1,3),"_",substr(const_files[i],18,19)),
-             variable_type = "constant") %>%
-      rename(variable = X1, value = X3) %>%
-      select(purpose, variable, variable_type, value)
-  )
-}
-wfrc_const <- rbind(const1,const2,const3,const4,const5,const6,const7)
+wfrc_const <- read_wfrc_cst(const_files,const_path)
 tibble(wfrc_const)
 ```
-
 
 ### Data Values
 **Purposes:**
@@ -284,12 +237,7 @@ After looking at the table, and following the advice given, I beleive that the v
 
 Lets create a data structure to house the HBW values from Model H and I. 
 ```{r}
-nchrp_hbw <- data.frame(
-  purpose = "HBW", 
-  variable = c("ivt_coef","ovt_coef","walk_coef","initwait_coef","xferwait_coef","cost_coef"), 
-  variable_type = "coefficient",
-  model_source = c("H","I","H","H","H","H"),
-  value = c(-0.033,-0.05,-0.093,-0.038,-0.038,-0.0021))
+nchrp_hbw <- build_nchrp_hbw()
 tibble(nchrp_hbw)
 ```
 
@@ -309,12 +257,7 @@ Unfortunately, Model I does not include all the coefficient values we need, like
 Lets create a data table to house the HBO values from Model I, J, and D.
 
 ```{r}
-nchrp_hbo <- data.frame(
-  purpose = "HBO",
-  variable = c("ivt_coef","ovt_coef","walk_coef","initwait_coef","xferwait_coef","cost_coef","autocost_coef","parkcost_coef","transitcost_coef"), 
-  variable_type = "coefficient",
-  model_source = c("I","I","J","J","J","D","I","I","I"),
-  value = c(-0.008,-0.025,-0.075,-0.050,-0.050,-0.033,-0.01,-0.025,-0.01))
+nchrp_hbo <- build_nchrp_hbo()
 tibble(nchrp_hbo)
 ```
 
@@ -332,12 +275,7 @@ From analyzing the table, it looks like Model m will be a good fit. It includes 
 Lets create a data table to house the NHB values from Model M and I.
 
 ```{r}
-nchrp_nhb <- data.frame(
-  purpose = "NHB",
-  variable = c("ivt_coef","ovt_coef","walk_coef","initwait_coef","xferwait_coef","cost_coef","autocost_coef","parkcost_coef","transitcost_coef"), 
-  variable_type = "coefficient",
-  model_source = c("M","I","M","M","M","M","I","I","I"),
-  value = c(-0.013,-0.05,-0.032,-0.032,-0.050,-0.002,-0.006,-0.016,-0.006))
+nchrp_nhb <- build_nchrp_nhb()
 tibble(nchrp_hbo)
 ```
 
