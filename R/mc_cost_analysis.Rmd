@@ -1,0 +1,184 @@
+---
+title: "Modechoice Cost Analysis"
+author: "Chris Day"
+date: "10/1/2021"
+output: html_document
+---
+
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(dotwhisker)
+library(ggpubr)
+library(scales)
+source("table_maker.R")
+```
+
+## Introduction
+According to ActivitySim's tour mode choice utility parameters, the cost coefficient is determined by each person's individual value of time. 
+
+Since we do not know the VOT at this moment, we are going to guess a basic VOT, and use that to calculate a basic cost coefficient to be used for all persons. A default value of $12/hr or \$0.2/min will be used in this analysis to calculate an overarching cost coefficient. 
+
+\begin{equation}
+  VOT = \frac{$12}{hr} = \frac{\$0.2}{min}
+\end{equation}
+
+Now that we have assumed a default VOT value, we can attempt to calculate the cost coefficient. In order to do that, we need to know the units of the cost coefficient ($\beta_{cost}$) and the time coefficient ($\beta_{time}$). These units are shown below, according to the ActivitySim units that are used:
+
+\begin{equation}
+  \beta_{cost} = \frac{utils}{$}
+\end{equation}
+
+\begin{equation}
+  \beta_{time} = \frac{utils}{min}
+\end{equation}
+
+Now that we know the units, we will compute the ratio of the coefficients, in order to get a similar unit to that of the VOT value!
+
+\begin{equation}
+  \frac{\beta_{time}}{\beta_{cost}} = \frac{utils/min}{utils/$} = \frac{\$}{min}
+\end{equation}
+
+As just explained, this ratio is the same unit as that of the VOT. Therefore, we substitute the VOT value of \$0.2/min and solve for $\beta_{cost}$. This process is done below:
+
+\begin{equation}
+  \frac{\beta_{time}}{\beta_{cost}} = \frac{$0.2}{min}
+\end{equation}  
+
+\begin{equation}
+  \beta_{cost} = \frac{\beta_{time}}{$0.2}
+\end{equation}
+
+
+\begin{equation}
+
+  \beta_{cost} = 5 \times \beta_{time}
+  
+\end{equation}
+
+Done! We now know how to compute the cost coefficient to get a value of time of about $12/hour. The only thing we need now is the $\beta_{time}$ value. Fortunately, there are tons of values for this found in the ActivitySim Tour Mode Choice Model. We will use one of those value to get the cost coefficient value.
+
+## Determining Default $\beta_{time}$ and $\beta_{cost}$
+To determine the time coefficient, we will first read in the ActivitySim coefficient table. 
+
+```{r, message = FALSE, warning = FALSE}
+asim_tour_coeffs <- read_table2("model_data/mtc/mtc_2012_tour_mode_choice_coefficients_path.txt")
+cols <- sapply(asim_tour_coeffs, is.numeric)
+asim_tour_coeffs[, cols] <- asim_tour_coeffs[, cols] * 2
+knitr::kable(asim_tour_coeffs) 
+```
+
+Now, we will take the average of all the time coefficient values. There are time coefficient utility parameters for in-vehicle travel time, transfer time, wait time, and egress time. Since we only want 1 value for the cost coefficient that will apply to every one, an average of everything will be determined. 
+
+```{r, message = FALSE, warning = FALSE}
+asim_long <-  asim_tour_coeffs[c(1:6,8,9),] %>%
+  filter(grepl("ivtt",Variable) | grepl("time",Variable)) %>%
+  pivot_longer(!Variable, names_to = "purpose", values_to = "value") %>%
+  mutate(type = case_when(
+      grepl("ivtt",Variable) ~ "ivtt",
+      grepl("egress",Variable) ~ "egress",
+      grepl("transfer",Variable) ~ "transfer",
+      grepl("wait_time_under_10_min",Variable) ~ "wait_time"))
+
+time_ave_all <- asim_long %>%
+  group_by(type) %>%
+  summarise(ave = mean(value)) %>%
+  summarise(average = mean(ave))
+
+time_coef_all <- as.numeric(time_ave_all[1,])
+```
+
+The overarching coefficient for time is calculated to be `r time_coef_all`. 
+
+\begin{equation}
+  \beta_{time} = `r time_coef_all`
+\end{equation}
+
+Using this value, we calculate the overarching coefficient for cost  by multiplying the time coefficient by 5. 
+
+```{r, message = FALSE, warning = FALSE}
+cost_coef_all <- (time_coef_all) * 5
+```
+
+The overarching coefficient of cost is calculated to be `r cost_coef_all`. 
+
+\begin{equation}
+  \beta_{cost} = `r cost_coef_all`
+\end{equation}
+
+## Determining Default $\beta_{time}$ and $\beta_{cost}$ by Purpose
+
+In addition, in case we want cost coefficients varied by purpose, we will average each purpose's time coefficient values and get a cost coefficient varied by purpose. 
+
+```{r, message = FALSE, warning = FALSE}
+time_ave_purp <- asim_long %>%
+  group_by(purpose,type) %>%
+  summarise(ave = mean(value)) %>%
+  summarise(time_coef = mean(ave)) %>%
+  mutate(cost_coef = time_coef*5)
+```
+
+The table below shows the time and cost coefficient values varied by each purpose!
+
+```{r, echo = FALSE}
+knitr::kable(time_ave_purp)
+```
+
+## Comparison
+Now that we have calculated the cost coefficient for ActivitySim, based on a default value of time, lets compare that value with the the utah statewide, wfrc, and nchrp report 716 model's values for cost. 
+
+First we read in and create the basic tables for those three models. 
+
+```{r, warning = FALSE, message = FALSE}
+# read in and create utah statewide table
+cf_files <- list.files("model_data/utah_statewide/coeffs/coeffs/")
+cf_path <- "model_data/utah_statewide/coeffs/coeffs/"
+utah_coeff <- read_utah_cf(cf_files,cf_path)
+
+# read in and create wfrc table
+coeff_files <- list.files("model_data/wfrc/coeffs/coeffs/")
+coeff_path <- "model_data/wfrc/coeffs/coeffs/"
+wfrc_coeff <- read_wfrc_cf(coeff_files,coeff_path)
+
+# read in and create nchrp table
+nchrp_hbw <- build_nchrp_hbw()
+nchrp_hbo <- build_nchrp_hbo()
+nchrp_nhb <- build_nchrp_nhb()
+nchrp_coeff <- rbind(nchrp_hbw,nchrp_hbo,nchrp_nhb)
+```
+
+Now, lets manipulate the tables to only include cost values.
+
+```{r}
+utah_cost <- utah_coeff %>%
+  filter(variable == "cost_coef" & purpose %in% c("HBW","HBO","HBC"))
+utah1 <- utah_cost %>%
+  summarise(term = "cost_coef",estimate = mean(-value), std.error = sd(-value))
+wfrc_cost <- wfrc_coeff %>%
+  filter(!grepl("park",variable) & grepl("cost",variable) & purpose != "NHB") 
+wfrc1 <- wfrc_cost %>%
+  summarise(term = "cost_coef",estimate = mean(-value), std.error = sd(-value))
+nchrp_cost <- nchrp_coeff %>%
+  filter(variable == "cost_coef" & purpose %in% c("HBW","HBO"))
+nchrp1 <- nchrp_cost %>%
+  summarise(term = "cost_coef",estimate = mean(-value), std.error = sd(-value))
+asim1 <- tibble(term = "cost_coef",estimate = -time_coef_all,std.error = 0)
+```
+
+Below is the final comparison graph of the cost coefficients between models.
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+list(
+    "ActivitySim" = asim1,
+    "Utah Statewide" = utah1,
+    "WFRC 2019" = wfrc1,
+    "NCHRP Report716" = nchrp1
+  ) %>%
+  bind_rows(.id = "model") %>%
+  dwplot(dot_args = list(size=2)) + 
+  ggtitle("Cost Parameter Values") +
+  xlab("Coeff Value") +
+  scale_x_continuous(trans = "log10", labels = function(x) format(x, scientific = FALSE)) +
+   theme_bw()
+
+```
+
