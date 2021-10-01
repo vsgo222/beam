@@ -72,6 +72,7 @@ object LatentClassChoiceModel {
       new NotNull, // alternative
       new NotNull, // units
       new Optional, // latentClass
+      new Optional(new ParseDouble()), // input value from Asim
       new Optional(new ParseDouble()) // value
     )
   }
@@ -83,6 +84,7 @@ object LatentClassChoiceModel {
     @BeanProperty var alternative: String = "",
     @BeanProperty var units: String = "",
     @BeanProperty var latentClass: String = "",
+    @BeanProperty var input: Double = Double.NaN,
     @BeanProperty var value: Double = Double.NaN
   ) extends Cloneable {
 
