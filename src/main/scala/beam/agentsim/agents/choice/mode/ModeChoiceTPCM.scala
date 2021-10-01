@@ -136,14 +136,14 @@ class ModeChoiceTPCM(
           val mode = altAndIdx._1.tripClassifier
           //val ivttMode = TPCMCalculator.getIVTTMode(mode, altAndIdx)
           val totalCost = TPCMCalculator.getTotalCost(mode, altAndIdx, transitFareDefaults)
-        //TODO verify wait time is correct, look at transit and ride_hail in particular
+        //TODO verify wait time is correct, look at transit and ride_hail in particular, also double check defaultTotalTravelTime
           val defaultTotalTravelTime = altAndIdx._1.totalTravelTimeInSecs
           val totalTravelTime = TPCMCalculator.getTotalTravelTime(altAndIdx)
           val egressTime = TPCMCalculator.getEgressTime(mode, altAndIdx)
           val vehicleTime = TPCMCalculator.getVehicleTime(altAndIdx) //can ivtt overlap with egress time?
           val walkTime = TPCMCalculator.getWalkTime(altAndIdx)
           val bikeTime = TPCMCalculator.getBikeTime(altAndIdx)
-          val waitTime = TPCMCalculator.getWaitTime(walkTime, vehicleTime, totalTravelTime) // defaultTotalTravelTime doesn't look accurate, so using own.
+          val waitTime = TPCMCalculator.getWaitTime(walkTime, vehicleTime, totalTravelTime)
         //TODO verify number of transfers is correct
           val numTransfers = TPCMCalculator.getNumTransfers(mode, altAndIdx)
           assert(numTransfers >= 0)
