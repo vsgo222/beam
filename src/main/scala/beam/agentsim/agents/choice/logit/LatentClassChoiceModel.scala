@@ -13,6 +13,7 @@ import org.supercsv.prefs.CsvPreference
 
 import scala.beans.BeanProperty
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 class LatentClassChoiceModel(val beamServices: BeamServices) {
 
@@ -31,6 +32,11 @@ class LatentClassChoiceModel(val beamServices: BeamServices) {
   val modeChoiceModels
     : Map[TourType, Map[String, (MultinomialLogit[EmbodiedBeamTrip, String], MultinomialLogit[BeamMode, String])]] = {
     LatentClassChoiceModel.extractModeChoiceModels(lccmData)
+  }
+
+  val modeChoiceTourModels
+  : Map[TourType, Map[String, (MultinomialLogit[EmbodiedBeamTrip, String], MultinomialLogit[BeamMode, String])]] = {
+    LatentClassChoiceModel.extractModeChoiceTourModels(lccmData)
   }
 
   private def parseModeChoiceParams(lccmParamsFileName: String): Seq[LccmData] = {
@@ -92,9 +98,9 @@ object LatentClassChoiceModel {
       val theData = classMemData.filter(_.tourType.equalsIgnoreCase(theTourType.toString))
       val utilityFunctions: Iterable[(String, Map[String, UtilityFunctionOperation])] = for {
         data          <- theData
-        alternativeId <- data.alternative
+        //alternativeId <- data.alternative
       } yield {
-        (alternativeId.toString, Map(data.variable -> UtilityFunctionOperation(data.variable, data.value)))
+        (data.alternative, Map(data.variable -> UtilityFunctionOperation(data.variable, data.value)))
       }
       theTourType -> utilityFunctions.toMap
     }.toMap
@@ -106,33 +112,90 @@ object LatentClassChoiceModel {
 
   case object NonMandatory extends TourType
 
+  //method where common utility values can be specified
+  def getCommonUtility: Map[String, UtilityFunctionOperation] = {
+    Map(
+      "cost" -> UtilityFunctionOperation("multiplier", 0),
+      "time" -> UtilityFunctionOperation("multiplier", 0),
+      "transfer" -> UtilityFunctionOperation("multiplier", 0)
+    )
+  }
+
   /*
-   * We use presence of ASC to indicate whether an alternative should be added to the MNL model. So even if an alternative is a base alternative,
-   * it should be given an ASC with value of 0.0 in order to be added to the choice set.
-   */
+     * We use presence of ASC to indicate whether an alternative should be added to the MNL model. So even if an alternative is a base alternative,
+     * it should be given an ASC with value of 0.0 in order to be added to the choice set.
+     */
   def extractModeChoiceModels(
     lccmData: Seq[LccmData]
   ): Map[TourType, Map[String, (MultinomialLogit[EmbodiedBeamTrip, String], MultinomialLogit[BeamMode, String])]] = {
     val uniqueClasses = lccmData.map(_.latentClass).distinct
+    val uniqueAlts = ArrayBuffer("bike", "car", "drive_transit", "ride_hail", "walk", "walk_transit")
     val modeChoiceData = lccmData.filter(_.model == "modeChoice")
     Vector[TourType](Mandatory, NonMandatory).map { theTourType: TourType =>
       val theTourTypeData = modeChoiceData.filter(_.tourType.equalsIgnoreCase(theTourType.toString))
       theTourType -> uniqueClasses.map { theLatentClass =>
         val theData = theTourTypeData.filter(_.latentClass.equalsIgnoreCase(theLatentClass))
+        val utilityFunctions: Iterable[(String, Map[String, UtilityFunctionOperation])] = for {
+          data          <- theData
+        } yield {
+          (data.alternative, Map(data.variable -> UtilityFunctionOperation(data.variable, data.value)))
+        }
+          //group together all utility parameter values for each alternative
+          var utilMap = Map[String, Map[String, UtilityFunctionOperation]]()
+          utilMap -> uniqueAlts.map{ theAlternative =>
+            val theAltData = utilityFunctions.toArray.filter(_._1.equalsIgnoreCase(theAlternative))
+            var altFunction: Map[String,UtilityFunctionOperation] = Map()
+            for { data    <- theAltData } {
+              var (mode, param, value) = (data._1, data._2.head._1, data._2.head._2)
+              altFunction += (param -> value)
+              utilMap += (mode -> altFunction)
+            }
+            theAlternative -> utilMap
+          }
+        val utilityFunctionMap = utilMap
+        val commonUtility = getCommonUtility
+        theLatentClass -> (
+          new MultinomialLogit[EmbodiedBeamTrip, String](trip => utilityFunctionMap.get(trip.tripClassifier.value), commonUtility),
+          new MultinomialLogit[BeamMode, String](mode => utilityFunctionMap.get(mode.value), commonUtility)
+        )
+      }.toMap
+    }.toMap
+  }
+
+  def extractModeChoiceTourModels(
+    lccmData: Seq[LccmData]
+  ): Map[TourType, Map[String, (MultinomialLogit[EmbodiedBeamTrip, String], MultinomialLogit[BeamMode, String])]] = {
+    val uniqueClasses = lccmData.map(_.latentClass).distinct
+    val uniqueAlts = lccmData.map(_.alternative).distinct
+    val modeChoiceData = lccmData.filter(_.model == "modeChoice")
+    Vector[TourType](Mandatory, NonMandatory).map { theTourType: TourType =>
+      val theTourTypeData = modeChoiceData.filter(_.tourType.equalsIgnoreCase(theTourType.toString))
+      theTourType -> uniqueClasses.map { theTourPurpose =>
+        val theData = theTourTypeData.filter(_.latentClass.equalsIgnoreCase(theTourPurpose))
 
         val utilityFunctions: Iterable[(String, Map[String, UtilityFunctionOperation])] = for {
           data          <- theData
-          alternativeId <- data.alternative
         } yield {
-          (alternativeId.toString, Map(data.variable -> UtilityFunctionOperation(data.variable, data.value)))
+          (data.alternative, Map(data.variable -> UtilityFunctionOperation(data.variable, data.value)))
         }
-        val utilityFunctionMap = utilityFunctions.toMap
-
-        theLatentClass -> (new MultinomialLogit[EmbodiedBeamTrip, String](
-          trip => utilityFunctionMap.get(trip.tripClassifier.value),
-          Map.empty
-        ),
-        new MultinomialLogit[BeamMode, String](mode => utilityFunctionMap.get(mode.value), Map.empty))
+          //group together all utility parameter values for each alternative
+          var utilMap = Map[String, Map[String, UtilityFunctionOperation]]()
+          utilMap -> uniqueAlts.map{ theAlternative =>
+            val theAltData = utilityFunctions.toArray.filter(_._1.equalsIgnoreCase(theAlternative))
+            var altFunction: Map[String,UtilityFunctionOperation] = Map()
+            for { data    <- theAltData } {
+              var (mode, param, value) = (data._1, data._2.head._1, data._2.head._2)
+              altFunction += (param -> value)
+              utilMap += (mode -> altFunction)
+            }
+            theAlternative -> utilMap
+          }
+        val utilityFunctionMap = utilMap
+        val commonUtility = getCommonUtility
+        theTourPurpose -> (
+          new MultinomialLogit[EmbodiedBeamTrip, String](trip => utilityFunctionMap.get(trip.tripClassifier.value), commonUtility),
+          new MultinomialLogit[BeamMode, String](mode => utilityFunctionMap.get(mode.value), commonUtility)
+        )
       }.toMap
     }.toMap
   }

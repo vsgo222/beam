@@ -1103,6 +1103,11 @@ trait ChoosesMode {
     }
   }
 
+  def getTourPurpose(personData: BasePersonData) = {
+    val tourPurp = currentActivity(personData).getAttributes.getAttribute("primary_purpose").toString
+    tourPurp
+  }
+
   def completeChoiceIfReady: PartialFunction[State, State] = {
     case FSM.State(
           _,
@@ -1227,11 +1232,17 @@ trait ChoosesMode {
           .asInstanceOf[AttributesOfIndividual]
       val availableAlts = Some(filteredItinerariesForChoice.map(_.tripClassifier).mkString(":"))
 
+      var tourPurpose = "None"
+      if ("ModeChoiceTourPurpose".equals(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
+        tourPurpose = getTourPurpose(choosesModeData.personData)
+        logger.warn("The current tour purpose is " + tourPurpose)
+      }
       modeChoiceCalculator(
         filteredItinerariesForChoice,
         attributesOfIndividual,
         nextActivity(choosesModeData.personData),
-        Some(matsimPlan.getPerson)
+        Some(matsimPlan.getPerson),
+        tourPurpose
       ) match {
         case Some(chosenTrip) =>
           goto(FinishingModeChoice) using choosesModeData.copy(

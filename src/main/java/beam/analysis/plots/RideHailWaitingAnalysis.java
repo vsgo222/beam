@@ -370,7 +370,7 @@ public class RideHailWaitingAnalysis implements GraphAnalysis, IterationSummaryA
                 Coord coord = geo.coordOfR5Edge(transportNetwork.streetLayer, linkId);
                 simMetricCollector.writeIterationMapPoint("ride-hail-waiting-time-map", event.getTime(), waitingTime, coord.getY(), coord.getX(), false);
             } catch (NumberFormatException e) {
-                log.error("Can't parse 'event.location' as Integer. Event: " + event.toString());
+                log.error("Can't parse 'event.location' as Integer. Event: " + event);
             }
         }
 

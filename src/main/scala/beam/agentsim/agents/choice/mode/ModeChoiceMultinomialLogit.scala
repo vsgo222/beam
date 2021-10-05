@@ -48,7 +48,8 @@ class ModeChoiceMultinomialLogit(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
-    person: Option[Person] = None
+    person: Option[Person] = None,
+    tourPurpose : String = "Work"
   ): Option[EmbodiedBeamTrip] = {
     if (alternatives.isEmpty) {
       None
@@ -525,7 +526,15 @@ class ModeChoiceMultinomialLogit(
   override def utilityOf(
     alternative: EmbodiedBeamTrip,
     attributesOfIndividual: AttributesOfIndividual,
-    destinationActivity: Option[Activity]
+    destinationActivity: Option[Activity],
+    tourPurpose: String
+  ): Double = 0.0
+
+  override def utilityOf(
+    alternative: EmbodiedBeamTrip,
+    attributesOfIndividual: AttributesOfIndividual,
+    destinationActivity: Option[Activity],
+    person: Person
   ): Double = {
     val modeCostTimeTransfer =
       altsToModeCostTimeTransfers(IndexedSeq(alternative), attributesOfIndividual, destinationActivity).head
@@ -539,6 +548,7 @@ class ModeChoiceMultinomialLogit(
   }
 
   override def utilityOf(
+    tourPurpose: String = "Work",
     mode: BeamMode,
     cost: Double,
     time: Double,
@@ -560,7 +570,7 @@ class ModeChoiceMultinomialLogit(
     trips: ListBuffer[EmbodiedBeamTrip],
     person: Person,
     attributesOfIndividual: AttributesOfIndividual
-  ): Double = trips.map(utilityOf(_, attributesOfIndividual, None)).sum // TODO: Update with destination activity
+  ): Double = trips.map(utilityOf(_, attributesOfIndividual, None, person)).sum // TODO: Update with destination activity
 }
 
 object ModeChoiceMultinomialLogit {

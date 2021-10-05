@@ -1,17 +1,22 @@
 package beam.sim.population
 
+import java.util.Random
+import beam.agentsim
+import beam.replanning.SwitchModalityStyle
 import beam.router.Modes.BeamMode
 import beam.sim.{BeamScenario, BeamServices}
 import beam.utils.plan.sampling.AvailableModeUtils
 import beam.{agentsim, sim}
 import com.typesafe.scalalogging.LazyLogging
-import org.matsim.api.core.v01.population.{Person, Population => MPopulation}
+import org.matsim.api.core.v01.population.{Activity, Person, Population => MPopulation}
 import org.matsim.api.core.v01.{Id, Scenario}
 import org.matsim.core.population.PersonUtils
 import org.matsim.households.Household
+import org.matsim.utils.objectattributes.attributable.Attributes
 
 import java.util.Random
 import scala.collection.JavaConverters._
+import java.util.Random
 import scala.collection.mutable
 
 /**
@@ -37,9 +42,10 @@ trait PopulationAdjustment extends LazyLogging {
       .toMap
 
     //Iterate over each person in the population
-    population.getPersons.asScala.foreach { case (_, person) =>
-      val attributes = createAttributesOfIndividual(beamScenario, population, person, personHouseholds(person.getId))
-      person.getCustomAttributes.put(PopulationAdjustment.BEAM_ATTRIBUTES, attributes)
+    population.getPersons.asScala.foreach {
+      case (_, person) =>
+        val attributes = createAttributesOfIndividual(beamScenario, population, person, personHouseholds(person.getId))
+        person.getCustomAttributes.put(PopulationAdjustment.BEAM_ATTRIBUTES, attributes)
     }
     population
   }
@@ -194,7 +200,7 @@ object PopulationAdjustment extends LazyLogging {
       case DIFFUSION_POTENTIAL_ADJUSTMENT =>
         new DiffusionPotentialPopulationAdjustment(beamServices)
       case CAR_RIDE_HAIL_ONLY =>
-        CarRideHailOnly(beamServices)
+        new CarRideHailOnly(beamServices)
       case adjClass =>
         try {
           Class
@@ -224,6 +230,10 @@ object PopulationAdjustment extends LazyLogging {
       .asInstanceOf[AttributesOfIndividual]
   }
 
+  // create a map to store each person's id and modality style
+  var peeps = Map[String,Option[String]]()
+  var purps = Map[String,Array[String]]()
+
   def createAttributesOfIndividual(
     beamScenario: BeamScenario,
     population: MPopulation,
@@ -233,33 +243,49 @@ object PopulationAdjustment extends LazyLogging {
     val personAttributes = population.getPersonAttributes
     // Read excluded-modes set for the person and calculate the possible available modes for the person
     val excludedModes = AvailableModeUtils.getExcludedModesForPerson(population, person.getId.toString)
-    val initialAvailableModes: Seq[BeamMode] =
-      if (person.getCustomAttributes.isEmpty) BeamMode.allModes
-      else if (person.getCustomAttributes.containsKey("beam-attributes")) {
-        person.getCustomAttributes
-          .get("beam-attributes")
-          .asInstanceOf[sim.population.AttributesOfIndividual]
-          .availableModes
-      } else BeamMode.allModes
+    val initialAvailableModes = person.getCustomAttributes.isEmpty match {
+      case true =>
+        BeamMode.allModes
+      case false =>
+        person.getCustomAttributes.containsKey("beam-attributes") match {
+          case true =>
+            person.getCustomAttributes
+              .get("beam-attributes")
+              .asInstanceOf[sim.population.AttributesOfIndividual]
+              .availableModes
+          case false =>
+            BeamMode.allModes
+        }
+    }
     val availableModes: Seq[BeamMode] = initialAvailableModes.filterNot { mode =>
       excludedModes.exists(em => em.equalsIgnoreCase(mode.value))
     }
     // Read person attribute "income" and default it to 0 if not set
     val income = Option(personAttributes.getAttribute(person.getId.toString, "income"))
       .map(_.asInstanceOf[Double])
-      .getOrElse(0d)
-    // Read person attribute "modalityStyle"
+      .getOrElse(0D)
+    //tour purpose stuff
+      //all activity attributes are used; if only one activity exists in the plan, it means no trips
+      //are taken, so a default value is given so the code doesn't break
+    val activities: List[Activity] = person.getSelectedPlan.getPlanElements.asScala
+      .collect{ case activity: Activity => activity }
+      .toList
+    if (activities.length < 2){ activities.map(_.getAttributes.putAttribute("primary_purpose","none")) }
+    val purposes : Array[String] = activities
+      .flatMap(act => Option(act.getAttributes.getAttribute("primary_purpose")).map(_.toString))
+      .toSet.toArray
+    purps += (person.getId.toString -> purposes)
+    //modality style stuff
     val modalityStyle =
       Option(person.getSelectedPlan)
         .map(_.getAttributes)
         .flatMap(attrib => Option(attrib.getAttribute("modality-style")).map(_.toString))
-
+    peeps += (person.getId.toString -> modalityStyle)
     // Read household attributes for the person
     val householdAttributes = HouseholdAttributes(
       household,
       agentsim.agents.Population.getVehiclesFromHousehold(household, beamScenario)
     )
-
     // Read person attribute "valueOfTime", use function of HH income if not, and default it to the respective config value if neither is found
     val valueOfTime: Double =
       Option(personAttributes.getAttribute(person.getId.toString, "valueOfTime"))
@@ -283,13 +309,19 @@ object PopulationAdjustment extends LazyLogging {
   }
 
   def incomeToValueOfTime(income: Double, minimumValueOfTime: Double = 7.25): Option[Double] = {
-    val workHoursPerYear =
-      51 * 40 // TODO: Make nonlinear--eg https://ac.els-cdn.com/S0965856411001613/1-s2.0-S0965856411001613-main.pdf
+    val workHoursPerYear = 51 * 40 // TODO: Make nonlinear--eg https://ac.els-cdn.com/S0965856411001613/1-s2.0-S0965856411001613-main.pdf
     val wageFactor = 0.5
     if (income > 0) {
       Some(math.max(income / workHoursPerYear * wageFactor, minimumValueOfTime))
     } else {
       None
     }
+  }
+
+  def getModalityStyle(personId: String): Option[String] = {
+    peeps(personId)
+  }
+  def getTourPurposes(personId: String): Array[String] = {
+    purps(personId)
   }
 }

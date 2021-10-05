@@ -55,16 +55,26 @@ trait ModeChoiceCalculator {
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
-    person: Option[Person] = None
+    person: Option[Person] = None,
+    tourPurpose : String = "Work"
   ): Option[EmbodiedBeamTrip]
 
   def utilityOf(
     alternative: EmbodiedBeamTrip,
     attributesOfIndividual: AttributesOfIndividual,
-    destinationActivity: Option[Activity]
+    destinationActivity: Option[Activity],
+    tourPurpose: String
   ): Double
 
   def utilityOf(
+    alternative: EmbodiedBeamTrip,
+    attributesOfIndividual: AttributesOfIndividual,
+    destinationActivity: Option[Activity],
+    person: Person
+  ): Double
+
+  def utilityOf(
+    tourPurpose: String = "Work",
     mode: BeamMode,
     cost: Double,
     time: Double,
@@ -128,19 +138,23 @@ object ModeChoiceCalculator {
     eventsManager: EventsManager
   ): ModeChoiceCalculatorFactory = {
     classname match {
+      case "ModeChoiceTourPurpose" =>
+        val lccm = new LatentClassChoiceModel(beamServices)
+        (attributesOfIndividual: AttributesOfIndividual) =>
+          new ModeChoiceTPCM(
+            beamServices,
+            lccm,
+            beamServices.skims.tc_skimmer
+          )
       case "ModeChoiceLCCM" =>
         val lccm = new LatentClassChoiceModel(beamServices)
         (attributesOfIndividual: AttributesOfIndividual) =>
           attributesOfIndividual match {
             case AttributesOfIndividual(_, Some(modalityStyle), _, _, _, _, _) =>
-              val (model, modeModel) = lccm.modeChoiceModels(Mandatory)(modalityStyle)
-              new ModeChoiceMultinomialLogit(
+              new ModeChoiceLCCM(
                 beamServices,
-                model,
-                modeModel,
-                configHolder,
-                beamServices.skims.tc_skimmer,
-                eventsManager
+                lccm,
+                beamServices.skims.tc_skimmer
               )
             case _ =>
               throw new RuntimeException("LCCM needs people to have modality styles")

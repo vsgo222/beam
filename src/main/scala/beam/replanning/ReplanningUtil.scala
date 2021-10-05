@@ -6,10 +6,13 @@ import org.matsim.api.core.v01.population._
 import org.matsim.core.config.groups.PlanCalcScoreConfigGroup
 import org.matsim.core.population.PopulationUtils
 import org.matsim.core.replanning.selectors.RandomPlanSelector
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 
 object ReplanningUtil {
+
+  private val logger: Logger = LoggerFactory.getLogger("ReplanningUtil")
 
   def makeExperiencedMobSimCompatible[T <: Plan, I](person: HasPlansAndId[T, I]): Unit = {
     val experiencedPlan = person.getSelectedPlan.getCustomAttributes
@@ -38,19 +41,23 @@ object ReplanningUtil {
         case (plannedActivity: Activity, experiencedActivity: Activity) =>
           experiencedActivity.setCoord(plannedActivity.getCoord)
           experiencedActivity.setEndTime(plannedActivity.getEndTime)
+          val purpose = if ( plannedActivity.getAttributes.getAttribute("primary_purpose") == null ) { "None" } else {
+            plannedActivity.getAttributes.getAttribute("primary_purpose").toString }
+          experiencedActivity.getAttributes.putAttribute("primary_purpose", purpose)
         case (_, _) =>
       }
       val attributes = experiencedPlan.getAttributes
-      val modalityStyle = if (person.getSelectedPlan.getAttributes.getAttribute("modality-style") == null) { "" }
-      else {
+      val modalityStyle = if (person.getSelectedPlan.getAttributes.getAttribute("modality-style") == null) { "class1" } else {
         person.getSelectedPlan.getAttributes.getAttribute("modality-style")
       }
-      val scores = if (person.getSelectedPlan.getAttributes.getAttribute("scores") == null) { "" }
-      else {
+      val scores = if (person.getSelectedPlan.getAttributes.getAttribute("scores") == null) { "class1" } else {
         person.getSelectedPlan.getAttributes.getAttribute("scores")
       }
       attributes.putAttribute("modality-style", modalityStyle)
       attributes.putAttribute("scores", scores)
+      if (attributes.getAttribute("modality-style") == null) {
+        val i = 0
+      }
       assert(experiencedPlan.getPlanElements.get(0).asInstanceOf[Activity].getCoord != null)
 
       copyRemainingPlanElementsIfExperiencedPlanIncomplete(person.getSelectedPlan, experiencedPlan)

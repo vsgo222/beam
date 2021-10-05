@@ -37,9 +37,9 @@ import java.util.Map;
 public class LinkTablesReader {
     private static final Logger log = Logger.getLogger(LinkTablesReader.class);
     private final Scenario scenario;
-    private CoordinateTransformation ct;
-    private Network network;
-    private NetworkFactory networkFactory;
+    private final CoordinateTransformation ct;
+    private final Network network;
+    private final NetworkFactory networkFactory;
 
     private final File outDir;
     private final File nodesFile;

@@ -19,11 +19,31 @@ object UtilityFunctionOperation {
   }
 
   def apply(s: String, value: Double): UtilityFunctionOperation = {
-    (s.toLowerCase, value) match {
-      case ("intercept", _)  => Intercept(value)
-      case ("asc", _)        => Intercept(value)
-      case ("multiplier", _) => Multiplier(value)
-      case _                 => throw new RuntimeException(s"Unknown Utility Parameter Type $s")
+    (s, value) match {
+      case ("intercept", _)      => Intercept(value)
+      case ("asc", _)            => Intercept(value)
+      case ("multiplier", _)     => Multiplier(value)
+
+      // for LCCM use
+      case ("householdsize", _)  => Multiplier(value)
+      case ("income", _)         => Multiplier(value)
+      case ("male", _)           => Multiplier(value)
+      case ("numbikes", _)       => Multiplier(value)
+      case ("numcars", _)        => Multiplier(value)
+      case ("surplus", _)        => Multiplier(value)
+      case ("cost", _)           => Multiplier(value)
+      case ("time", _)           => Multiplier(value)
+
+      // for TPCM use
+      case ("vehicleTime", _)    => Multiplier(value)
+      case ("waitTime", _)       => Multiplier(value)
+      case ("transfer", _)       => Multiplier(value)
+      case ("shortWalkDist", _)  => Multiplier(value)
+      case("longWalkDist", _)    => Multiplier(value)
+      case ("shortBikeDist", _)  => Multiplier(value)
+      case ("longBikeDist", _)   => Multiplier(value)
+      case ("egressTime", _)     => Multiplier(value)
+      case _                     => throw new RuntimeException(s"Unknown Utility Parameter Type $s")
     }
   }
 }

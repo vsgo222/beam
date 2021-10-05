@@ -2,6 +2,7 @@ package beam.analysis.plots.modality;
 
 import beam.analysis.plots.GraphUtils;
 import beam.analysis.plots.GraphsStatsAgentSimEventsListener;
+import beam.sim.population.PopulationAdjustment;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.data.category.CategoryDataset;
@@ -59,9 +60,10 @@ public class ModalityStyleStats {
         Set entries = population.getPersons().keySet();
         for (Object entry : entries) {
             String key = entry.toString();
-            Person person = population.getPersons().get(Id.createPersonId(key));
-            Plan plan = person.getSelectedPlan();
-            String modalityStyle = plan.getAttributes().getAttribute(attributeName).toString();
+            //for some reason the population value that gets passed into this class is not updated.
+            // As a result, we take the updated population modality styles form the PopulationAdjustment
+            // class. One day I hope to just update the population value in BeamSeam#L351
+            String modalityStyle= PopulationAdjustment.getModalityStyle(key).get();
             className.add(modalityStyle);
             Map<String, Double> modalityData;
             modalityData = iterationVsModalityClassCount.get(event.getIteration());

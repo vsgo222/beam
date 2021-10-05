@@ -189,10 +189,19 @@ class BeamScoringFunctionFactory @Inject() (
             .filter(_.isInstanceOf[Activity])
             .map(_.asInstanceOf[Activity])
             .lift(tripIndex + 1)
+          var tripOriginPurpose = "None"
+          if ("ModeChoiceTourPurpose".equals(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
+            tripOriginPurpose = person.getSelectedPlan.getPlanElements.asScala
+              .filter(_.isInstanceOf[Activity])
+              .map(_.asInstanceOf[Activity])
+              .lift(tripIndex).get
+              .getAttributes.getAttribute("primary_purpose")
+              .toString
+          }
           val departureTime = trip.legs.headOption.map(_.beamLeg.startTime.toString).getOrElse("")
           val totalTravelTimeInSecs = trip.totalTravelTimeInSecs
           val mode = trip.tripClassifier
-          val score = modeChoiceCalculator.utilityOf(trip, attributes, tripPurpose)
+          val score = modeChoiceCalculator.utilityOf(trip, attributes, tripPurpose, tripOriginPurpose)
           val cost = trip.costEstimate
           s"$personId,$tripIndex,$departureTime,$totalTravelTimeInSecs,$mode,$cost,$score"
         } mkString "\n"

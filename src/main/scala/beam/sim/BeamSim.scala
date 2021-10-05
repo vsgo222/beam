@@ -18,7 +18,7 @@ import beam.analysis.cartraveltime.{
   StudyAreaTripFilter,
   TakeAllTripsTripFilter
 }
-import beam.analysis.plots.modality.ModalityStyleStats
+import beam.analysis.plots.modality.{ModalityStyleStats, TourPurposeStats}
 import beam.analysis.plots.{GraphUtils, GraphsStatsAgentSimEventsListener}
 import beam.analysis.via.ExpectedMaxUtilityHeatMap
 import beam.physsim.jdeqsim.AgentSimToPhysSimPlanConverter
@@ -98,6 +98,7 @@ class BeamSim @Inject() (
   private var createGraphsFromEvents: GraphsStatsAgentSimEventsListener = _
   private var delayMetricAnalysis: DelayMetricAnalysis = _
   private var modalityStyleStats: ModalityStyleStats = _
+  private var tourPurposeStats: TourPurposeStats = _
   private var expectedDisutilityHeatMapDataCollector: ExpectedMaxUtilityHeatMap = _
 
   private val modeChoiceAlternativesCollector: ModeChoiceAlternativesCollector = new ModeChoiceAlternativesCollector(
@@ -247,6 +248,7 @@ class BeamSim @Inject() (
       iterationStatsProviders += createGraphsFromEvents
     }
     modalityStyleStats = new ModalityStyleStats()
+    tourPurposeStats = new TourPurposeStats()
     expectedDisutilityHeatMapDataCollector = new ExpectedMaxUtilityHeatMap(
       eventsManager,
       beamServices,
@@ -427,6 +429,10 @@ class BeamSim @Inject() (
         if ("ModeChoiceLCCM".equals(beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
           modalityStyleStats.processData(scenario.getPopulation, event)
           modalityStyleStats.buildModalityStyleGraph(event.getServices.getControlerIO)
+        }
+        if ("ModeChoiceTourPurpose".equals(beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
+          tourPurposeStats.processData(scenario.getPopulation, event)
+          tourPurposeStats.buildTourPurposeGraph(event.getServices.getControlerIO)
         }
         createGraphsFromEvents.createGraphs(event)
 

@@ -12,7 +12,7 @@ import beam.agentsim.agents.modalbehaviors.DrivesVehicle._
 import beam.agentsim.agents.modalbehaviors.{ChoosesMode, DrivesVehicle, ModeChoiceCalculator}
 import beam.agentsim.agents.parking.ChoosesParking
 import beam.agentsim.agents.parking.ChoosesParking.{ChoosingParkingSpot, ReleasingParkingSpot}
-import beam.agentsim.agents.planning.{BeamPlan, Tour}
+import beam.agentsim.agents.planning.{BeamPlan, Tour, Trip}
 import beam.agentsim.agents.ridehail.RideHailManager.TravelProposal
 import beam.agentsim.agents.ridehail._
 import beam.agentsim.agents.vehicles.BeamVehicle.FuelConsumed
@@ -418,8 +418,28 @@ class PersonAgent(
     }
   }
 
+  def currentTourType(data: BasePersonData) : String = {
+    val tour = currentTour(data)
+    val tourTypes = tour.trips.map(_.activity.getType)
+
+    if ( tourTypes.contains("Work") || tourTypes.contains("work") ) {"Work"}
+    else if ( tourTypes.contains("Univ") ) {"univ"}
+    else if ( tourTypes.contains("School") ) {"school"}
+    else if ( tourTypes.contains("Escort") ) {"escort"}
+    else if ( tourTypes.contains("Shopping") ) {"shopping"}
+    else if ( tourTypes.contains("Eatout") ) {"eatout"}
+    else if ( tourTypes.contains("Social") ) {"social"}
+    else if ( tourTypes.contains("Othmaint") || tourTypes.contains("Other") ) {"othmaint"}
+    else if ( tourTypes.contains("Othdiscr") ) {"othdiscr"}
+    else if ( tourTypes.contains("Atwork") ) {"atwork"}
+    else {"Nonwork"}
+  }
+
   def currentActivity(data: BasePersonData): Activity =
     _experiencedBeamPlan.activities(data.currentActivityIndex)
+
+  def currentTrip(data: BasePersonData): Trip =
+    _experiencedBeamPlan.trips(data.currentActivityIndex)
 
   def nextActivity(data: BasePersonData): Option[Activity] = {
     val ind = data.currentActivityIndex + 1
@@ -428,6 +448,10 @@ class PersonAgent(
     } else {
       Some(_experiencedBeamPlan.activities(ind))
     }
+  }
+
+  def getNumOfActivities()= {
+    _experiencedBeamPlan.activities.length
   }
 
   def findFirstCarLegOfTrip(data: BasePersonData): Option[EmbodiedBeamLeg] = {
