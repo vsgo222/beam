@@ -23,7 +23,7 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
 
     Scenario sc;
     Integer peopleInVehicles = 0;
-    Integer totalRideHailCount =0;
+    Integer totalRideHailCount = 0;
     Integer wcPeopleInWavs = 0;
     Integer otherPeopleInWavs = 0;
     Integer rideHailCount = 0;
@@ -74,7 +74,7 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
                 //Currently, the ridehail vehicle IDs are in the form 'rideHailVehicle-rideHailVehicle-1-1-2@default',
                 //when the RHM is expecting 'rideHailVehicle-1-1-2'. Below is some regex that should fix those IDs.
                 //Ultimately we should fix the source problem, but this hacky fix will work for now
-                Pattern pattern = Pattern.compile("ridehailvehicle-ridehailvehicle", Pattern.CASE_INSENSITIVE);
+                Pattern pattern = Pattern.compile("ridehailvehicle", Pattern.CASE_INSENSITIVE);
                 Matcher match = pattern.matcher(thisVehicle);
                 if (match.find()) {
 //                    thisVehicle = thisVehicle.replaceAll("\\w+-([\\w-]+)@\\w+", "$1");
@@ -168,7 +168,7 @@ public class WavRidehailDelayCalculator implements PersonEntersVehicleEventHandl
                 //Currently, the ridehail vehicle IDs are in the form 'rideHailVehicle-rideHailVehicle-1-1-2@default',
                 //when the RHM is expecting 'rideHailVehicle-1-1-2'. Below is some regex that should fix those IDs.
                 //Ultimately we should fix the source problem, but this hacky fix will work for now
-                Pattern pattern = Pattern.compile("ridehailvehicle-ridehailvehicle", Pattern.CASE_INSENSITIVE);
+                Pattern pattern = Pattern.compile("ridehailvehicle", Pattern.CASE_INSENSITIVE);
                 Matcher match = pattern.matcher(thisVehicle);
                 if (match.find()) {
 //                    thisVehicle = thisVehicle.replaceAll("\\w+-([\\w-]+)@\\w+", "$1");
