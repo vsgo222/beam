@@ -40,7 +40,6 @@ rhFleetFile = "from_BYUsc/rhFlees-12-micro.csv"
 eventsXML <- read_xml(inputEventsXML)
 
 ##### Convert eventsXML to tibble ####
-
 #get list of event tags ####
 rows <- eventsXML %>%
   html_elements("event")
@@ -105,6 +104,9 @@ events %<>% relocate(person, .after = type)
 
 UTAOD <- read_csv("from_BYUsc/UTAODpilotinfo.csv")
 
+events <- read_csv("from_BYUsc/events_10.csv")
+events %<>% relocate(person, .after = type)
+
 fullEvents <- events
 
 types <- events$type %>% unique()
@@ -145,3 +147,15 @@ events %>%
   filter(grepl("rideHailVehicle", vehicle)) %>%
   select(vehicle) %>%
   unique()
+
+events %>%
+  filter(!is.na(as.numeric(person))) %>%
+  filter(mode == "ride_hail")
+
+person1 <- 1067049
+person2 <- 114037
+person3 <- 730554
+events %>%
+  filter(person == person1) %>%
+  select(c(1:4,7, 9, 10, 11, "actType")) %>%
+  print(n = Inf)
