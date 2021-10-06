@@ -53,12 +53,15 @@ class ModeChoiceTPCM(
     person: Option[Person] = None,
     tourPurpose : String = "Work"
   ): Option[EmbodiedBeamTrip] = {
-    choose(alternatives, tourPurpose)
+    val income = person.get.getAttributes.getAttribute("income")
+    val autoWork = person.get.getAttributes.getAttribute("autoWorkRatio").toString
+    choose(alternatives, tourPurpose, autoWork)
   }
 
   private def choose(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
-    purpose: String
+    purpose: String,
+    autoWork: String
   ): Option[EmbodiedBeamTrip] = {
     if (alternatives.isEmpty) {
       None
@@ -75,7 +78,10 @@ class ModeChoiceTPCM(
           if (alt.walkDistance <= 1.5) {alt.walkDistance} else {0.0},
           if (alt.walkDistance > 1.5)  {alt.walkDistance} else {0.0},
           if (alt.bikeDistance <= 1.5) {alt.bikeDistance} else {0.0},
-          if (alt.bikeDistance > 1.5)  {alt.bikeDistance} else {0.0}
+          if (alt.bikeDistance > 1.5)  {alt.bikeDistance} else {0.0},
+          if (autoWork.equals("NoAutos"))               {1.0} else{0.0},
+          if (autoWork.equals("FewerAutosThanWorkers")) {1.0} else{0.0},
+          if (autoWork.equals("AsManyAutosAsWorkers"))  {1.0} else{0.0}
         )
         (alt.mode, theParams)
       }.toMap
@@ -108,7 +114,10 @@ class ModeChoiceTPCM(
     shortWalkDist: Double,
     longWalkDist: Double,
     shortBikeDist: Double,
-    longBikeDist: Double
+    longBikeDist: Double,
+    ascNoAuto: Double,
+    ascFewAuto: Double,
+    ascMoreAuto: Double
   ) = {
     Map(
       "cost"                  -> cost,
@@ -119,7 +128,10 @@ class ModeChoiceTPCM(
       "shortWalkDist"         -> shortWalkDist,
       "longWalkDist"          -> longWalkDist,
       "shortBikeDist"         -> shortBikeDist,
-      "longBikeDist"          -> longBikeDist
+      "longBikeDist"          -> longBikeDist,
+      "ascNoAuto"             -> ascNoAuto,
+      "ascFewAuto"            -> ascFewAuto,
+      "ascMoreAuto"           -> ascMoreAuto
     )
   }
 
@@ -219,7 +231,8 @@ class ModeChoiceTPCM(
       if (mcd.walkDistance <= 1.5) {mcd.walkDistance} else {0.0},
       if (mcd.walkDistance > 1.5) {mcd.walkDistance} else {0.0},
       if (mcd.bikeDistance <= 1.5) {mcd.bikeDistance} else {0.0},
-      if (mcd.bikeDistance > 1.5) {mcd.bikeDistance} else {0.0}
+      if (mcd.bikeDistance > 1.5) {mcd.bikeDistance} else {0.0},
+      0,0,0
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(Mandatory)(tourPurpose)
     model.getUtilityOfAlternative(beamTrip, theParams).getOrElse(0)
@@ -240,7 +253,8 @@ class ModeChoiceTPCM(
       time,//fix this
       time,//fix this
       numTransfers,
-      0,0,0,0 //fix this
+      0,0,0,0,//fix this
+      0,0,0//fix this
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(Mandatory)(tourPurpose)
     modeModel.getUtilityOfAlternative(mode, theParams).getOrElse(0)
