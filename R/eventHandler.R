@@ -7,8 +7,8 @@ pacman::p_load(pacman, tidyverse, xml2, magrittr, rvest)
 # inputEventsXML = "X:\\RA_Microtransit\\MERGE\\output\\slc_test\\slc_test__2021-09-25_12-54-55_zrf"
 # rhFleetFile = "X:\\RA_Microtransit\\MERGE\\test\\input\\slc_test\\rhFlees-12-micro.csv"
 
-inputEventsXML = "X:\\RA_Microtransit\\MERGE\\output\\from_BYUsc\\output_events.xml"
-rhFleetFile = "X:\\RA_Microtransit\\MERGE\\test\\input\\from_BYUsc\\rhFlees-12-micro.csv"
+inputEventsXML = "from_BYUsc/output_events.xml"
+rhFleetFile = "from_BYUsc/rhFlees-12-micro.csv"
 
 ################################################################################
 
@@ -103,7 +103,7 @@ events %<>% relocate(person, .after = type)
 
 ######### MESSING AROUND ############
 
-UTAOD <- read_csv("output/from_BYUsc/UTAODpilotinfo.csv")
+UTAOD <- read_csv("from_BYUsc/UTAODpilotinfo.csv")
 
 fullEvents <- events
 
