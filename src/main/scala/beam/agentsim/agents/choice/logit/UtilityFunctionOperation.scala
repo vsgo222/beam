@@ -41,6 +41,9 @@ object UtilityFunctionOperation {
       case ("shortBikeDist", _)  => Multiplier(value)
       case ("longBikeDist", _)   => Multiplier(value)
       case ("egressTime", _)     => Multiplier(value)
+      case ("ascNoAuto", _)      => Intercept(value)
+      case ("ascFewAuto", _)     => Intercept(value)
+      case ("ascMoreAuto", _)    => Intercept(value)
       case _                     => throw new RuntimeException(s"Unknown Utility Parameter Type $s")
     }
   }
