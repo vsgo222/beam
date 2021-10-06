@@ -1,11 +1,14 @@
 if(!require(pacman)) install.packages("pacman")
-pacman::p_load(pacman, tidyverse, xml2, magrittr)
+pacman::p_load(pacman, tidyverse, xml2, magrittr, rvest)
 
 ################################################################################
 
-#inputDirectory is BEAM run output directory
-inputDirectory = "X:\\RA_Microtransit\\MERGE\\output\\slc_test\\slc_test__2021-09-25_12-54-55_zrf"
-rhFleetFile = "X:\\RA_Microtransit\\MERGE\\test\\input\\slc_test\\rhFlees-12-micro.csv"
+#inputEventsXML is BEAM run output_events.xml
+# inputEventsXML = "X:\\RA_Microtransit\\MERGE\\output\\slc_test\\slc_test__2021-09-25_12-54-55_zrf"
+# rhFleetFile = "X:\\RA_Microtransit\\MERGE\\test\\input\\slc_test\\rhFlees-12-micro.csv"
+
+inputEventsXML = "X:\\RA_Microtransit\\MERGE\\output\\from_BYUsc\\output_events.xml"
+rhFleetFile = "X:\\RA_Microtransit\\MERGE\\test\\input\\from_BYUsc\\rhFlees-12-micro.csv"
 
 ################################################################################
 
@@ -34,11 +37,9 @@ rhFleetFile = "X:\\RA_Microtransit\\MERGE\\test\\input\\slc_test\\rhFlees-12-mic
 # )
 ##################################################################
 
-eventsXML <- read_xml(paste0(inputDirectory,"\\R\\output_events.xml"))
+eventsXML <- read_xml(inputEventsXML)
 
 ##### Convert eventsXML to tibble ####
-
-events %<>% relocate(person, .after = type)
 
 #get list of event tags ####
 rows <- eventsXML %>%
@@ -97,7 +98,50 @@ events <- tibble(
   locationY = rows %>% xml_attr("locationY") %>% as.numeric(),
   reason = rows %>% xml_attr("reason")
 )
+events %<>% relocate(person, .after = type)
 
 
 ######### MESSING AROUND ############
-modechoice <- filter(events, type == "ModeChoice")
+
+UTAOD <- read_csv("output/from_BYUsc/UTAODpilotinfo.csv")
+
+fullEvents <- events
+
+types <- events$type %>% unique()
+
+events <- fullEvents %>%
+  select(c(1,2,3,4,5,7,8,9,10,11,12,14,19,26,30,39,41,50))
+
+countEvents <- events %>%
+  group_by(type) %>%
+  summarize(n = n())
+
+modechoice <- filter(events, type == "ModeChoice") %>%
+  group_by(mode) %>%
+  summarize(n = n())
+
+events %>%
+  filter(type == "PathTraversal") %>%
+  mutate(travelTime = arrivalTime - departureTime,
+         speed = length/travelTime) %>%
+  group_by(vehicleType) %>%
+  summarize(n = n(),
+            avgTravelTime = mean(travelTime, na.rm = T)/60)
+
+events %>%
+  filter(type == "PathTraversal") %>%
+  mutate(travelTime = arrivalTime - departureTime,
+         speed = length/travelTime) %>%
+  group_by(mode) %>%
+  summarize(n = n(),
+            avgTravelTime = mean(travelTime))
+
+events %>%
+  filter(type == "PersonEntersVehicle") %>%
+  group_by(vehicleType) %>%
+  summarise(n = n())
+
+events %>%
+  filter(grepl("rideHailVehicle", vehicle)) %>%
+  select(vehicle) %>%
+  unique()
