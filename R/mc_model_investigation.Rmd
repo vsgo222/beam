@@ -488,7 +488,7 @@ nchrp_hbo_ivtt <- as.numeric(nchrp_coeff[7,"value"])
 ```
 
 ```{r, message=FALSE,warning=FALSE}
-asim_hbo_ratio <- asim_hbs %>% mutate(estimate = estimate/asim_hbo_ivtt,std.error = 0)
+asim_hbo_ratio <- asim_hbo %>% mutate(estimate = estimate/asim_hbo_ivtt,std.error = 0)
 utah_hbo_ratio <- utah_table(utah_coeff,"HBO",ovtt_shortwalk,ovtt_longwalk,utah_hbo_ivtt)
 wfrc_hbo_ratio <- wfrc_table(wfrc_coeff,"HBO",ovt_long,wfrc_hbo_ivtt)
 nchrp_hbo_ratio <- nchrp_table(nchrp_coeff,"HBO",nchrp_ovt_long,nchrp_hbo_ivtt)
