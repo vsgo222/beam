@@ -79,9 +79,9 @@ class ModeChoiceTPCM(
           if (alt.walkDistance > 1.5)  {alt.walkDistance} else {0.0},
           if (alt.bikeDistance <= 1.5) {alt.bikeDistance} else {0.0},
           if (alt.bikeDistance > 1.5)  {alt.bikeDistance} else {0.0},
-          if (autoWork.equals("NoAutos"))               {1.0} else{0.0},
-          if (autoWork.equals("FewerAutosThanWorkers")) {1.0} else{0.0},
-          if (autoWork.equals("AsManyAutosAsWorkers"))  {1.0} else{0.0}
+          if (autoWork.equals("no_auto"))         {1.0} else{0.0},
+          if (autoWork.equals("auto_deficient"))  {1.0} else{0.0},
+          if (autoWork.equals("auto_sufficient")) {1.0} else{0.0}
         )
         (alt.mode, theParams)
       }.toMap
@@ -116,8 +116,8 @@ class ModeChoiceTPCM(
     shortBikeDist: Double,
     longBikeDist: Double,
     ascNoAuto: Double,
-    ascFewAuto: Double,
-    ascMoreAuto: Double
+    ascAutoDeficient: Double,
+    ascAutoSufficient: Double
   ) = {
     Map(
       "cost"                  -> cost,
@@ -130,8 +130,8 @@ class ModeChoiceTPCM(
       "shortBikeDist"         -> shortBikeDist,
       "longBikeDist"          -> longBikeDist,
       "ascNoAuto"             -> ascNoAuto,
-      "ascFewAuto"            -> ascFewAuto,
-      "ascMoreAuto"           -> ascMoreAuto
+      "ascAutoDeficient"      -> ascAutoDeficient,
+      "ascAutoSufficient"     -> ascAutoSufficient
     )
   }
 
