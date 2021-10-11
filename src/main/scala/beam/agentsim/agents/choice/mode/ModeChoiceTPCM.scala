@@ -51,7 +51,7 @@ class ModeChoiceTPCM(
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
     person: Option[Person] = None,
-    tourPurpose : String = "Work"
+    tourPurpose : String
   ): Option[EmbodiedBeamTrip] = {
     val income = person.get.getAttributes.getAttribute("income")
     val autoWork = person.get.getAttributes.getAttribute("autoWorkRatio").toString
@@ -240,7 +240,7 @@ class ModeChoiceTPCM(
 
   //fix this if you want to. ChangeModeForTour.scala is the only one that uses it though, and idk if that class is even called.
   def utilityOf(
-    tourPurpose: String = "Work",
+    tourPurpose: String,
     mode: BeamMode,
     cost: Double,
     time: Double,
@@ -277,7 +277,7 @@ class ModeChoiceTPCM(
         .map(_.asInstanceOf[Activity])
         .lift(tripIndex).get
         .getAttributes.getAttribute("primary_purpose")
-        .toString
+        .toString.toLowerCase
       scoreList += utilityOf(trip, attributesOfIndividual, tripPurpose, tourPurpose)
     }
     scoreList.sum

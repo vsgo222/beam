@@ -203,7 +203,7 @@ class BeamScoringFunctionFactory @Inject()(
               .map(_.asInstanceOf[Activity])
               .lift(tripIndex).get
               .getAttributes.getAttribute("primary_purpose")
-              .toString
+              .toString.toLowerCase
           }
           val departureTime = trip.legs.headOption.map(_.beamLeg.startTime.toString).getOrElse("")
           val totalTravelTimeInSecs = trip.totalTravelTimeInSecs
