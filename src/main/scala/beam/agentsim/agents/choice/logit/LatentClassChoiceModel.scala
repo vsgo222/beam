@@ -35,7 +35,7 @@ class LatentClassChoiceModel(val beamServices: BeamServices) {
   }
 
   val modeChoiceTourModels
-  : Map[TourType, Map[String, (MultinomialLogit[EmbodiedBeamTrip, String], MultinomialLogit[BeamMode, String])]] = {
+  : Map[String, Map[String, (MultinomialLogit[EmbodiedBeamTrip, String], MultinomialLogit[BeamMode, String])]] = {
     LatentClassChoiceModel.extractModeChoiceTourModels(lccmData)
   }
 
@@ -164,12 +164,16 @@ object LatentClassChoiceModel {
 
   def extractModeChoiceTourModels(
     lccmData: Seq[LccmData]
-  ): Map[TourType, Map[String, (MultinomialLogit[EmbodiedBeamTrip, String], MultinomialLogit[BeamMode, String])]] = {
+  ): Map[String, Map[String, (MultinomialLogit[EmbodiedBeamTrip, String], MultinomialLogit[BeamMode, String])]] = {
     val uniqueClasses = lccmData.map(_.latentClass).distinct
     val uniqueAlts = lccmData.map(_.alternative).distinct
     val modeChoiceData = lccmData.filter(_.model == "modeChoice")
-    Vector[TourType](Mandatory, NonMandatory).map { theTourType: TourType =>
-      val theTourTypeData = modeChoiceData.filter(_.tourType.equalsIgnoreCase(theTourType.toString))
+  //Vector[TourType](Mandatory, NonMandatory).map { theTourType: TourType => val theTourTypeData = modeChoiceData.filter(_.tourType.equalsIgnoreCase(theTourType.toString))
+    Vector[String]("Intercept","Path","Location","Person","All").map { theTourType =>
+      var theTourTypeData = modeChoiceData
+      if (theTourType != "All"){
+        theTourTypeData = modeChoiceData.filter(x => x.tourType.equalsIgnoreCase(theTourType) | x.tourType.equalsIgnoreCase("Intercept"))
+      }
       theTourType -> uniqueClasses.map { theTourPurpose =>
         val theData = theTourTypeData.filter(_.latentClass.equalsIgnoreCase(theTourPurpose))
 

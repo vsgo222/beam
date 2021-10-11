@@ -39,6 +39,7 @@ import scala.collection.mutable.ListBuffer
 class ModeChoiceTPCM(
   val beamServices: BeamServices,
   val lccm: LatentClassChoiceModel,
+  val varType: String,
   transitCrowding: TransitCrowdingSkims,
 ) extends ModeChoiceCalculator {
 
@@ -87,7 +88,7 @@ class ModeChoiceTPCM(
       }.toMap
 
       // Evaluate and sample from mode choice model
-      val (model, modeModel) = lccm.modeChoiceTourModels(Mandatory)(purpose)
+      val (model, modeModel) = lccm.modeChoiceTourModels(varType)(purpose)
       val chosenModeOpt = modeModel.sampleAlternative(modeChoiceInputData, new Random())
       expectedMaximumUtility = modeModel.getExpectedMaximumUtility(modeChoiceInputData).getOrElse(0)
 
@@ -234,7 +235,7 @@ class ModeChoiceTPCM(
       if (mcd.bikeDistance > 1.5) {mcd.bikeDistance} else {0.0},
       0,0,0
     )
-    val (model, modeModel) = lccm.modeChoiceTourModels(Mandatory)(tourPurpose)
+    val (model, modeModel) = lccm.modeChoiceTourModels(varType)(tourPurpose)
     model.getUtilityOfAlternative(beamTrip, theParams).getOrElse(0)
   }
 
@@ -256,7 +257,7 @@ class ModeChoiceTPCM(
       0,0,0,0,//fix this
       0,0,0//fix this
     )
-    val (model, modeModel) = lccm.modeChoiceTourModels(Mandatory)(tourPurpose)
+    val (model, modeModel) = lccm.modeChoiceTourModels(varType)(tourPurpose)
     modeModel.getUtilityOfAlternative(mode, theParams).getOrElse(0)
   }
 
