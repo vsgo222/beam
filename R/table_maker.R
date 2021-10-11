@@ -214,3 +214,24 @@ ivtt_ratio_grapher <- function(purp,asim,utah,wfrc,nchrp){
   scale_x_continuous(trans = "log10", labels = function(x) format(x, scientific = FALSE)) +
    theme_bw()
 }
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+# a function that defines the opposite of the in function
+'%!in%' <- function(x,y){!('%in%'(x,y))}
+
+# a function that creates a cost coefficient table by purpose
+cost_creator <-  function(asim){ asim %>%
+  filter(grepl("ivtt",Variable) | grepl("time",Variable)) %>%
+  pivot_longer(!Variable, names_to = "purpose", values_to = "value") %>%
+  mutate(type = case_when(
+    grepl("ivtt",Variable) ~ "ivtt",
+    grepl("egress",Variable) ~ "egress",
+    grepl("transfer",Variable) ~ "transfer",
+    grepl("wait_time_under_10_min",Variable) ~ "wait_time")) %>%
+  group_by(purpose,type) %>%
+  summarise(ave = mean(value)) %>%
+  summarise(time_coef = mean(ave)) %>%
+  mutate(cost_coef = time_coef*5)
+}
+
