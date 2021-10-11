@@ -1101,7 +1101,7 @@ trait ChoosesMode {
   }
 
   def getTourPurpose(personData: BasePersonData) = {
-    val tourPurp = currentActivity(personData).getAttributes.getAttribute("primary_purpose").toString.toLowerCase()
+    val tourPurp = currentActivity(personData).getAttributes.getAttribute("primary_purpose").toString.toLowerCase
     tourPurp
   }
 
