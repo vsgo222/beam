@@ -22,7 +22,7 @@ class ModeChoiceTPCMCalculator(
     mode match {
       case TRANSIT | WALK_TRANSIT | DRIVE_TRANSIT | BIKE_TRANSIT =>
         (altAndIdx._1.costEstimate + transitFareDefaults(altAndIdx._2)) * beamServices.beamConfig.beam.agentsim.tuning.transitPrice
-      case RIDE_HAIL =>
+      case RIDE_HAIL | RIDE_HAIL_TRANSIT | RIDE_HAIL_POOLED =>
         altAndIdx._1.costEstimate * beamServices.beamConfig.beam.agentsim.tuning.rideHailPrice
       case _ =>
         altAndIdx._1.costEstimate
@@ -81,8 +81,7 @@ class ModeChoiceTPCMCalculator(
     vehicleTime: Double,
     totalTravelTime: Double
   ): Double = {
-    val timeInSeconds = totalTravelTime - walkTime - vehicleTime
-    (timeInSeconds / 60)
+    totalTravelTime - walkTime - vehicleTime
   }
 
   def getNumTransfers(
