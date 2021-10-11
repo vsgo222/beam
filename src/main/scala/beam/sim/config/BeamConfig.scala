@@ -156,7 +156,8 @@ object BeamConfig {
           overrideAutomationForVOTT: scala.Boolean,
           overrideAutomationLevel: scala.Int,
           poolingMultiplier: BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.PoolingMultiplier,
-          modalityStyle: java.lang.String
+          modalityStyle: java.lang.String,
+          varType: java.lang.String
         )
 
         object ModalBehaviors {
@@ -646,6 +647,8 @@ object BeamConfig {
               ),
               modalityStyle = if (c.hasPathOrNull("modalityStyle")) c.getString("modalityStyle")
               else "",
+              varType = if (c.hasPathOrNull("varType")) c.getString("varType")
+              else "All"
             )
           }
         }

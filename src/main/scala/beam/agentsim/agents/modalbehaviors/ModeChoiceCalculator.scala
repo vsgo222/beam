@@ -138,11 +138,13 @@ object ModeChoiceCalculator {
   ): ModeChoiceCalculatorFactory = {
     classname match {
       case "ModeChoiceTourPurpose" =>
+        val varType = configHolder.beamConfig.beam.agentsim.agents.modalBehaviors.varType
         val lccm = new LatentClassChoiceModel(beamServices)
         (attributesOfIndividual: AttributesOfIndividual) =>
           new ModeChoiceTPCM(
             beamServices,
             lccm,
+            varType,
             beamServices.skims.tc_skimmer
           )
       case "ModeChoiceLCCM" =>
