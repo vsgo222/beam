@@ -8,6 +8,8 @@ import beam.sim.BeamServices
 import org.matsim.api.core.v01.Id
 import com.conveyal.r5.api.util.TransitModes
 
+import scala.util.control.Breaks.{break, breakable}
+
 class ModeChoiceTPCMCalculator(
   beamServices: BeamServices
 ) {
@@ -131,6 +133,36 @@ class ModeChoiceTPCMCalculator(
           distance = distance + leg.beamLeg.travelPath.distanceInM
         }
         distance * 0.000621371 //convert from meters to miles
+      case _ =>
+        0
+    }
+  }
+
+  def getOriginTransitProximity(
+    mode: BeamMode,
+    altAndIdx: (EmbodiedBeamTrip, Int)
+  ): Double = {
+    var proximity = 0.0
+    if (mode == WALK_TRANSIT) {
+      //easier way --> val proximity = altAndIdx._1.legs(0).beamLeg.travelPath.distanceInM
+      breakable{ for (n <- 0 to (altAndIdx._1.legs.length - 1)){
+        proximity = proximity + altAndIdx._1.legs(n).beamLeg.travelPath.distanceInM
+        if(altAndIdx._1.legs(n+1).beamLeg.mode.value != "walk") break } }
+      proximity * 0.000621371 //convert from meters to miles
+    } else {0.0}
+  }
+
+  def getDestTransitProximity(
+    mode: BeamMode,
+    altAndIdx: (EmbodiedBeamTrip, Int)
+  ): Double = {
+    var proximity = 0.0
+    mode match {
+      case TRANSIT | WALK_TRANSIT | DRIVE_TRANSIT | RIDE_HAIL_TRANSIT | BIKE_TRANSIT =>
+        breakable{ for (n <- 0 to (altAndIdx._1.legs.length - 1)){
+          proximity = proximity + altAndIdx._1.legs.reverse(n).beamLeg.travelPath.distanceInM
+          if(transitModes.contains(altAndIdx._1.legs.reverse(n+1).beamLeg.mode)) break } }
+          proximity * 0.000621371 //convert from meters to miles
       case _ =>
         0
     }
