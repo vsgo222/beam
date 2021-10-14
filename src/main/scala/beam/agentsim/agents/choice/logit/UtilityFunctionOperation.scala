@@ -44,6 +44,10 @@ object UtilityFunctionOperation {
       case ("ascNoAuto", _)            => Intercept(value)
       case ("ascAutoDeficient", _)     => Intercept(value)
       case ("ascAutoSufficient", _)    => Intercept(value)
+      case ("originCloseToTransit",_)  => Multiplier(value)
+      case ("originFarFromTransit",_)  => Multiplier(value)
+      case ("destCloseToTransit",_)    => Multiplier(value)
+      case ("destFarFromTransit",_)    => Multiplier(value)
       case _                           => throw new RuntimeException(s"Unknown Utility Parameter Type $s")
     }
   }
