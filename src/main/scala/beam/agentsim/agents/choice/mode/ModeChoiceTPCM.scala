@@ -80,9 +80,13 @@ class ModeChoiceTPCM(
           if (alt.walkDistance > 1.5)  {alt.walkDistance} else {0.0},
           if (alt.bikeDistance <= 1.5) {alt.bikeDistance} else {0.0},
           if (alt.bikeDistance > 1.5)  {alt.bikeDistance} else {0.0},
-          if (autoWork.equals("no_auto"))         {1.0} else{0.0},
-          if (autoWork.equals("auto_deficient"))  {1.0} else{0.0},
-          if (autoWork.equals("auto_sufficient")) {1.0} else{0.0}
+          if (autoWork.equals("no_auto"))         {1.0} else {0.0},
+          if (autoWork.equals("auto_deficient"))  {1.0} else {0.0},
+          if (autoWork.equals("auto_sufficient")) {1.0} else {0.0},
+          if (alt.originTransitProximity <= .5) {1.0} else {0.0},
+          if (alt.originTransitProximity > .5)  {1.0} else {0.0},
+          if (alt.destTransitProximity <= .5)   {1.0} else {0.0},
+          if (alt.destTransitProximity > .5)    {1.0} else {0.0}
         )
         (alt.mode, theParams)
       }.toMap
@@ -118,7 +122,11 @@ class ModeChoiceTPCM(
     longBikeDist: Double,
     ascNoAuto: Double,
     ascAutoDeficient: Double,
-    ascAutoSufficient: Double
+    ascAutoSufficient: Double,
+    originCloseToTransit: Double,
+    originFarFromTransit: Double,
+    destCloseToTransit: Double,
+    destFarFromTransit: Double
   ) = {
     Map(
       "cost"                  -> cost,
@@ -132,7 +140,11 @@ class ModeChoiceTPCM(
       "longBikeDist"          -> longBikeDist,
       "ascNoAuto"             -> ascNoAuto,
       "ascAutoDeficient"      -> ascAutoDeficient,
-      "ascAutoSufficient"     -> ascAutoSufficient
+      "ascAutoSufficient"     -> ascAutoSufficient,
+      "originCloseToTransit"  -> originCloseToTransit,
+      "originFarFromTransit"  -> originFarFromTransit,
+      "destCloseToTransit"    -> destCloseToTransit,
+      "destFarFromTransit"    -> destFarFromTransit
     )
   }
 
@@ -182,6 +194,8 @@ class ModeChoiceTPCM(
           numTransfers,
           walkDistance,
           bikeDistance,
+          originTransitProximity,
+          destTransitProximity,
           totalCost.toDouble,
           altAndIdx._2
         )
@@ -215,17 +229,20 @@ class ModeChoiceTPCM(
     alternative: EmbodiedBeamTrip,
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
-    tourPurpose: String
+    tourPurpose: String,
+    person: Person
   ): Double = {
     val mcd = altsToBestInGroup(Vector(alternative), Mandatory).head
-    utilityOf(mcd, tourPurpose)
+    utilityOf(mcd, tourPurpose, person)
   }
 
   private def utilityOf(
     mcd: ModeChoiceData,
-    tourPurpose: String
+    tourPurpose: String,
+    person: Person
   ): Double = {
     val beamTrip = mcd.embodiedBeamTrip
+    val autoWork = person.getAttributes.getAttribute("autoWorkRatio").toString
     val theParams = attributes(
       mcd.cost,
       mcd.vehicleTime,
@@ -236,7 +253,13 @@ class ModeChoiceTPCM(
       if (mcd.walkDistance > 1.5) {mcd.walkDistance} else {0.0},
       if (mcd.bikeDistance <= 1.5) {mcd.bikeDistance} else {0.0},
       if (mcd.bikeDistance > 1.5) {mcd.bikeDistance} else {0.0},
-      0,0,0
+      if (autoWork.equals("no_auto"))         {1.0} else {0.0},
+      if (autoWork.equals("auto_deficient"))  {1.0} else {0.0},
+      if (autoWork.equals("auto_sufficient")) {1.0} else {0.0},
+      if (mcd.originTransitProximity <= .5) {1.0} else {0.0},
+      if (mcd.originTransitProximity > .5)  {1.0} else {0.0},
+      if (mcd.destTransitProximity <= .5)   {1.0} else {0.0},
+      if (mcd.destTransitProximity > .5)    {1.0} else {0.0}
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(varType)(tourPurpose)
     model.getUtilityOfAlternative(beamTrip, theParams).getOrElse(0)
@@ -258,7 +281,8 @@ class ModeChoiceTPCM(
       time,//fix this
       numTransfers,
       0,0,0,0,//fix this
-      0,0,0//fix this
+      0,0,0,//fix this
+      0,0,0,0 //fix this
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(varType)(tourPurpose)
     modeModel.getUtilityOfAlternative(mode, theParams).getOrElse(0)
@@ -282,7 +306,7 @@ class ModeChoiceTPCM(
         .lift(tripIndex).get
         .getAttributes.getAttribute("primary_purpose")
         .toString.toLowerCase
-      scoreList += utilityOf(trip, attributesOfIndividual, tripPurpose, tourPurpose)
+      scoreList += utilityOf(trip, attributesOfIndividual, tripPurpose, tourPurpose, person)
     }
     scoreList.sum
   }
@@ -299,6 +323,8 @@ class ModeChoiceTPCM(
     numTransfers: Double,
     walkDistance: Double,
     bikeDistance: Double,
+    originTransitProximity: Double,
+    destTransitProximity: Double,
     cost: Double,
     index: Int = -1
   )
