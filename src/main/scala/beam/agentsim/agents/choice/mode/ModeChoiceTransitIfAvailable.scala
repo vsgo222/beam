@@ -44,7 +44,8 @@ class ModeChoiceTransitIfAvailable(val beamServices: BeamServices) extends ModeC
     alternative: EmbodiedBeamTrip,
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
-    tourPurpose: String
+    tourPurpose: String,
+    person: Person
   ): Double = 0.0
 
   override def utilityOf(
