@@ -163,6 +163,9 @@ class ModeChoiceTPCM(
         //determine distance for walk or bike modes
           val walkDistance = TPCMCalculator.getWalkDistance(mode, altAndIdx)
           val bikeDistance = TPCMCalculator.getBikeDistance(mode, altAndIdx)
+        //determine proximity to transit
+          val originTransitProximity = TPCMCalculator.getOriginTransitProximity(mode, altAndIdx)
+          val destTransitProximity = TPCMCalculator.getDestTransitProximity(mode, altAndIdx)
         //determine percentile, occupancy level, and embodied trip value
           val percentile = beamConfig.beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.transit_crowding_percentile
           val occupancyLevel = transitCrowding.getTransitOccupancyLevelForPercentile(altAndIdx._1, percentile)
