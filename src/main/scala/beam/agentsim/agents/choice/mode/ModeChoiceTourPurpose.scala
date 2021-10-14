@@ -326,7 +326,8 @@ class ModeChoiceTourPurpose(
      alternative: EmbodiedBeamTrip,
      attributesOfIndividual: AttributesOfIndividual,
      destinationActivity: Option[Activity],
-     tourPurpose: String
+     tourPurpose: String,
+     person: Person
   ): Double = {
     val modeCostTimeTransfer =
       altsToModeCostTimeTransfers(IndexedSeq(alternative), attributesOfIndividual, destinationActivity).head
@@ -395,7 +396,7 @@ class ModeChoiceTourPurpose(
         .lift(tripIndex).get
         .getAttributes.getAttribute("primary_purpose")
         .toString
-      scoreList += utilityOf(trip, attributesOfIndividual, tripPurpose, tourPurpose)
+      scoreList += utilityOf(trip, attributesOfIndividual, tripPurpose, tourPurpose, person)
     }
     scoreList.sum
   }

@@ -41,7 +41,8 @@ class ModeChoiceDriveIfAvailable(val beamServices: BeamServices) extends ModeCho
     alternative: EmbodiedBeamTrip,
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
-    tourPurpose: String
+    tourPurpose: String,
+    person: Person
   ): Double = 0.0
 
   override def utilityOf(

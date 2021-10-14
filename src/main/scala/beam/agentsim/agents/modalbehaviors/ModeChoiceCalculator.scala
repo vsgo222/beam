@@ -62,7 +62,8 @@ trait ModeChoiceCalculator {
     alternative: EmbodiedBeamTrip,
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
-    tourPurpose: String
+    tourPurpose: String,
+    person: Person
   ): Double
 
   def utilityOf(
