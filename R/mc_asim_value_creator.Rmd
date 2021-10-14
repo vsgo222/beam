@@ -151,7 +151,7 @@ In order to make data table manipulation a little bit easier, we are going to as
 ```{r, echo =FALSE}
 #create a table of the alternatives, and assign an integer to each one of the values for easier data table manipulation
 alts <- c("bike","bike_transit","car","drive_transit","ride_hail","ride_hail_pooled","ride_hail_transit","walk","walk_transit")
-vals <- c(1,2,3,4,5,6,7,8,9)
+vals <- c(1:9)
 alt_vals <- data.frame(vals,alts) %>% as_tibble()
   # bike              1
   # bike_transit      2
@@ -177,6 +177,8 @@ egressTimeAlts <- c(2,3,4,5,6,7,9)
 transferAlts <- c(2,4,7,9)
 walkDistAlts <- c(8,9)
 bikeDistAlts <- c(1,2)
+originTransitAlts <- c(9)
+destTransitAlts <- c(2,4,7,9)
 ```
 
 Next, we rename all the variables to the correct variable name, and divide up the dataframe to have variables for each alternative option. Then, we assign the value of 0 to the alternatives that don't fit the variable type.
@@ -194,7 +196,11 @@ renamed_mtc <- mtc_cost %>%
     Variable == "walk_short_dist" ~ "shortWalkDist",
     Variable == "walk_long_dist" ~ "longWalkDist",
     Variable == "bike_short_dist" ~ "shortBikeDist",
-    Variable == "bike_long_dist" ~ "longBikeDist")
+    Variable == "bike_long_dist" ~ "longBikeDist",
+    Variable == "origin_close_to_transit_walk-transit" ~ "originCloseToTransit",
+    Variable == "origin_far_from_transit_walk-transit" ~ "originFarFromTransit",
+    Variable == "destination_close_to_transit_transit" ~ "destCloseToTransit",
+    Variable == "destination_far_from_transit_transit" ~ "destFarFromTransit")
   ) %>%
   filter(is.na(variable)==FALSE) %>%
   mutate(alternative = list(c(1:9))) %>%
@@ -210,6 +216,8 @@ path_coeff <- renamed_mtc %>% pivot_longer(!c(variable,Variable, alternative), n
     variable == "transfer" & alternative %!in% transferAlts ~ 0 ,
     variable %in% c("shortWalkDist","longWalkDist") & alternative %!in% walkDistAlts ~ 0,
     variable %in% c("shortBikeDist","longBikeDist") & alternative %!in% bikeDistAlts ~ 0, 
+    variable %in% c("originCloseToTransit","originFarFromTransit") & alternative %!in% originTransitAlts ~ 0,
+    variable %in% c("destCloseToTransit","destFarFromTransit") & alternative %!in% destTransitAlts ~ 0,
     TRUE ~ value
   ))
 ```
@@ -237,13 +245,23 @@ paged_table(path_cf)
 ```
 
 ## Complete File
+First, lets create a few vectors that specify the variable types.
+```{r}
+path_variables <- c("vehicleTime","waitTime","egressTime","transfer","shortWalkDist","longWalkDist","shortBikeDist","longBikeDist","originCloseToTransit","originFarFromTransit","destCloseToTransit","destFarFromTransit")
+person_variables <- c("ascAutoDeficient","ascAutoSufficient","ascNoAuto","cost")
+```
+
+
 Lets combine all the file parts into one file, and print it to a csv!
 ```{r}
 asim_long <- rbind(asim_asc_complete,path_cf) %>%
   arrange(variable,alternative,factor(latentClass, levels = purps)) %>%
   mutate(
     model = "modeChoice", 
-    tourType = "mandatory",
+    tourType = case_when(
+      variable %in% path_variables ~ "Path",
+      variable %in% person_variables ~ "Person"
+    ),
     units = case_when(
       grepl("asc",variable) ~ "util",
       grepl("Time",variable) ~ "util/min",
@@ -255,6 +273,6 @@ asim_long <- rbind(asim_asc_complete,path_cf) %>%
   select(model,tourType,variable,alternative,units,latentClass,value)
 paged_table(asim_long)
 
-#write_csv(asim_long,"asim-long-test.csv")
+#write_csv(asim_long,"asim-long-R.csv")
 ```
 
