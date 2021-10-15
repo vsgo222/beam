@@ -48,6 +48,8 @@ object UtilityFunctionOperation {
       case ("originFarFromTransit",_)  => Multiplier(value)
       case ("destCloseToTransit",_)    => Multiplier(value)
       case ("destFarFromTransit",_)    => Multiplier(value)
+      case ("age1619",_)               => Intercept(value)
+      case ("age010",_)                => Intercept(value)
       case _                           => throw new RuntimeException(s"Unknown Utility Parameter Type $s")
     }
   }
