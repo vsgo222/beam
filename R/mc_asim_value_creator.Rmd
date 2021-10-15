@@ -135,7 +135,7 @@ First, lets read in the path variable coefficient values from the MTC 2012 relea
 ```{r, message=FALSE, warning=FALSE}
 mtc2012 <- read_table2("model_data/mtc/mtc_2012_tour_mode_choice_coefficients_path.txt")
 cols <- sapply(mtc2012, is.numeric)
-mtc2012[, cols] <- mtc2012[, cols] * 2
+mtc2012[, cols] <- mtc2012[, cols]
 
 # create a cost table by purpose
 cost <- cost_creator(mtc2012[c(1:6,8,9),]) %>% select(!time_coef) %>%
@@ -179,6 +179,13 @@ walkDistAlts <- c(8,9)
 bikeDistAlts <- c(1,2)
 originTransitAlts <- c(9)
 destTransitAlts <- c(2,4,7,9)
+age1619Alts <- c(3)
+age010Alts <- c(2,4,7,9)
+ztiAlts <- c(1,2,4,7,8,9)
+destZdiAlts <- c(1,2,7,8,9)
+originZdiAlts <- c(1,2,8,9)
+cbdAlts <- c(2,4,7,9)
+shortDriveAlts <- c(4,7)
 ```
 
 Next, we rename all the variables to the correct variable name, and divide up the dataframe to have variables for each alternative option. Then, we assign the value of 0 to the alternatives that don't fit the variable type.
@@ -200,7 +207,15 @@ renamed_mtc <- mtc_cost %>%
     Variable == "origin_close_to_transit_walk-transit" ~ "originCloseToTransit",
     Variable == "origin_far_from_transit_walk-transit" ~ "originFarFromTransit",
     Variable == "destination_close_to_transit_transit" ~ "destCloseToTransit",
-    Variable == "destination_far_from_transit_transit" ~ "destFarFromTransit")
+    Variable == "destination_far_from_transit_transit" ~ "destFarFromTransit", 
+    Variable == "age1619" ~ Variable,
+    Variable == "age010" ~ Variable,
+    Variable == "zti_walk" ~ "ZTI",
+    Variable == "zdi_dest" ~ "destZDI",
+    Variable == "zdi_origin" ~ "originZDI",
+    Variable == "cbd_dest_drive_transit" ~ "CBD",
+    Variable == "miles_less_15" ~ "shortDrive"
+    )
   ) %>%
   filter(is.na(variable)==FALSE) %>%
   mutate(alternative = list(c(1:9))) %>%
@@ -218,6 +233,13 @@ path_coeff <- renamed_mtc %>% pivot_longer(!c(variable,Variable, alternative), n
     variable %in% c("shortBikeDist","longBikeDist") & alternative %!in% bikeDistAlts ~ 0, 
     variable %in% c("originCloseToTransit","originFarFromTransit") & alternative %!in% originTransitAlts ~ 0,
     variable %in% c("destCloseToTransit","destFarFromTransit") & alternative %!in% destTransitAlts ~ 0,
+    variable == "age1619" & alternative %!in% age1619Alts ~ 0,
+    variable == "age010" & alternative %!in% age010Alts ~ 0,
+    variable == "ZTI" & alternative %!in% ztiAlts ~ 0,
+    variable == "destZDI" & alternative %!in% destZdiAlts ~ 0,
+    variable == "originZDI" & alternative %!in% originZdiAlts ~ 0,
+    variable == "CBD" & alternative %!in% cbdAlts ~ 0,
+    variable == "shortDrive" & alternative %!in% shortDriveAlts ~0,
     TRUE ~ value
   ))
 ```
@@ -229,11 +251,34 @@ Now, since there were two transfer values in the original dataset (one for drive
 ##create a data table that holds the updated values that correspond to walk & bike
 transferwt <- mtc2012 %>%
   filter(Variable == "transfer_number_walk_transit") %>%
-  mutate(variable = "transfer", alternative = list(c(2,9))) %>% unnest(alternative) %>%     pivot_longer(!c(variable,Variable, alternative), names_to = "latentClass", values_to = "value")
+  mutate(variable = "transfer", alternative = list(c(2,9))) %>% unnest(alternative) %>% pivot_longer(!c(variable,Variable, alternative), names_to = "latentClass", values_to = "value")
 
 path_coeff$value[which(path_coeff$variable == "transfer" & path_coeff$alternative %in% c(2,9))] <- transferwt$value
 ```
 
+There were also two CBD values and 3 ZTI values that we need to grab from the original dataset.
+```{r}
+cbdwt <- mtc2012 %>%
+  filter(Variable == "cbd_dest_walk_transit") %>%
+  mutate(variable = "CBD", alternative = list(c(2,9))) %>% unnest(alternative) %>% pivot_longer(!c(variable,Variable, alternative), names_to = "latentClass", values_to = "value")
+
+path_coeff$value[which(path_coeff$variable == "CBD" & path_coeff$alternative %in% c(2,9))] <- cbdwt$value
+```
+
+```{r}
+zti_bike <- mtc2012 %>%
+  filter(Variable == "zti_bike") %>%
+  mutate(variable = "ZTI", alternative = list(c(1))) %>%
+unnest(alternative) %>% pivot_longer(!c(variable,Variable, alternative), names_to = "latentClass", values_to = "value")
+
+zti_trans <- mtc2012 %>%
+  filter(Variable == "zti_transit") %>%
+  mutate(variable = "ZTI", alternative = list(c(2,4,7,9))) %>%
+unnest(alternative) %>% pivot_longer(!c(variable,Variable, alternative), names_to = "latentClass", values_to = "value")
+
+path_coeff$value[which(path_coeff$variable == "ZTI" & path_coeff$alternative %in% c(1))] <- zti_bike$value
+path_coeff$value[which(path_coeff$variable == "ZTI" & path_coeff$alternative %in% c(2,4,7,9))] <- zti_trans$value
+```
 
 Finally, to check our work, we change the number assignment to the correct string for the alternative types. 
 ```{r}
@@ -247,8 +292,9 @@ paged_table(path_cf)
 ## Complete File
 First, lets create a few vectors that specify the variable types.
 ```{r}
-path_variables <- c("vehicleTime","waitTime","egressTime","transfer","shortWalkDist","longWalkDist","shortBikeDist","longBikeDist","originCloseToTransit","originFarFromTransit","destCloseToTransit","destFarFromTransit")
-person_variables <- c("ascAutoDeficient","ascAutoSufficient","ascNoAuto","cost")
+path_variables <- c("vehicleTime","waitTime","egressTime","transfer","shortWalkDist","longWalkDist","shortBikeDist","longBikeDist","originCloseToTransit","originFarFromTransit","destCloseToTransit","destFarFromTransit","shortDrive")
+person_variables <- c("ascAutoDeficient","ascAutoSufficient","ascNoAuto","cost","age1619","age010")
+location_variables <- c("ZTI","destZDI","originZDI","CBD")
 ```
 
 
@@ -258,9 +304,11 @@ asim_long <- rbind(asim_asc_complete,path_cf) %>%
   arrange(variable,alternative,factor(latentClass, levels = purps)) %>%
   mutate(
     model = "modeChoice", 
+    value = ifelse(variable %in% path_variables,value*2,value),
     tourType = case_when(
       variable %in% path_variables ~ "Path",
-      variable %in% person_variables ~ "Person"
+      variable %in% person_variables ~ "Person",
+      variable %in% location_variables ~ "Location"
     ),
     units = case_when(
       grepl("asc",variable) ~ "util",
@@ -273,6 +321,6 @@ asim_long <- rbind(asim_asc_complete,path_cf) %>%
   select(model,tourType,variable,alternative,units,latentClass,value)
 paged_table(asim_long)
 
-#write_csv(asim_long,"asim-long-R.csv")
+write_csv(asim_long,"asim-long-R.csv")
 ```
 
