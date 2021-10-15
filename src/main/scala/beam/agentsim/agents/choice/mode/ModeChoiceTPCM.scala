@@ -54,15 +54,17 @@ class ModeChoiceTPCM(
     person: Option[Person] = None,
     tourPurpose : String
   ): Option[EmbodiedBeamTrip] = {
-    val income = person.get.getAttributes.getAttribute("income")
+    val age = attributesOfIndividual.age.get.asInstanceOf[Double]
+    val income = attributesOfIndividual.income.get
     val autoWork = person.get.getAttributes.getAttribute("autoWorkRatio").toString
-    choose(alternatives, tourPurpose, autoWork)
+    choose(alternatives, tourPurpose, autoWork, age)
   }
 
   private def choose(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     purpose: String,
-    autoWork: String
+    autoWork: String,
+    age: Double
   ): Option[EmbodiedBeamTrip] = {
     if (alternatives.isEmpty) {
       None
@@ -86,7 +88,9 @@ class ModeChoiceTPCM(
           if (alt.originTransitProximity <= .5) {1.0} else {0.0},
           if (alt.originTransitProximity > .5)  {1.0} else {0.0},
           if (alt.destTransitProximity <= .5)   {1.0} else {0.0},
-          if (alt.destTransitProximity > .5)    {1.0} else {0.0}
+          if (alt.destTransitProximity > .5)    {1.0} else {0.0},
+          if (age >= 16 & age <= 19)  {age} else {0.0},
+          if (age <= 10)              {age} else {0.0}
         )
         (alt.mode, theParams)
       }.toMap
@@ -126,7 +130,9 @@ class ModeChoiceTPCM(
     originCloseToTransit: Double,
     originFarFromTransit: Double,
     destCloseToTransit: Double,
-    destFarFromTransit: Double
+    destFarFromTransit: Double,
+    age1619: Double,
+    age010: Double
   ) = {
     Map(
       "cost"                  -> cost,
@@ -144,7 +150,9 @@ class ModeChoiceTPCM(
       "originCloseToTransit"  -> originCloseToTransit,
       "originFarFromTransit"  -> originFarFromTransit,
       "destCloseToTransit"    -> destCloseToTransit,
-      "destFarFromTransit"    -> destFarFromTransit
+      "destFarFromTransit"    -> destFarFromTransit,
+      "age1619"               -> age1619,
+      "age010"                -> age010
     )
   }
 
@@ -243,6 +251,7 @@ class ModeChoiceTPCM(
   ): Double = {
     val beamTrip = mcd.embodiedBeamTrip
     val autoWork = person.getAttributes.getAttribute("autoWorkRatio").toString
+    val age = person.getAttributes.getAttribute("age").asInstanceOf[Double]
     val theParams = attributes(
       mcd.cost,
       mcd.vehicleTime,
@@ -259,7 +268,9 @@ class ModeChoiceTPCM(
       if (mcd.originTransitProximity <= .5) {1.0} else {0.0},
       if (mcd.originTransitProximity > .5)  {1.0} else {0.0},
       if (mcd.destTransitProximity <= .5)   {1.0} else {0.0},
-      if (mcd.destTransitProximity > .5)    {1.0} else {0.0}
+      if (mcd.destTransitProximity > .5)    {1.0} else {0.0},
+      if (age >= 16 & age <= 19)  {age} else {0.0},
+      if (age <= 10)              {age} else {0.0}
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(varType)(tourPurpose)
     model.getUtilityOfAlternative(beamTrip, theParams).getOrElse(0)
@@ -282,7 +293,8 @@ class ModeChoiceTPCM(
       numTransfers,
       0,0,0,0,//fix this
       0,0,0,//fix this
-      0,0,0,0 //fix this
+      0,0,0,0, //fix this
+      0,0 // fix this
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(varType)(tourPurpose)
     modeModel.getUtilityOfAlternative(mode, theParams).getOrElse(0)
