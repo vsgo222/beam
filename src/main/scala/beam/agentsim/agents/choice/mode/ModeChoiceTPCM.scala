@@ -89,8 +89,8 @@ class ModeChoiceTPCM(
           0.0,
           0.0,
           0.0,
-          if (age >= 16 & age <= 19)  {age} else {0.0},
-          if (age <= 10)              {age} else {0.0},
+          if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
+          if (age <= 10.0)                {age} else {0.0},
           0.0,
           0.0,
           if (autoWork.equals("no_auto"))         {1.0} else {0.0},
@@ -158,13 +158,13 @@ class ModeChoiceTPCM(
       "shortBikeDist"         -> shortBikeDist,
       "longBikeDist"          -> longBikeDist,
       "cost"                  -> cost,
-    //"ZTI"                   -> ZTI,
-    //"destZDI"               -> destZDI,
-    //"originZDI"             -> originZDI,
+      "ZTI"                   -> ZTI,
+      "destZDI"               -> destZDI,
+      "originZDI"             -> originZDI,
       "age1619"               -> age1619,
       "age010"                -> age010,
-    //"shortDrive"            -> shortDrive,
-    //"CBD"                   -> CBD,
+      "shortDrive"            -> shortDrive,
+      "CBD"                   -> CBD,
       "ascNoAuto"             -> ascNoAuto,
       "ascAutoDeficient"      -> ascAutoDeficient,
       "ascAutoSufficient"     -> ascAutoSufficient
@@ -266,7 +266,7 @@ class ModeChoiceTPCM(
   ): Double = {
     val beamTrip = mcd.embodiedBeamTrip
     val autoWork = person.getAttributes.getAttribute("autoWorkRatio").toString
-    val age = person.getAttributes.getAttribute("age").asInstanceOf[Double]
+    val age = person.getAttributes.getAttribute("age").asInstanceOf[Int].asInstanceOf[Double]
     val theParams = attributes(
       mcd.vehicleTime,
       mcd.waitTime,
@@ -284,8 +284,8 @@ class ModeChoiceTPCM(
       0.0,
       0.0,
       0.0,
-      if (age >= 16 & age <= 19)  {age} else {0.0},
-      if (age <= 10)              {age} else {0.0},
+      if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
+      if (age <= 10.0)                {age} else {0.0},
       0.0,
       0.0,
       if (autoWork.equals("no_auto"))         {1.0} else {0.0},
