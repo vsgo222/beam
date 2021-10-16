@@ -128,9 +128,9 @@ asim_asc_complete <- asim_asc %>%
 paged_table(asim_asc_complete)
 ```
 
-## Path Coefficient Data
+## Coefficient Data
 ### Reading in the Data
-First, lets read in the path variable coefficient values from the MTC 2012 release draft. In addition, we use the time values from the MTC 2012 release draft to estimate a cost coefficient. This is done in the following code, and then attached to the mtc data frame.
+First, lets read in the  variable coefficient values from the MTC 2012 release draft. In addition, we use the time values from the MTC 2012 release draft to estimate a cost coefficient. This is done in the following code, and then attached to the mtc data frame.
 
 ```{r, message=FALSE, warning=FALSE}
 mtc2012 <- read_table2("model_data/mtc/mtc_2012_tour_mode_choice_coefficients_path.txt")
@@ -165,7 +165,7 @@ alt_vals <- data.frame(vals,alts) %>% as_tibble()
 alt_vals
 ```
 
-### Creating a Path Coeff Dataframe
+### Creating a Coeff Dataframe
 Now that we have read in the data, and given an integer to each alternative, we can create the dataframe with the correct struction. First, we assign the corresponding alternatives to each variable type. 
 
 ```{r}
@@ -177,12 +177,12 @@ egressTimeAlts <- c(2,3,4,5,6,7,9)
 transferAlts <- c(2,4,7,9)
 walkDistAlts <- c(8,9)
 bikeDistAlts <- c(1,2)
-originTransitAlts <- c(9)
+originTransitAlts <- c(2,9)
 destTransitAlts <- c(2,4,7,9)
 age1619Alts <- c(3)
 age010Alts <- c(2,4,7,9)
 ztiAlts <- c(1,2,4,7,8,9)
-destZdiAlts <- c(1,2,7,8,9)
+destZdiAlts <- c(1,2,4,7,8,9)
 originZdiAlts <- c(1,2,8,9)
 cbdAlts <- c(2,4,7,9)
 shortDriveAlts <- c(4,7)
@@ -244,7 +244,6 @@ path_coeff <- renamed_mtc %>% pivot_longer(!c(variable,Variable, alternative), n
   ))
 ```
 
-
 Now, since there were two transfer values in the original dataset (one for drive transit and one for walk transit), we grab the walk transit values and replace them with the incorrect drive transit values for the walk_transit and bike_transit alternatives. 
 
 ```{r}
@@ -295,13 +294,14 @@ First, lets create a few vectors that specify the variable types.
 path_variables <- c("vehicleTime","waitTime","egressTime","transfer","shortWalkDist","longWalkDist","shortBikeDist","longBikeDist","originCloseToTransit","originFarFromTransit","destCloseToTransit","destFarFromTransit","shortDrive")
 person_variables <- c("ascAutoDeficient","ascAutoSufficient","ascNoAuto","cost","age1619","age010")
 location_variables <- c("ZTI","destZDI","originZDI","CBD")
-```
 
+asim_vars <- c("vehicleTime","waitTime","egressTime","originCloseToTransit","originFarFromTransit","destCloseToTransit","destFarFromTransit","transfer","shortWalkDist","longWalkDist","shortBikeDist","longBikeDist","cost","ZTI","destZDI","originZDI","age1619","age010","shortDrive","CBD","ascNoAuto","ascAutoDeficient","ascAutoSufficient")
+```
 
 Lets combine all the file parts into one file, and print it to a csv!
 ```{r}
 asim_long <- rbind(asim_asc_complete,path_cf) %>%
-  arrange(variable,alternative,factor(latentClass, levels = purps)) %>%
+  arrange(factor(variable, levels = asim_vars),alternative,factor(latentClass, levels = purps)) %>%
   mutate(
     model = "modeChoice", 
     value = ifelse(variable %in% path_variables,value*2,value),
