@@ -73,24 +73,29 @@ class ModeChoiceTPCM(
       // Fill out the input data structures required by the MNL models
       val modeChoiceInputData = bestInGroup.map { alt =>
         val theParams = attributes(
-          alt.cost,
           alt.vehicleTime,
           alt.waitTime,
           alt.egressTime,
+          if (alt.originTransitProximity <= .5) {1.0} else {0.0},
+          if (alt.originTransitProximity > .5)  {1.0} else {0.0},
+          if (alt.destTransitProximity <= .5)   {1.0} else {0.0},
+          if (alt.destTransitProximity > .5)    {1.0} else {0.0},
           alt.numTransfers,
           if (alt.walkDistance <= 1.5) {alt.walkDistance} else {0.0},
           if (alt.walkDistance > 1.5)  {alt.walkDistance} else {0.0},
           if (alt.bikeDistance <= 1.5) {alt.bikeDistance} else {0.0},
           if (alt.bikeDistance > 1.5)  {alt.bikeDistance} else {0.0},
+          alt.cost,
+          0.0,
+          0.0,
+          0.0,
+          if (age >= 16 & age <= 19)  {age} else {0.0},
+          if (age <= 10)              {age} else {0.0},
+          0.0,
+          0.0,
           if (autoWork.equals("no_auto"))         {1.0} else {0.0},
           if (autoWork.equals("auto_deficient"))  {1.0} else {0.0},
-          if (autoWork.equals("auto_sufficient")) {1.0} else {0.0},
-          if (alt.originTransitProximity <= .5) {1.0} else {0.0},
-          if (alt.originTransitProximity > .5)  {1.0} else {0.0},
-          if (alt.destTransitProximity <= .5)   {1.0} else {0.0},
-          if (alt.destTransitProximity > .5)    {1.0} else {0.0},
-          if (age >= 16 & age <= 19)  {age} else {0.0},
-          if (age <= 10)              {age} else {0.0}
+          if (autoWork.equals("auto_sufficient")) {1.0} else {0.0}
         )
         (alt.mode, theParams)
       }.toMap
@@ -115,44 +120,54 @@ class ModeChoiceTPCM(
   }
 
   private def attributes(
-    cost: Double,
     vehicleTime: Double,
     waitTime: Double,
     egressTime: Double,
-    numTransfers: Double,
-    shortWalkDist: Double,
-    longWalkDist: Double,
-    shortBikeDist: Double,
-    longBikeDist: Double,
-    ascNoAuto: Double,
-    ascAutoDeficient: Double,
-    ascAutoSufficient: Double,
     originCloseToTransit: Double,
     originFarFromTransit: Double,
     destCloseToTransit: Double,
     destFarFromTransit: Double,
+    transfer: Double,
+    shortWalkDist: Double,
+    longWalkDist: Double,
+    shortBikeDist: Double,
+    longBikeDist: Double,
+    cost: Double,
+    ZTI: Double,
+    destZDI: Double,
+    originZDI: Double,
     age1619: Double,
-    age010: Double
+    age010: Double,
+    shortDrive: Double,
+    CBD: Double,
+    ascNoAuto: Double,
+    ascAutoDeficient: Double,
+    ascAutoSufficient: Double
   ) = {
     Map(
-      "cost"                  -> cost,
       "vehicleTime"           -> vehicleTime,
       "waitTime"              -> waitTime,
       "egressTime"            -> egressTime,
-      "transfer"              -> numTransfers.toDouble,
-      "shortWalkDist"         -> shortWalkDist,
-      "longWalkDist"          -> longWalkDist,
-      "shortBikeDist"         -> shortBikeDist,
-      "longBikeDist"          -> longBikeDist,
-      "ascNoAuto"             -> ascNoAuto,
-      "ascAutoDeficient"      -> ascAutoDeficient,
-      "ascAutoSufficient"     -> ascAutoSufficient,
       "originCloseToTransit"  -> originCloseToTransit,
       "originFarFromTransit"  -> originFarFromTransit,
       "destCloseToTransit"    -> destCloseToTransit,
       "destFarFromTransit"    -> destFarFromTransit,
+      "transfer"              -> transfer,
+      "shortWalkDist"         -> shortWalkDist,
+      "longWalkDist"          -> longWalkDist,
+      "shortBikeDist"         -> shortBikeDist,
+      "longBikeDist"          -> longBikeDist,
+      "cost"                  -> cost,
+    //"ZTI"                   -> ZTI,
+    //"destZDI"               -> destZDI,
+    //"originZDI"             -> originZDI,
       "age1619"               -> age1619,
-      "age010"                -> age010
+      "age010"                -> age010,
+    //"shortDrive"            -> shortDrive,
+    //"CBD"                   -> CBD,
+      "ascNoAuto"             -> ascNoAuto,
+      "ascAutoDeficient"      -> ascAutoDeficient,
+      "ascAutoSufficient"     -> ascAutoSufficient
     )
   }
 
@@ -195,16 +210,16 @@ class ModeChoiceTPCM(
           tourType,
           mode,
           vehicleTime,
-          walkTime,
           waitTime,
-          bikeTime,
           egressTime,
-          numTransfers,
-          walkDistance,
-          bikeDistance,
           originTransitProximity,
           destTransitProximity,
-          totalCost.toDouble,
+          numTransfers,
+          walkDistance,
+          walkTime,
+          bikeDistance,
+          bikeTime,
+          totalCost,
           altAndIdx._2
         )
       }
@@ -253,24 +268,29 @@ class ModeChoiceTPCM(
     val autoWork = person.getAttributes.getAttribute("autoWorkRatio").toString
     val age = person.getAttributes.getAttribute("age").asInstanceOf[Double]
     val theParams = attributes(
-      mcd.cost,
       mcd.vehicleTime,
       mcd.waitTime,
       mcd.egressTime,
+      if (mcd.originTransitProximity <= .5) {1.0} else {0.0},
+      if (mcd.originTransitProximity > .5)  {1.0} else {0.0},
+      if (mcd.destTransitProximity <= .5)   {1.0} else {0.0},
+      if (mcd.destTransitProximity > .5)    {1.0} else {0.0},
       mcd.numTransfers,
       if (mcd.walkDistance <= 1.5) {mcd.walkDistance} else {0.0},
       if (mcd.walkDistance > 1.5) {mcd.walkDistance} else {0.0},
       if (mcd.bikeDistance <= 1.5) {mcd.bikeDistance} else {0.0},
       if (mcd.bikeDistance > 1.5) {mcd.bikeDistance} else {0.0},
+      mcd.cost,
+      0.0,
+      0.0,
+      0.0,
+      if (age >= 16 & age <= 19)  {age} else {0.0},
+      if (age <= 10)              {age} else {0.0},
+      0.0,
+      0.0,
       if (autoWork.equals("no_auto"))         {1.0} else {0.0},
       if (autoWork.equals("auto_deficient"))  {1.0} else {0.0},
-      if (autoWork.equals("auto_sufficient")) {1.0} else {0.0},
-      if (mcd.originTransitProximity <= .5) {1.0} else {0.0},
-      if (mcd.originTransitProximity > .5)  {1.0} else {0.0},
-      if (mcd.destTransitProximity <= .5)   {1.0} else {0.0},
-      if (mcd.destTransitProximity > .5)    {1.0} else {0.0},
-      if (age >= 16 & age <= 19)  {age} else {0.0},
-      if (age <= 10)              {age} else {0.0}
+      if (autoWork.equals("auto_sufficient")) {1.0} else {0.0}
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(varType)(tourPurpose)
     model.getUtilityOfAlternative(beamTrip, theParams).getOrElse(0)
@@ -286,15 +306,19 @@ class ModeChoiceTPCM(
     transitOccupancyLevel: Double
   ): Double = {
     val theParams = attributes(
-      cost,
-      time,//fix this
-      time,//fix this
-      time,//fix this
+      time,//fix vehicle time
+      time,//fix wait time
+      time,//fix egress time
+      0,0,0,0,//fix proximity to transit
       numTransfers,
-      0,0,0,0,//fix this
-      0,0,0,//fix this
-      0,0,0,0, //fix this
-      0,0 // fix this
+      0,0,0,0, //fix walk-bike-dist
+      cost,
+      0,0,0, // fix ZTI & ZDI
+      0,0, // fix age
+      0,0, // fix drive-dist and CBD
+      0,0,0//fix ascAuto
+
+
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(varType)(tourPurpose)
     modeModel.getUtilityOfAlternative(mode, theParams).getOrElse(0)
@@ -328,15 +352,15 @@ class ModeChoiceTPCM(
     tourType: TourType,
     mode: BeamMode,
     vehicleTime: Double,
-    walkTime: Double,
     waitTime: Double,
-    bikeTime: Double,
     egressTime: Double,
-    numTransfers: Double,
-    walkDistance: Double,
-    bikeDistance: Double,
     originTransitProximity: Double,
     destTransitProximity: Double,
+    numTransfers: Double,
+    walkDistance: Double,
+    walkTime: Double,
+    bikeDistance: Double,
+    bikeTime: Double,
     cost: Double,
     index: Int = -1
   )
