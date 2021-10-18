@@ -55,21 +55,22 @@ class ModeChoiceTPCM(
     tourPurpose : String
   ): Option[EmbodiedBeamTrip] = {
     val age = attributesOfIndividual.age.get.asInstanceOf[Double]
-    val income = attributesOfIndividual.income.get
+    val vot = person.get.getAttributes.getAttribute("vot").asInstanceOf[Double]
     val autoWork = person.get.getAttributes.getAttribute("autoWorkRatio").toString
-    choose(alternatives, tourPurpose, autoWork, age)
+    choose(alternatives, tourPurpose, autoWork, age, vot)
   }
 
   private def choose(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     purpose: String,
     autoWork: String,
-    age: Double
+    age: Double,
+    vot: Double
   ): Option[EmbodiedBeamTrip] = {
     if (alternatives.isEmpty) {
       None
     } else {
-      val bestInGroup = altsToBestInGroup(alternatives, Mandatory)
+      val bestInGroup = altsToBestInGroup(alternatives, Mandatory, vot, purpose)
       // Fill out the input data structures required by the MNL models
       val modeChoiceInputData = bestInGroup.map { alt =>
         val theParams = attributes(
@@ -85,7 +86,7 @@ class ModeChoiceTPCM(
           if (alt.walkDistance > 1.5)  {alt.walkDistance} else {0.0},
           if (alt.bikeDistance <= 1.5) {alt.bikeDistance} else {0.0},
           if (alt.bikeDistance > 1.5)  {alt.bikeDistance} else {0.0},
-          alt.cost,
+          alt.cost * alt.costCoef, // this is backwards in that this is the coefficient, and the csv simply has 1s
           0.0,
           0.0,
           if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
@@ -170,7 +171,9 @@ class ModeChoiceTPCM(
 
   def altsToBestInGroup(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
-    tourType: TourType
+    tourType: TourType,
+    vot: Double,
+    purpose: String
   ): Vector[ModeChoiceData] = {
     //check to see if this is always 0
     val transitFareDefaults: Seq[Double] =
@@ -181,6 +184,7 @@ class ModeChoiceTPCM(
           val mode = altAndIdx._1.tripClassifier
           //val ivttMode = TPCMCalculator.getIVTTMode(mode, altAndIdx)
           val totalCost = TPCMCalculator.getTotalCost(mode, altAndIdx, transitFareDefaults)
+          val costCoef = TPCMCalculator.getCostCoef(vot, purpose)
         //TODO verify wait time is correct, look at transit and ride_hail in particular (is totalTravelTime correct?)
         // total travel time does not equal sum of all leg times (because it includes wait time?)
           val totalTravelTime = altAndIdx._1.totalTravelTimeInSecs / 60
@@ -219,6 +223,7 @@ class ModeChoiceTPCM(
           bikeTime,
           dtDistance,
           totalCost,
+          costCoef,
           altAndIdx._2
         )
       }
@@ -254,7 +259,8 @@ class ModeChoiceTPCM(
     tourPurpose: String,
     person: Person
   ): Double = {
-    val mcd = altsToBestInGroup(Vector(alternative), Mandatory).head
+    val vot = person.getAttributes.getAttribute("vot").asInstanceOf[Double]
+    val mcd = altsToBestInGroup(Vector(alternative), Mandatory, vot, tourPurpose).head
     utilityOf(mcd, tourPurpose, person)
   }
 
@@ -279,7 +285,7 @@ class ModeChoiceTPCM(
       if (mcd.walkDistance > 1.5) {mcd.walkDistance} else {0.0},
       if (mcd.bikeDistance <= 1.5) {mcd.bikeDistance} else {0.0},
       if (mcd.bikeDistance > 1.5) {mcd.bikeDistance} else {0.0},
-      mcd.cost,
+      mcd.cost * mcd.costCoef,
       0.0,
       0.0,
       if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
@@ -361,6 +367,7 @@ class ModeChoiceTPCM(
     bikeTime: Double,
     dtDistance: Double,
     cost: Double,
+    costCoef: Double,
     index: Int = -1
   )
 }
