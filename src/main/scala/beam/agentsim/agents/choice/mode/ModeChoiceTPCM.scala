@@ -88,10 +88,9 @@ class ModeChoiceTPCM(
           alt.cost,
           0.0,
           0.0,
-          0.0,
           if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
           if (age <= 10.0)                {age} else {0.0},
-          0.0,
+          alt.dtDistance,
           0.0,
           if (autoWork.equals("no_auto"))         {1.0} else {0.0},
           if (autoWork.equals("auto_deficient"))  {1.0} else {0.0},
@@ -133,7 +132,6 @@ class ModeChoiceTPCM(
     shortBikeDist: Double,
     longBikeDist: Double,
     cost: Double,
-    ZTI: Double,
     destZDI: Double,
     originZDI: Double,
     age1619: Double,
@@ -158,7 +156,6 @@ class ModeChoiceTPCM(
       "shortBikeDist"         -> shortBikeDist,
       "longBikeDist"          -> longBikeDist,
       "cost"                  -> cost,
-      "ZTI"                   -> ZTI,
       "destZDI"               -> destZDI,
       "originZDI"             -> originZDI,
       "age1619"               -> age1619,
@@ -198,6 +195,7 @@ class ModeChoiceTPCM(
         //determine distance for walk or bike modes
           val walkDistance = TPCMCalculator.getWalkDistance(mode, altAndIdx)
           val bikeDistance = TPCMCalculator.getBikeDistance(mode, altAndIdx)
+          val dtDistance = TPCMCalculator.getDriveTransitDistance(mode, altAndIdx)
         //determine proximity to transit
           val originTransitProximity = TPCMCalculator.getOriginTransitProximity(mode, altAndIdx)
           val destTransitProximity = TPCMCalculator.getDestTransitProximity(mode, altAndIdx)
@@ -219,6 +217,7 @@ class ModeChoiceTPCM(
           walkTime,
           bikeDistance,
           bikeTime,
+          dtDistance,
           totalCost,
           altAndIdx._2
         )
@@ -283,7 +282,6 @@ class ModeChoiceTPCM(
       mcd.cost,
       0.0,
       0.0,
-      0.0,
       if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
       if (age <= 10.0)                {age} else {0.0},
       0.0,
@@ -313,7 +311,7 @@ class ModeChoiceTPCM(
       numTransfers,
       0,0,0,0, //fix walk-bike-dist
       cost,
-      0,0,0, // fix ZTI & ZDI
+      0,0, // fix ZTI & ZDI
       0,0, // fix age
       0,0, // fix drive-dist and CBD
       0,0,0//fix ascAuto
@@ -361,6 +359,7 @@ class ModeChoiceTPCM(
     walkTime: Double,
     bikeDistance: Double,
     bikeTime: Double,
+    dtDistance: Double,
     cost: Double,
     index: Int = -1
   )
