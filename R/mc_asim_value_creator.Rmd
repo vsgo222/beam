@@ -305,6 +305,7 @@ asim_long <- rbind(asim_asc_complete,path_cf) %>%
   mutate(
     model = "modeChoice", 
     value = ifelse(variable %in% path_variables,value*2,value),
+    value = ifelse(variable == "cost" & value != 0, 1, value),
     tourType = case_when(
       variable %in% path_variables ~ "Path",
       variable %in% person_variables ~ "Person",
@@ -318,7 +319,8 @@ asim_long <- rbind(asim_asc_complete,path_cf) %>%
       variable == "transfer" ~ "util",
       TRUE ~ "util"
     )) %>%
-  select(model,tourType,variable,alternative,units,latentClass,value)
+  select(model,tourType,variable,alternative,units,latentClass,value) %>%
+  filter(variable != "ZTI")
 paged_table(asim_long)
 
 write_csv(asim_long,"asim-long-R.csv")
