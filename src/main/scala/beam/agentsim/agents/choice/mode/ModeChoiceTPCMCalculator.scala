@@ -13,6 +13,7 @@ import scala.util.control.Breaks.{break, breakable}
 class ModeChoiceTPCMCalculator(
   beamServices: BeamServices
 ) {
+
   val transitModes = Seq(BUS, FUNICULAR, GONDOLA, CABLE_CAR, FERRY, TRAM, TRANSIT, RAIL, SUBWAY)
   val massTransitModes: List[BeamMode] = List(FERRY, TRANSIT, RAIL, SUBWAY, TRAM)
 
@@ -133,6 +134,24 @@ class ModeChoiceTPCMCalculator(
           distance = distance + leg.beamLeg.travelPath.distanceInM
         }
         distance * 0.000621371 //convert from meters to miles
+      case _ =>
+        0
+    }
+  }
+
+  def getDriveTransitDistance(
+    mode: BeamMode,
+    altAndIdx: (EmbodiedBeamTrip, Int)
+  ): Double = {
+    mode match {
+      case DRIVE_TRANSIT | RIDE_HAIL_TRANSIT =>
+        var distance = 0.0
+        altAndIdx._1.legs.foreach { leg =>
+          distance = distance + leg.beamLeg.travelPath.distanceInM
+        }
+        distance = distance * 0.000621371 //convert from meters to miles
+        val distUnder15 = if (distance < 15.0) {15.0 - distance} else {0.0}
+        distUnder15
       case _ =>
         0
     }
