@@ -45,7 +45,6 @@ object UtilityFunctionOperation {
       case ("longWalkDist", _)         => Multiplier(value)
       case ("shortBikeDist", _)        => Multiplier(value)
       case ("longBikeDist", _)         => Multiplier(value)
-      case ("ZTI", _)                  => Multiplier(value)
       case ("destZDI", _)              => Multiplier(value)
       case ("originZDI", _)            => Multiplier(value)
       case ("age1619", _)              => Multiplier(value)
