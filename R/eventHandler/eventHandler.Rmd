@@ -4,6 +4,8 @@ author: "Hayden Atchley"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 geometry: margin=1in
 output:
+  html_document:
+    toc: false
   pdf_document:
     latex_engine: lualatex
     includes:
@@ -37,8 +39,10 @@ library(packageSHA)
 
 \RaggedRight
 
+# BEAM Event Handler
+
 Loading the Data
-==========================
+--------------------------
 
 BEAM can be configured to output an `events.csv` file for each iteration. For now, I just picked one for testing:
 ```{r}
@@ -75,9 +79,9 @@ eventCols <- c("person",
                "actType",
                "personalVehicleAvailable"
                )
-fullEvents %<>% relocate(eventCols)
+fullEvents %<>% relocate(all_of(eventCols))
 
-events <- fullEvents %>% select(eventCols)
+events <- fullEvents %>% select(all_of(eventCols))
 events %<>% mutate(
   travelTime = arrivalTime - departureTime,
   avgSpeed = length / travelTime
@@ -107,9 +111,9 @@ personModefail <- 1023248 #mode isn't realised by end of simulation
 
 
 Analysis
-=========================
+------------------------
 
-##Event Types
+### Event Types
 
 A good place to start is with the event types:
 ```{r}
@@ -172,7 +176,7 @@ events %>%
 ```
 
 
-##Ridehail Stats
+### Ridehail Stats
 
 We can look at some of the stats pertaining to ridehail vehicles:
 ```{r}
@@ -194,7 +198,7 @@ utilization <- totRiders / rhHours / rhNum
 utilization
 ```
 
-We can also look at the average time between reserving a ridehail and the next event, whether that's entering the ridehail or replanning and choosing a different mode:
+We can also look at the average time between reserving a ridehail and the next event, whether that's entering the ridehail or replanning and choosing a different mode (note that times are given in minutes):
 ```{r}
 rhTimes <- events %>%
   arrange(person, time) %>%
@@ -221,5 +225,44 @@ rhTimes %>%
     max = max(rhReserveTime) / 60
     ) %>%
   my_flextable()
+```
+
+
+
+### Travel Times
+
+We can also look at travel times (again in minutes):
+```{r}
+events %>%
+  filter(!is.na(travelTime)) %>%
+  mutate(travelTime = travelTime / 60) %>% 
+  group_by(vehicleType) %>%
+  boxplot(travelTime ~ vehicleType,
+          data = .,
+          horizontal = T)
+```
+
+We may have some routing issues since it seems people are willing to walk upwards of 20 hours. However, we can still look at subsets of the data:
+```{r}
+events %>%
+  filter(!is.na(travelTime),
+         !grepl("BODY", vehicleType)
+         ) %>%
+  mutate(travelTime = travelTime / 60) %>% 
+  group_by(vehicleType) %>%
+  boxplot(travelTime ~ vehicleType,
+          data = .,
+          horizontal = T)
+
+events %>%
+  filter(!is.na(travelTime),
+         !grepl("BODY", vehicleType),
+         travelTime < 180
+         ) %>%
+  mutate(travelTime = travelTime / 60) %>% 
+  group_by(vehicleType) %>%
+  boxplot(travelTime ~ vehicleType,
+          data = .,
+          horizontal = T)
 ```
 

@@ -156,6 +156,29 @@ events %>%
   summarise(mean = mean(travelTime)/60,
             median = median(travelTime)/60)
 
+events %>%
+  filter(!is.na(travelTime)) %>%
+  mutate(travelTime = travelTime / 60) %>% 
+  group_by(vehicleType) %>%
+  boxplot(travelTime ~ vehicleType,
+          data = .,
+          horizontal = T
+  )
+
+events %>%
+  filter(!is.na(travelTime)) %>%
+  mutate(travelTime = travelTime / 60) %>% 
+  group_by(vehicleType) %>%
+  filter(travelTime > 60) %>%
+  boxplot()
+
+events %>%
+  filter(!is.na(travelTime)) %>%
+  mutate(travelTime = travelTime / 60) %>% 
+  group_by(vehicleType) %>%
+  filter(travelTime > 60, travelTime < 20000) %>%
+  boxplot()
+
 times <- events$travelTime %>%
   discard(is.na)
 times[times>60][times<20000]
