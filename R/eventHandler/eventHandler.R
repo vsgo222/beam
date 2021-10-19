@@ -7,13 +7,15 @@ eventsCSV = "from_BYUsc/39.events.csv"
 rhFleetFile = "from_BYUsc/rhFleet-12-micro.csv"
 
 ##for testing##
-person1 <- 1067049
-person2 <- 730554
-person3 <- 1060618
+personRH <- 1067049  #normal ridehail
+personRH2 <- 730554   #rh2
+personReplan <- 1060618  #rh replanning
 
-personX <- 1095346
-personY <- 1195571
-personZ <- 1251294
+personModefail <- 1023248
+
+# personX <- 1095346
+# personY <- 1195571
+# personZ <- 1251294
 
 ################################################################################
 
@@ -78,7 +80,31 @@ modeComparison <- left_join(modechoice,
           legMode,
           by = c("mode" = "legMode")
           ) %>%
-  `colnames<-`(c("mode", "modechoice", "legmode"))
+  `colnames<-`(c("mode", "modechoice", "legmode")) %>%
+  mutate(
+    replans = modechoice - legmode,
+    replan_pct = replans / modechoice
+  )
+
+
+events %>%
+  filter(type %in% c("ModeChoice",
+                     "Replanning",
+                     "arrival"
+                     )
+         ) %>%
+  arrange(person,
+          time
+          ) %>%
+  filter(
+    !((type == "ModeChoice" & lead(type) == "arrival") |
+      (type == "arrival" & lag(type) == "ModeChoice"))
+  ) %>%
+  filter(
+    !((type == "ModeChoice" & lead(type) == "Replanning") |
+        (type == "Replanning" & lag(type) == "ModeChoice"))
+  )
+
 
 ################################################
 
