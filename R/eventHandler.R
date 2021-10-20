@@ -148,9 +148,22 @@ events %>%
   select(vehicle) %>%
   unique()
 
-events %>%
-  filter(!is.na(as.numeric(person))) %>%
-  filter(mode == "ride_hail")
+ridehailers <- events %>%
+  filter(!is.na(as.numeric(person)),
+         mode == "ride_hail") %>%
+  select(person) %>%
+  unique() %>%
+  unlist()
+waits <- events %>%
+  filter(person %in% ridehailers) %>%
+  arrange(person, time) %>% print(n = 25) %>%
+  filter(type %in% c("ReserveRideHail", "PersonEntersVehicle")) %>%
+  filter((type == "ReserveRideHail" & lead(type) == "PersonEntersVehicle")
+         | (type == "PersonEntersVehicle" & lag(type) == "ReserveRideHail")) %>%
+  mutate(
+    wait = ifelse(type == "PersonEntersVehicle", time - lag(time), NA)
+  ) %>%
+  filter(!grepl("body", vehicle))
 
 person1 <- 1067049
 person2 <- 114037
