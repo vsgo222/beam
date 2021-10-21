@@ -137,12 +137,16 @@ mtc2012 <- read_table2("model_data/mtc/mtc_2012_tour_mode_choice_coefficients_pa
 cols <- sapply(mtc2012, is.numeric)
 mtc2012[, cols] <- mtc2012[, cols]
 
+
 # create a cost table by purpose
 cost <- cost_creator(mtc2012[c(1:6,8,9),]) %>% select(!time_coef) %>%
   pivot_wider(names_from = "purpose", values_from = "cost_coef") %>% 
   mutate(Variable = "cost_coef")
 
-mtc_cost <- mtc2012 %>% rbind(cost)
+# create a cost table that is simply just a repeat of the ivtt
+cost_time <- head(mtc2012,1) %>% mutate(Variable = "cost_coef")
+
+mtc_cost <- mtc2012 %>% rbind(cost_time)
 ```
 
 ### Assigning Integers to Alternatives
@@ -304,8 +308,7 @@ asim_long <- rbind(asim_asc_complete,path_cf) %>%
   arrange(factor(variable, levels = asim_vars),alternative,factor(latentClass, levels = purps)) %>%
   mutate(
     model = "modeChoice", 
-    value = ifelse(variable %in% path_variables,value*2,value),
-    value = ifelse(variable == "cost" & value != 0, 1, value),
+    value = ifelse(variable %in% path_variables | variable == "cost",value*2,value),
     tourType = case_when(
       variable %in% path_variables ~ "Path",
       variable %in% person_variables ~ "Person",
@@ -315,7 +318,7 @@ asim_long <- rbind(asim_asc_complete,path_cf) %>%
       grepl("asc",variable) ~ "util",
       grepl("Time",variable) ~ "util/min",
       grepl("Dist",variable) ~ "util/mile",
-      variable == "cost" ~ "util/$",
+      variable == "cost" ~ "util/min", # this isn't the complete cost coef, but simply the ivtt value. The complete cost coef is determined in BEAM using the individual's VOT
       variable == "transfer" ~ "util",
       TRUE ~ "util"
     )) %>%
