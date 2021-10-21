@@ -115,9 +115,9 @@ object LatentClassChoiceModel {
   //method where common utility values can be specified
   def getCommonUtility: Map[String, UtilityFunctionOperation] = {
     Map(
-      "cost" -> UtilityFunctionOperation("multiplier", 0),
-      "time" -> UtilityFunctionOperation("multiplier", 0),
-      "transfer" -> UtilityFunctionOperation("multiplier", 0)
+      "cost1" -> UtilityFunctionOperation("multiplier", 0),
+      "time1" -> UtilityFunctionOperation("multiplier", 0),
+      "transfer1" -> UtilityFunctionOperation("multiplier", 0)
     )
   }
 
@@ -169,10 +169,10 @@ object LatentClassChoiceModel {
     val uniqueAlts = lccmData.map(_.alternative).distinct
     val modeChoiceData = lccmData.filter(_.model == "modeChoice")
   //Vector[TourType](Mandatory, NonMandatory).map { theTourType: TourType => val theTourTypeData = modeChoiceData.filter(_.tourType.equalsIgnoreCase(theTourType.toString))
-    Vector[String]("Intercept","Path","Location","Person","All").map { theTourType =>
+    Vector[String]("Path","Location","Person","All").map { theTourType =>
       var theTourTypeData = modeChoiceData
       if (theTourType != "All"){
-        theTourTypeData = modeChoiceData.filter(x => x.tourType.equalsIgnoreCase(theTourType) | x.tourType.equalsIgnoreCase("Intercept"))
+        theTourTypeData = modeChoiceData.filter(x => x.tourType.equalsIgnoreCase(theTourType))
       }
       theTourType -> uniqueClasses.map { theTourPurpose =>
         val theData = theTourTypeData.filter(_.latentClass.equalsIgnoreCase(theTourPurpose))
