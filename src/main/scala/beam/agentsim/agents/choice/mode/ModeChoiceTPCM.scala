@@ -86,7 +86,7 @@ class ModeChoiceTPCM(
           if (alt.walkDistance > 1.5)  {alt.walkDistance} else {0.0},
           if (alt.bikeDistance <= 1.5) {alt.bikeDistance} else {0.0},
           if (alt.bikeDistance > 1.5)  {alt.bikeDistance} else {0.0},
-          alt.cost * alt.costCoef, // this is backwards in that this is the coefficient, and the csv simply has 1s
+          alt.cost * 60 / vot, // the cost utility values in the csv are actually vehicleTime values, and this conversion creates the cost coefficient
           0.0,
           0.0,
           if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
@@ -184,7 +184,6 @@ class ModeChoiceTPCM(
           val mode = altAndIdx._1.tripClassifier
           //val ivttMode = TPCMCalculator.getIVTTMode(mode, altAndIdx)
           val totalCost = TPCMCalculator.getTotalCost(mode, altAndIdx, transitFareDefaults)
-          val costCoef = TPCMCalculator.getCostCoef(vot, purpose)
         //TODO verify wait time is correct, look at transit and ride_hail in particular (is totalTravelTime correct?)
         // total travel time does not equal sum of all leg times (because it includes wait time?)
           val totalTravelTime = altAndIdx._1.totalTravelTimeInSecs / 60
@@ -223,7 +222,6 @@ class ModeChoiceTPCM(
           bikeTime,
           dtDistance,
           totalCost,
-          costCoef,
           altAndIdx._2
         )
       }
@@ -271,6 +269,7 @@ class ModeChoiceTPCM(
   ): Double = {
     val beamTrip = mcd.embodiedBeamTrip
     val autoWork = person.getAttributes.getAttribute("autoWorkRatio").toString
+    val vot = person.getAttributes.getAttribute("vot").asInstanceOf[Double]
     val age = person.getAttributes.getAttribute("age").asInstanceOf[Int].asInstanceOf[Double]
     val theParams = attributes(
       mcd.vehicleTime,
@@ -285,7 +284,7 @@ class ModeChoiceTPCM(
       if (mcd.walkDistance > 1.5) {mcd.walkDistance} else {0.0},
       if (mcd.bikeDistance <= 1.5) {mcd.bikeDistance} else {0.0},
       if (mcd.bikeDistance > 1.5) {mcd.bikeDistance} else {0.0},
-      mcd.cost * mcd.costCoef,
+      mcd.cost * 60 / vot,
       0.0,
       0.0,
       if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
@@ -367,7 +366,6 @@ class ModeChoiceTPCM(
     bikeTime: Double,
     dtDistance: Double,
     cost: Double,
-    costCoef: Double,
     index: Int = -1
   )
 }
