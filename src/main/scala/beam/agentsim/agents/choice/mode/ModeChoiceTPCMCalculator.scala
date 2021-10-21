@@ -16,8 +16,6 @@ class ModeChoiceTPCMCalculator(
 
   val transitModes = Seq(BUS, FUNICULAR, GONDOLA, CABLE_CAR, FERRY, TRAM, TRANSIT, RAIL, SUBWAY)
   val massTransitModes: List[BeamMode] = List(FERRY, TRANSIT, RAIL, SUBWAY, TRAM)
-  val timeCoefs = Map("atwork"-> -0.0655, "univ" -> -0.0775, "othdiscr" -> -0.0605, "eatout" -> -0.0605, "escort" -> -0.0605,
-    "othmaint" -> -0.0605, "school" -> -0.0775, "shopping" -> -0.0605, "social" -> -0.0605, "work" -> -0.0465)
 
   def getTotalCost(
     mode: BeamMode,
@@ -32,12 +30,6 @@ class ModeChoiceTPCMCalculator(
       case _ =>
         altAndIdx._1.costEstimate
     }
-  }
-
-  def getCostCoef(vot: Double,
-    purpose: String
-  ): Double = {
-    timeCoefs.get(purpose).get * 60 / vot // get the cost coeff using the time coeff and multiplying be the VOT
   }
 
   def getTotalTravelTime(
