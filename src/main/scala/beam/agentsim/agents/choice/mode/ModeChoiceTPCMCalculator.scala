@@ -212,7 +212,7 @@ class ModeChoiceTPCMCalculator(
       val originTAZ = tazTreeMap.getTAZ(originCoord).tazId.toString
     // get destination TAZ
       val length = altAndIdx._1.legs.length
-      val destCoord = altAndIdx._1.legs(length-1).beamLeg.travelPath.startPoint.loc
+      val destCoord = altAndIdx._1.legs(length-1).beamLeg.travelPath.endPoint.loc
       val destTAZ = tazTreeMap.getTAZ(destCoord).tazId.toString
     // return both TAZ values
       (originTAZ, destTAZ) // right now all originTAZ = destTAZ. Double check this. 
