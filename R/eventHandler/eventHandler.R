@@ -210,3 +210,10 @@ rhTimes %>%
     max = max(rhReserveTime) / 60
     )
 
+#####################################################
+
+events %>%
+  filter(type == "PathTraversal", mode == "bus") %>%
+  select(travelTime) %>%
+  mutate(travelTime = travelTime / 60) %>%
+  boxplot()
