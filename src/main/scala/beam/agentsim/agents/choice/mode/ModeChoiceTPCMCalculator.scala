@@ -1,5 +1,6 @@
 package beam.agentsim.agents.choice.mode
 
+import beam.agentsim.agents.choice.mode.ModeChoiceTPCMCalculator.locationData
 import beam.agentsim.agents.vehicles.BeamVehicle
 import beam.agentsim.infrastructure.taz
 import beam.agentsim.infrastructure.taz.{TAZ, TAZTreeMap}
@@ -7,9 +8,18 @@ import beam.router.Modes.BeamMode
 import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, BUS, CABLE_CAR, CAR, CAV, DRIVE_TRANSIT, FERRY, FUNICULAR, GONDOLA, RAIL, RIDE_HAIL, RIDE_HAIL_POOLED, RIDE_HAIL_TRANSIT, SUBWAY, TRAM, TRANSIT, WALK, WALK_TRANSIT}
 import beam.router.model.EmbodiedBeamTrip
 import beam.sim.BeamServices
+import beam.sim.config.BeamConfig
 import org.matsim.api.core.v01.Id
 import com.conveyal.r5.api.util.TransitModes
+import org.matsim.core.utils.io.IOUtils
+import org.supercsv.cellprocessor.constraint.NotNull
+import org.supercsv.cellprocessor.{Optional, ParseDouble}
+import org.supercsv.cellprocessor.ift.CellProcessor
+import org.supercsv.io.CsvBeanReader
+import org.supercsv.prefs.CsvPreference
 
+import scala.beans.BeanProperty
+import scala.collection.mutable
 import scala.util.control.Breaks.{break, breakable}
 
 class ModeChoiceTPCMCalculator(
@@ -18,6 +28,9 @@ class ModeChoiceTPCMCalculator(
 
   val transitModes = Seq(BUS, FUNICULAR, GONDOLA, CABLE_CAR, FERRY, TRAM, TRANSIT, RAIL, SUBWAY)
   val massTransitModes: List[BeamMode] = List(FERRY, TRANSIT, RAIL, SUBWAY, TRAM)
+  private val locData: Seq[locationData] = parseLocationData(
+    beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.tpcmLoc.filePath
+  )
 
   def getTotalCost(
     mode: BeamMode,
@@ -198,6 +211,14 @@ class ModeChoiceTPCMCalculator(
     val originTAZ = tazTreeMap.getTAZ(coord).tazId.toString
     originTAZ
   }
+
+  def getOriginCBD(
+    originTAZ: String
+  ): Double = {
+    val cbdData = locData.toArray.filter(_.taz.equalsIgnoreCase(originTAZ))
+    cbdData.head.cbd
+  }
+
   def getIVTTMode(
     mode: BeamMode,
     altAndIdx: (EmbodiedBeamTrip, Int)
@@ -211,7 +232,6 @@ class ModeChoiceTPCMCalculator(
     }
     getIVTTModeType(ivttMode)
   }
-
 
   private def getIVTTModeType(mode:BeamMode): String ={
     mode match {
@@ -232,6 +252,52 @@ class ModeChoiceTPCMCalculator(
     }
   }
 
+  private def parseLocationData(locationDataFileName: String): Seq[locationData] = {
+    val beanReader = new CsvBeanReader(
+      IOUtils.getBufferedReader(locationDataFileName),
+      CsvPreference.STANDARD_PREFERENCE
+    )
+    val firstLineCheck = true
+    val header = beanReader.getHeader(firstLineCheck)
+    val processors: Array[CellProcessor] = ModeChoiceTPCMCalculator.getProcessors
 
+    val result = mutable.ArrayBuffer[locationData]()
+    var row: locationData = newEmptyRow()
+    while (beanReader.read[locationData](row, header, processors: _*) != null) {
+      if (Option(row.cbd).isDefined && !row.cbd.isNaN)
+        result += row.clone().asInstanceOf[locationData]
+      row = newEmptyRow()
+    }
+    result
+  }
+
+  private def newEmptyRow(): locationData = new locationData()
+
+}
+
+object ModeChoiceTPCMCalculator {
+
+  private def getProcessors: Array[CellProcessor] = {
+    Array[CellProcessor](
+    new NotNull, // tazid
+    new Optional(new ParseDouble()), // households
+    new Optional(new ParseDouble()), // devacres
+    new Optional(new ParseDouble()), // resacres
+    new Optional(new ParseDouble()), // employment
+    new Optional(new ParseDouble()) // cbd
+    )
+  }
+
+  class locationData(
+    @BeanProperty var taz: String = "",
+    @BeanProperty var households: Double = Double.NaN,
+    @BeanProperty var devacres: Double = Double.NaN,
+    @BeanProperty var resacres: Double = Double.NaN,
+    @BeanProperty var employment: Double = Double.NaN,
+    @BeanProperty var cbd: Double = Double.NaN
+  ) extends Cloneable {
+    override def clone(): AnyRef =
+      new locationData(taz, households, devacres, resacres, employment, cbd)
+  }
 
 }

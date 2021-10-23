@@ -205,6 +205,7 @@ class ModeChoiceTPCM(
           val originTransitProximity = TPCMCalculator.getOriginTransitProximity(mode, altAndIdx)
           val destTransitProximity = TPCMCalculator.getDestTransitProximity(mode, altAndIdx)
           val originTAZ = TPCMCalculator.getOriginTAZ(altAndIdx, beamConfig)
+          val originCBD = TPCMCalculator.getOriginCBD(originTAZ)
         //determine percentile, occupancy level, and embodied trip value
           val percentile = beamConfig.beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.transit_crowding_percentile
           val occupancyLevel = transitCrowding.getTransitOccupancyLevelForPercentile(altAndIdx._1, percentile)
