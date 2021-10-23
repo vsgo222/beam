@@ -1,6 +1,8 @@
 package beam.agentsim.agents.choice.mode
 
 import beam.agentsim.agents.vehicles.BeamVehicle
+import beam.agentsim.infrastructure.taz
+import beam.agentsim.infrastructure.taz.{TAZ, TAZTreeMap}
 import beam.router.Modes.BeamMode
 import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, BUS, CABLE_CAR, CAR, CAV, DRIVE_TRANSIT, FERRY, FUNICULAR, GONDOLA, RAIL, RIDE_HAIL, RIDE_HAIL_POOLED, RIDE_HAIL_TRANSIT, SUBWAY, TRAM, TRANSIT, WALK, WALK_TRANSIT}
 import beam.router.model.EmbodiedBeamTrip
@@ -187,6 +189,15 @@ class ModeChoiceTPCMCalculator(
     }
   }
 
+  def getOriginTAZ(
+    altAndIdx: (EmbodiedBeamTrip, Int),
+    beamConfig: BeamConfig
+  ): String = {
+    val tazTreeMap: TAZTreeMap = taz.TAZTreeMap.getTazTreeMap(beamConfig.beam.agentsim.taz.filePath)
+    val coord = altAndIdx._1.legs(0).beamLeg.travelPath.startPoint.loc
+    val originTAZ = tazTreeMap.getTAZ(coord).tazId.toString
+    originTAZ
+  }
   def getIVTTMode(
     mode: BeamMode,
     altAndIdx: (EmbodiedBeamTrip, Int)

@@ -6,6 +6,8 @@ import beam.agentsim.agents.choice.logit.MultinomialLogit.MNLSample
 import beam.agentsim.agents.choice.mode.ModeChoiceLCCM.ModeChoiceData
 import beam.agentsim.agents.modalbehaviors.ModeChoiceCalculator
 import beam.agentsim.agents.vehicles.BeamVehicle
+import beam.agentsim.infrastructure.taz
+import beam.agentsim.infrastructure.taz.TAZTreeMap
 import beam.router.Modes.BeamMode
 import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, DRIVE_TRANSIT, RIDE_HAIL, RIDE_HAIL_TRANSIT, TRANSIT, WALK, WALK_TRANSIT}
 import beam.router.model.EmbodiedBeamTrip
@@ -202,6 +204,7 @@ class ModeChoiceTPCM(
         //determine proximity to transit
           val originTransitProximity = TPCMCalculator.getOriginTransitProximity(mode, altAndIdx)
           val destTransitProximity = TPCMCalculator.getDestTransitProximity(mode, altAndIdx)
+          val originTAZ = TPCMCalculator.getOriginTAZ(altAndIdx, beamConfig)
         //determine percentile, occupancy level, and embodied trip value
           val percentile = beamConfig.beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.transit_crowding_percentile
           val occupancyLevel = transitCrowding.getTransitOccupancyLevelForPercentile(altAndIdx._1, percentile)
