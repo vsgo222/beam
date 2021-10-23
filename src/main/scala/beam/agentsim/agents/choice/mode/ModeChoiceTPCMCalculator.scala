@@ -202,21 +202,52 @@ class ModeChoiceTPCMCalculator(
     }
   }
 
-  def getOriginTAZ(
+  def getTAZs(
     altAndIdx: (EmbodiedBeamTrip, Int),
     beamConfig: BeamConfig
-  ): String = {
-    val tazTreeMap: TAZTreeMap = taz.TAZTreeMap.getTazTreeMap(beamConfig.beam.agentsim.taz.filePath)
-    val coord = altAndIdx._1.legs(0).beamLeg.travelPath.startPoint.loc
-    val originTAZ = tazTreeMap.getTAZ(coord).tazId.toString
-    originTAZ
+  ): (String, String) = {
+      val tazTreeMap: TAZTreeMap = taz.TAZTreeMap.getTazTreeMap(beamConfig.beam.agentsim.taz.filePath)
+    // get origin TAZ
+      val originCoord = altAndIdx._1.legs(0).beamLeg.travelPath.startPoint.loc
+      val originTAZ = tazTreeMap.getTAZ(originCoord).tazId.toString
+    // get destination TAZ
+      val length = altAndIdx._1.legs.length
+      val destCoord = altAndIdx._1.legs(length-1).beamLeg.travelPath.startPoint.loc
+      val destTAZ = tazTreeMap.getTAZ(destCoord).tazId.toString
+    // return both TAZ values
+      (originTAZ, destTAZ) // right now all originTAZ = destTAZ. Double check this. 
   }
 
-  def getOriginCBD(
-    originTAZ: String
+  def getCBD(
+    destTAZ : String
   ): Double = {
-    val cbdData = locData.toArray.filter(_.taz.equalsIgnoreCase(originTAZ))
-    cbdData.head.cbd
+    // get data pertaining to destTAZ and then get the cbd value
+    val destData = locData.toArray.filter(_.tazid.equalsIgnoreCase(destTAZ))
+      val destCBD = destData.head.cbd
+    // return CBD value
+    destCBD
+  }
+
+  def getZDIs(
+    originTAZ: String,
+    destTAZ: String
+  ): (Double, Double) = {
+    // get data pertainint to TAZ and then get data needed to compute ZDI
+    val originData = locData.toArray.filter(_.tazid.equalsIgnoreCase(originTAZ))
+      val (oHh, oRes, oCom, oEmp) =
+        (originData.head.households, originData.head.residential, originData.head.commercial, originData.head.employment)
+      val originZDI = Math.min(150, computeZDI(oHh, oRes, oCom, oEmp))
+    // get data pertainint to TAZ and then get data needed to compute ZDI
+    val destData = locData.toArray.filter(_.tazid.equalsIgnoreCase(destTAZ))
+      val (dHh, dRes, dCom, dEmp) =
+        (destData.head.households, destData.head.residential, destData.head.commercial, destData.head.employment)
+      val destZDI = computeZDI(dHh, dRes, dCom, dEmp)
+    // return both computed ZDIs
+    (originZDI, destZDI)
+  }
+
+  private def computeZDI(hh: Double, res: Double, com: Double, emp: Double) = {
+    (hh / res * emp / com) / (hh / res + emp / com)
   }
 
   def getIVTTMode(
@@ -281,23 +312,23 @@ object ModeChoiceTPCMCalculator {
     Array[CellProcessor](
     new NotNull, // tazid
     new Optional(new ParseDouble()), // households
-    new Optional(new ParseDouble()), // devacres
-    new Optional(new ParseDouble()), // resacres
+    new Optional(new ParseDouble()), // residential
+    new Optional(new ParseDouble()), // commercial
     new Optional(new ParseDouble()), // employment
     new Optional(new ParseDouble()) // cbd
     )
   }
 
   class locationData(
-    @BeanProperty var taz: String = "",
+    @BeanProperty var tazid: String = "",
     @BeanProperty var households: Double = Double.NaN,
-    @BeanProperty var devacres: Double = Double.NaN,
-    @BeanProperty var resacres: Double = Double.NaN,
+    @BeanProperty var residential: Double = Double.NaN,
+    @BeanProperty var commercial: Double = Double.NaN,
     @BeanProperty var employment: Double = Double.NaN,
     @BeanProperty var cbd: Double = Double.NaN
   ) extends Cloneable {
     override def clone(): AnyRef =
-      new locationData(taz, households, devacres, resacres, employment, cbd)
+      new locationData(tazid, households, residential, commercial, employment, cbd)
   }
 
 }
