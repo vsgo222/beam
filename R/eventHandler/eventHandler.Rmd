@@ -102,10 +102,7 @@ I also loaded some stats from UTA On Demand's monthly reports (the data is avail
 ```{r}
 UTAOD <- read_csv("R/eventHandler/test/UTAODpilotinfo.csv")
 UTAOD %>%
-  kbl(digits = 3) %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "responsive"),
-    full_width = F)
+  my_kbl(digits = 3, align = 'lrrr')
 ```
 
 As a side note, I stored some person IDs that provide useful demonstrations:
@@ -128,10 +125,7 @@ countEvents <- events %>%
   group_by(type) %>%
   summarize(n = n())
 countEvents %>%
-  kbl() %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "responsive"),
-    full_width = F)
+  my_kbl(align = 'lr')
 ```
 
 Many of these are self-explanatory, but here is what I've gathered so far:
@@ -168,10 +162,7 @@ modeComparison <- left_join(modechoice,
     replan_pct = replans / modechoice
   )
 modeComparison %>%
-  kbl(digits = 3) %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "responsive"),
-    full_width = F)
+  my_kbl(digits = 3, align = 'lrrrr')
 ```
 
 Interestingly, the number of `Replanning` events is lower than the sum of the `replans` column above:
@@ -206,10 +197,7 @@ rhPassengers <- events %>%
   `colnames<-`(c("numPassengers", "n")) %>%
   mutate(pct = n / sum(n))
 rhPassengers %>%
-  kbl(digits = 2, align = 'lrr', caption = "Trips by Occupancy") %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "responsive"),
-    full_width = F)
+  my_kbl(digits = 2, align = 'lrr', caption = "Trips by Occupancy")
 
 totRiders <- sum(as.integer(rhPassengers$numPassengers) * rhPassengers$n)
 totRiders  
@@ -229,10 +217,7 @@ events %>%
     min = min(travelTime) / 60,
     max = max(travelTime) / 60
   ) %>%
-  kbl(digits = 2, align = 'lrrr', caption = "Travel Times by Occupancy (min)") %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "responsive"),
-    full_width = F)
+  my_kbl(digits = 2, align = 'lrrr', caption = "Travel Times by Occupancy (min)")
 ```
 
 We can also look at the average time between reserving a ridehail and the next event, whether that's entering the ridehail or replanning and choosing a different mode (note that times are given in minutes):
@@ -261,11 +246,7 @@ rhTimes %>%
     min = min(rhReserveTime) / 60,
     max = max(rhReserveTime) / 60
     ) %>%
-  kbl(digits = 2, caption = "RideHail Reservation Outcomes") %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "responsive"),
-    full_width = F
-    ) %>%
+  my_kbl(digits = 2, caption = "RideHail Reservation Outcomes", align = 'lrrr') %>%
   add_header_above(c(" " = 1, "Time until outcome (min)" = 4))
 ```
 
