@@ -147,6 +147,7 @@ object BeamConfig {
           defaultValueOfTime: scala.Double,
           highTimeSensitivity: BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.HighTimeSensitivity,
           lccm: BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.Lccm,
+          tpcmLoc: BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.TpcmLoc,
           lowTimeSensitivity: BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.LowTimeSensitivity,
           maximumNumberOfReplanningAttempts: scala.Int,
           minimumValueOfTime: scala.Double,
@@ -325,6 +326,20 @@ object BeamConfig {
               BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.Lccm(
                 filePath =
                   if (c.hasPathOrNull("filePath")) c.getString("filePath") else "/test/input/beamville/lccm-long.csv"
+              )
+            }
+          }
+
+          case class TpcmLoc(
+            filePath: java.lang.String
+          )
+
+          object TpcmLoc {
+
+            def apply(c: com.typesafe.config.Config): BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.TpcmLoc = {
+              BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.TpcmLoc(
+                filePath =
+                  if (c.hasPathOrNull("filePath")) c.getString("filePath") else "/test/input/slc-light/tpcm-loc.csv"
               )
             }
           }
@@ -615,6 +630,10 @@ object BeamConfig {
               lccm = BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.Lccm(
                 if (c.hasPathOrNull("lccm")) c.getConfig("lccm")
                 else com.typesafe.config.ConfigFactory.parseString("lccm{}")
+              ),
+              tpcmLoc = BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.TpcmLoc(
+                if (c.hasPathOrNull("tpcmLoc")) c.getConfig("tpcmLoc")
+                else com.typesafe.config.ConfigFactory.parseString("tpcmLoc{}")
               ),
               lowTimeSensitivity = BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.LowTimeSensitivity(
                 if (c.hasPathOrNull("lowTimeSensitivity")) c.getConfig("lowTimeSensitivity")
