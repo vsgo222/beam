@@ -1,0 +1,96 @@
+---
+title: "input csvs creator"
+author: "Chris Day"
+date: "10/23/2021"
+output: html_document
+---
+
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(magrittr)
+library(sf)
+library(leaflet)
+```
+
+## Introduction
+In this RMarkdown, we create the taz-centroids.csv, taz-parking.csv, and tpcm-loc.csv files for the slc-light scenarios. The taz-centroids.csv file will have all the TAZ's ids, the x and y coordinate to its centorid, and the area. THe taz-parking.csv file will give basic parking values to each TAZ and give unlimiting parking to each one. Finally, the tpcm-loc.csv file is created to store important location variables used in the tour mode choice model. Specifically, TAZ location variables like whether it is a CBD area, as well as zonal density information will be included. 
+
+## taz-centroids.csv
+
+```{r}
+# read in all the tazs into correct coordinate system
+taz <- st_read("https://raw.githubusercontent.com/byu-transpolab/populationsim_wfrc/master/inputs/taz.geojson") %>% 
+  st_transform("+init=epsg:26912") %>% ## correct crs???? CHECK THIS
+  arrange(TAZID) %>% mutate(TAZ = as.character(TAZID)) %>%
+  
+  # remove external stations
+  filter(CO_FIPS > 0) %>%
+  select(TAZ, CO_NAME, PRKCSTPERM, PRKCSTTEMP, CBD, X, Y)
+
+  # add centroid  and area geometry
+  taz$geometry2 = st_centroid(st_geometry(taz))
+  taz$area <- st_area(taz)
+  
+tazc <- taz
+st_geometry(tazc) <- "geometry2"
+```
+
+```{r}
+# display map of centroids and tazs
+leaflet() %>%
+  addTiles() %>%
+  addPolygons(data = taz %>% st_transform(4326), color = "red") %>%
+  addCircles(data = tazc %>% st_transform(4326))
+```
+
+```{r}
+# create taz-centroids.csv file
+tazcsv <- taz %>% as_tibble() %>%
+  mutate(taz = TAZ, 'coord-x' = X, 'coord-y' = Y) %>%
+  select(taz, 'coord-x', 'coord-y', area)
+#write_csv(tazcsv, "utah-taz-centers.csv")
+```
+
+## taz-parking.csv
+
+
+
+## tpcm-loc.csv
+
+```{r}
+# read in se data that has location variables per taz
+sedata <- read_csv("https://raw.githubusercontent.com/byu-transpolab/populationsim_wfrc/master/SE_Data.csv") %>%
+  mutate(TAZ = as.character(ZONE)) %>%
+  select(TAZ, TOTHH, RESACRE, CIACRE, TOTEMP)
+```
+
+```{r}
+# combine with taz geojson file and select values we need
+location <- taz %>% as_tibble() %>% 
+  left_join(sedata, by = "TAZ") %>%
+  mutate(
+    tazid = TAZ, 
+    tothh = as.numeric(TOTHH),
+    resacre = as.numeric(RESACRE),
+    ciacre = as.numeric(CIACRE),
+    totemp = as.numeric(TOTEMP),
+    cbd = as.numeric(CBD)
+  ) %>%
+  select(tazid, tothh, resacre, ciacre, totemp, cbd)
+
+# create tpcm-loc csv file
+#write_csv(location, "utah-tpcm-loc.csv")
+```
+
+
+
+## notes
+
+```{r}
+#tazcentroid <- st_centroid(taz, add = TRUE) %>%st_geometry() %>% as.data.frame() 
+#tazcentroid %<>% st_coordinates(tazcentroid$geometry)
+
+#slcarea <- st_transform(utah, CRS("+init=epsg:26912")) 
+# check to see if this is right way to convert to meters
+```
+
