@@ -235,12 +235,12 @@ class ModeChoiceTPCMCalculator(
     // get data pertainint to TAZ and then get data needed to compute ZDI
     val originData = locData.toArray.filter(_.tazid.equalsIgnoreCase(originTAZ))
       val (oHh, oRes, oCom, oEmp) =
-        (originData.head.households, originData.head.residential, originData.head.commercial, originData.head.employment)
+        (originData.head.tothh, originData.head.resacre, originData.head.ciacre, originData.head.totemp)
       val originZDI = Math.min(150, computeZDI(oHh, oRes, oCom, oEmp))
     // get data pertainint to TAZ and then get data needed to compute ZDI
     val destData = locData.toArray.filter(_.tazid.equalsIgnoreCase(destTAZ))
       val (dHh, dRes, dCom, dEmp) =
-        (destData.head.households, destData.head.residential, destData.head.commercial, destData.head.employment)
+        (destData.head.tothh, destData.head.resacre, destData.head.ciacre, destData.head.totemp)
       val destZDI = computeZDI(dHh, dRes, dCom, dEmp)
     // return both computed ZDIs
     (originZDI, destZDI)
@@ -311,24 +311,24 @@ object ModeChoiceTPCMCalculator {
   private def getProcessors: Array[CellProcessor] = {
     Array[CellProcessor](
     new NotNull, // tazid
-    new Optional(new ParseDouble()), // households
-    new Optional(new ParseDouble()), // residential
-    new Optional(new ParseDouble()), // commercial
-    new Optional(new ParseDouble()), // employment
+    new Optional(new ParseDouble()), // tothh
+    new Optional(new ParseDouble()), // resacre
+    new Optional(new ParseDouble()), // ciacre
+    new Optional(new ParseDouble()), // totemp
     new Optional(new ParseDouble()) // cbd
     )
   }
 
   class locationData(
     @BeanProperty var tazid: String = "",
-    @BeanProperty var households: Double = Double.NaN,
-    @BeanProperty var residential: Double = Double.NaN,
-    @BeanProperty var commercial: Double = Double.NaN,
-    @BeanProperty var employment: Double = Double.NaN,
+    @BeanProperty var tothh: Double = Double.NaN,
+    @BeanProperty var resacre: Double = Double.NaN,
+    @BeanProperty var ciacre: Double = Double.NaN,
+    @BeanProperty var totemp: Double = Double.NaN,
     @BeanProperty var cbd: Double = Double.NaN
   ) extends Cloneable {
     override def clone(): AnyRef =
-      new locationData(tazid, households, residential, commercial, employment, cbd)
+      new locationData(tazid, tothh, resacre, ciacre, totemp, cbd)
   }
 
 }
