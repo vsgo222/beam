@@ -34,12 +34,14 @@ pacman::p_load(
   namer,
   kableExtra
   )
-if(!require(packageSHA)) install_github("atchley-sha/R-packageSHA")
+install_github("atchley-sha/R-packageSHA")
 library(packageSHA)
 ```
 
 
 \RaggedRight
+
+\captionsetup[table]{labelformat=empty}
 
 
 LOADING THE DATA
@@ -113,6 +115,8 @@ personReplan <- 1060618  #rh replanning
 personModefail <- 1023248 #mode isn't realized by end of simulation
 ```
 
+
+\pagebreak
 
 ANALYSIS
 ============================
@@ -220,7 +224,7 @@ events %>%
   my_kbl(digits = 2, align = 'lrrr', caption = "Travel Times by Occupancy (min)")
 ```
 
-We can also look at the average time between reserving a ridehail and the next event, whether that's entering the ridehail or replanning and choosing a different mode (note that times are given in minutes):
+We can also look at the average time between reserving a ridehail and the next event, whether that's entering the ridehail or replanning and choosing a different mode:
 ```{r}
 rhTimes <- events %>%
   arrange(person, time) %>%
@@ -254,38 +258,48 @@ rhTimes %>%
 
 ### Travel Times
 
-We can also look at travel times (again in minutes):
+We can also look at travel times:
 ```{r}
 events %>%
   filter(!is.na(travelTime)) %>%
-  mutate(travelTime = travelTime / 60) %>% 
-  group_by(vehicleType) %>%
-  boxplot(travelTime ~ vehicleType,
-          data = .,
-          horizontal = T)
+  mutate(travelTime = (travelTime + 1) / 60) %>% 
+  ggplot(aes(travelTime, color = vehicleType)) +
+  geom_boxplot() +
+  scale_x_continuous(trans = "log", breaks = c(1,2,10,60,600,1200)) +
+  scale_y_continuous(breaks = NULL) +
+  labs(x = "Travel Time (minutes)",
+       color = "Vehicle Type")
 ```
 
-We may have some issues related to routing and/or since it seems people are willing to walk upwards of 20 hours. However, we can still look at subsets of the data:
+We may have some issues related to routing and/or parking since it seems people are willing to walk upwards of 20 hours. But for now, this gives us an idea. Also note that for fixed-route transit, the times given are between each stop, rather than for individuals' trips (since these times are from `PathTraversal` events), so they're not particularly meaningful. I am working on a way to figure this out. Below is the same plot, but with fixed-route transit removed:
 ```{r}
 events %>%
   filter(!is.na(travelTime),
-         !grepl("BODY", vehicleType)
+         vehicleType %in% c("CAR", "micro", "BODY-TYPE-DEFAULT")
          ) %>%
-  mutate(travelTime = travelTime / 60) %>% 
-  group_by(vehicleType) %>%
-  boxplot(travelTime ~ vehicleType,
-          data = .,
-          horizontal = T)
+  mutate(travelTime = (travelTime + 1) / 60) %>% 
+  ggplot(aes(travelTime, color = vehicleType)) +
+  geom_boxplot() +
+  scale_x_continuous(trans = "log", breaks = c(1,2,10,60,600,1200)) +
+  scale_y_continuous(breaks = NULL) +
+  labs(x = "Travel Time (minutes)",
+       color = "Vehicle Type")
+```
 
+There are also a significant number of travel times equal to 0, especially in the "walk" (`BODY-TYPE-DEFAULT`) mode. I am planning to spend some more time looking into this to see if these values are legitimate, but for now here is the same plot but only with non-zero travel times:
+```{r}
 events %>%
   filter(!is.na(travelTime),
-         !grepl("BODY", vehicleType),
-         travelTime < (3 * 3600)
-         ) %>%
-  mutate(travelTime = travelTime / 60) %>% 
-  group_by(vehicleType) %>%
-  boxplot(travelTime ~ vehicleType,
-          data = .,
-          horizontal = T)
+         vehicleType %in% c("CAR", "micro", "BODY-TYPE-DEFAULT"),
+         travelTime != 0
+        ) %>%
+  mutate(travelTime = (travelTime + 1) / 60) %>% 
+  ggplot(aes(travelTime, color = vehicleType)) +
+  geom_boxplot() +
+  scale_x_continuous(trans = "log", breaks = c(1,2,10,60,600,1200)) +
+  scale_y_continuous(breaks = NULL) +
+  labs(x = "Travel Time (minutes)",
+       color = "Vehicle Type")
 ```
+
 
