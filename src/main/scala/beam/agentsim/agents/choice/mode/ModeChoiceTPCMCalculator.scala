@@ -17,6 +17,8 @@ import org.supercsv.cellprocessor.{Optional, ParseDouble}
 import org.supercsv.cellprocessor.ift.CellProcessor
 import org.supercsv.io.CsvBeanReader
 import org.supercsv.prefs.CsvPreference
+import org.matsim.core.utils.geometry.CoordinateTransformation
+import org.matsim.core.utils.geometry.transformations.TransformationFactory
 
 import scala.beans.BeanProperty
 import scala.collection.mutable
@@ -31,6 +33,7 @@ class ModeChoiceTPCMCalculator(
   private val locData: Seq[locationData] = parseLocationData(
     beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.tpcmLoc.filePath
   )
+  val ct: CoordinateTransformation = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, "epsg:26912")
 
   def getTotalCost(
     mode: BeamMode,
@@ -208,14 +211,14 @@ class ModeChoiceTPCMCalculator(
   ): (String, String) = {
       val tazTreeMap: TAZTreeMap = taz.TAZTreeMap.getTazTreeMap(beamConfig.beam.agentsim.taz.filePath)
     // get origin TAZ
-      val originCoord = altAndIdx._1.legs(0).beamLeg.travelPath.startPoint.loc
+      val originCoord = ct.transform(altAndIdx._1.legs(0).beamLeg.travelPath.startPoint.loc) // convert coord to EPSG 26912
       val originTAZ = tazTreeMap.getTAZ(originCoord).tazId.toString
     // get destination TAZ
       val length = altAndIdx._1.legs.length
-      val destCoord = altAndIdx._1.legs(length-1).beamLeg.travelPath.endPoint.loc
+      val destCoord = ct.transform(altAndIdx._1.legs(length-1).beamLeg.travelPath.endPoint.loc) // convert coord to EPSG 26912
       val destTAZ = tazTreeMap.getTAZ(destCoord).tazId.toString
     // return both TAZ values
-      (originTAZ, destTAZ) // right now all originTAZ = destTAZ. Double check this. 
+      (originTAZ, destTAZ)
   }
 
   def getCBD(
@@ -247,7 +250,8 @@ class ModeChoiceTPCMCalculator(
   }
 
   private def computeZDI(hh: Double, res: Double, com: Double, emp: Double) = {
-    (hh / res * emp / com) / (hh / res + emp / com)
+    if (res == 0 | com == 0 | (hh + emp) == 0 ){ 0.0 }
+    else{ (hh / res * emp / com) / (hh / res + emp / com) }
   }
 
   def getIVTTMode(
