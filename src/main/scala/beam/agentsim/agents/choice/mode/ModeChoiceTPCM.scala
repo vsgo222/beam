@@ -26,17 +26,23 @@ import scala.collection.mutable.ListBuffer
   * ModeChoiceTPCM
   *
   * Data used by mode choice model:
-  * --cost
-  * --vehicleTime
-  * --waitTime
-  * --egressTime
-  * --transfer
-  * --walkDistance
-  * --bikeDistance
+  *  Path Variables:
+      *  transfer
+      *  vehicleTime, egressTime, waitTime
+      *  originCloseToTransit, originFarFromTransit, destCloseToTransit, destFarFromTransit
+      *  shortWalkDist, longWalkDist, shortBikeDist, longBikeDist, shortDrive
+  *  Person Variables:
+      *  cost
+      *  age1619, age010
+      *  ascNoAuto, ascAutoDeficient, ascAutoSufficient
+  *  Location Variables:
+      *  destZDI, originZDI
+      *  CBD
   *
-  * The TPCM model is based on the LCCM model so it can differentiate between Mandatory and Nonmandatory trips, but for this
-  * implementation only the Mandatory models is used...
-  * TODO pass TourType so correct model can be applied
+  * The TPCM model is based on the LCCM model, but instead of differentiating between Mandatory and Nonmandatory trips, it
+  * differentiates between tour purpose and type of variable (Path, Person, Location).
+  *
+  * TODO pass person attributes and tour purpose so correct model can be applied
   */
 class ModeChoiceTPCM(
   val beamServices: BeamServices,
@@ -56,9 +62,11 @@ class ModeChoiceTPCM(
     person: Option[Person] = None,
     tourPurpose : String
   ): Option[EmbodiedBeamTrip] = {
-    val age = attributesOfIndividual.age.get.asInstanceOf[Double]
-    val vot = person.get.getAttributes.getAttribute("vot").asInstanceOf[Double]
-    val autoWork = person.get.getAttributes.getAttribute("autoWorkRatio").toString
+    // get person attributes from the person object to determine utility coefficients later on
+      val age = attributesOfIndividual.age.get.asInstanceOf[Double]
+      val vot = person.get.getAttributes.getAttribute("vot").asInstanceOf[Double]
+      val autoWork = person.get.getAttributes.getAttribute("autoWorkRatio").toString
+    // pass tour alternatives, tour purpose, and person attributes to choice model
     choose(alternatives, tourPurpose, autoWork, age, vot)
   }
 
@@ -72,7 +80,7 @@ class ModeChoiceTPCM(
     if (alternatives.isEmpty) {
       None
     } else {
-      val bestInGroup = altsToBestInGroup(alternatives, Mandatory, vot, purpose)
+      val bestInGroup = altsToBestInGroup(alternatives, Mandatory)
       // Fill out the input data structures required by the MNL models
       val modeChoiceInputData = bestInGroup.map { alt =>
         val theParams = attributes(
@@ -121,6 +129,7 @@ class ModeChoiceTPCM(
     }
   }
 
+  // defines all attributes used by the Tour Purpose Mode Choice Model
   private def attributes(
     vehicleTime: Double,
     waitTime: Double,
@@ -173,9 +182,7 @@ class ModeChoiceTPCM(
 
   def altsToBestInGroup(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
-    tourType: TourType,
-    vot: Double,
-    purpose: String
+    tourType: TourType
   ): Vector[ModeChoiceData] = {
     //check to see if this is always 0
     val transitFareDefaults: Seq[Double] =
@@ -184,7 +191,6 @@ class ModeChoiceTPCM(
       alternatives.zipWithIndex.map { altAndIdx =>
         //get mode and total cost of current trip
           val mode = altAndIdx._1.tripClassifier
-          //val ivttMode = TPCMCalculator.getIVTTMode(mode, altAndIdx)
           val totalCost = TPCMCalculator.getTotalCost(mode, altAndIdx, transitFareDefaults)
         //TODO verify wait time is correct, look at transit and ride_hail in particular (is totalTravelTime correct?)
         // total travel time does not equal sum of all leg times (because it includes wait time?)
@@ -197,13 +203,14 @@ class ModeChoiceTPCM(
         //TODO verify number of transfers is correct
           val numTransfers = TPCMCalculator.getNumTransfers(mode, altAndIdx)
           assert(numTransfers >= 0)
-        //determine distance for walk or bike modes
+        //determine distance for walk or bike modes; also drive transit distance value
           val walkDistance = TPCMCalculator.getWalkDistance(mode, altAndIdx)
           val bikeDistance = TPCMCalculator.getBikeDistance(mode, altAndIdx)
           val dtDistance = TPCMCalculator.getDriveTransitDistance(mode, altAndIdx)
         //determine proximity to transit
           val originTransitProximity = TPCMCalculator.getOriginTransitProximity(mode, altAndIdx)
           val destTransitProximity = TPCMCalculator.getDestTransitProximity(mode, altAndIdx)
+        //determine origin and destination tazs, also whether it is a cbd
           val (originTAZ, destTAZ) = TPCMCalculator.getTAZs(altAndIdx, beamConfig)
           val (originZDI, destZDI) = TPCMCalculator.getZDIs(originTAZ, destTAZ)
           val destCBD = TPCMCalculator.getCBD(destTAZ)
@@ -266,7 +273,7 @@ class ModeChoiceTPCM(
     person: Person
   ): Double = {
     val vot = person.getAttributes.getAttribute("vot").asInstanceOf[Double]
-    val mcd = altsToBestInGroup(Vector(alternative), Mandatory, vot, tourPurpose).head
+    val mcd = altsToBestInGroup(Vector(alternative), Mandatory).head
     utilityOf(mcd, tourPurpose, person)
   }
 
