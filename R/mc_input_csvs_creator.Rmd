@@ -10,6 +10,8 @@ library(tidyverse)
 library(magrittr)
 library(sf)
 library(leaflet)
+library(R.utils)
+library(kableExtra)
 ```
 
 ## Introduction
@@ -17,7 +19,9 @@ In this RMarkdown, we create the taz-centroids.csv, taz-parking.csv, and tpcm-lo
 
 ## taz-centroids.csv
 
-```{r}
+Here we create the taz-centroids.csv file. This file is important for BEAM to be able to guesstimate what taz a specific agent is in. 
+
+```{r, message = FALSE, warning = FALSE}
 # read in all the tazs into correct coordinate system
 taz <- st_read("https://raw.githubusercontent.com/byu-transpolab/populationsim_wfrc/master/inputs/taz.geojson") %>% 
   st_transform("+init=epsg:26912") %>% ## correct crs???? CHECK THIS
@@ -35,7 +39,9 @@ tazc <- taz
 st_geometry(tazc) <- "geometry2"
 ```
 
-```{r}
+Below is a map displaying all the tazs along with their centroid.
+
+```{r, message = FALSE, warning = FALSE}
 # display map of centroids and tazs
 leaflet() %>%
   addTiles() %>%
@@ -43,28 +49,59 @@ leaflet() %>%
   addCircles(data = tazc %>% st_transform(4326))
 ```
 
-```{r}
+Finally, we create the csv file that is need in BEAM. The table is also shown below. 
+```{r, echo = FALSE}
 # create taz-centroids.csv file
 tazcsv <- taz %>% as_tibble() %>%
   mutate(taz = TAZ, 'coord-x' = X, 'coord-y' = Y) %>%
   select(taz, 'coord-x', 'coord-y', area)
 #write_csv(tazcsv, "utah-taz-centers.csv")
+kbl(head(tazcsv), booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+
 ```
 
 ## taz-parking.csv
 
+In addition, the taz-parking.csv file needs to be created so that BEAM doesn't assign a default value of $50 to each agent parking! Below, that table is created.
 
+```{r, message = FALSE, warning = FALSE}
+# create default taz-parking csv using temperary parking costs
+tazparking <- taz %>% as_tibble() %>%
+  select(TAZ,PRKCSTPERM,PRKCSTTEMP) %>%
+  mutate(
+    taz = TAZ,
+    parkingType = list(c("Public","Residential","Workplace")),
+    pricingModel = "Block",
+    chargingType = ifelse(taz %in% c("2870","2871","2872","2873"),"Level1(2.3|AC)", "NoCharger"),
+    numStalls = 1000000,
+    feeInCents = 100 * PRKCSTTEMP,
+    reservedFor = "Any") %>%
+  unnest(cols = c(parkingType)) %>%
+  select(-TAZ, -PRKCSTPERM, -PRKCSTTEMP)
+```
+
+A section of that table is displayed below. 
+
+```{r, echo = FALSE}
+# write taz-parking csv
+#write_csv(tazparking,"utah-taz-parking.csv")
+kbl(head(tazparking), booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+```
 
 ## tpcm-loc.csv
 
-```{r}
+Finally, I create the location data file per taz. This is useful for calculating the utility for the mode choice model. 
+
+```{r, message = FALSE, warning = FALSE}
 # read in se data that has location variables per taz
 sedata <- read_csv("https://raw.githubusercontent.com/byu-transpolab/populationsim_wfrc/master/SE_Data.csv") %>%
   mutate(TAZ = as.character(ZONE)) %>%
   select(TAZ, TOTHH, RESACRE, CIACRE, TOTEMP)
 ```
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 # combine with taz geojson file and select values we need
 location <- taz %>% as_tibble() %>% 
   left_join(sedata, by = "TAZ") %>%
@@ -82,15 +119,9 @@ location <- taz %>% as_tibble() %>%
 #write_csv(location, "utah-tpcm-loc.csv")
 ```
 
-
-
-## notes
-
-```{r}
-#tazcentroid <- st_centroid(taz, add = TRUE) %>%st_geometry() %>% as.data.frame() 
-#tazcentroid %<>% st_coordinates(tazcentroid$geometry)
-
-#slcarea <- st_transform(utah, CRS("+init=epsg:26912")) 
-# check to see if this is right way to convert to meters
+Below, a section of this table is displayed. 
+```{r, echo = FALSE}
+kbl(head(location), booktabs = T) %>%
+  kable_styling(latex_options = "striped")
 ```
-
+ 
