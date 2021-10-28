@@ -50,6 +50,7 @@ class ModeChoiceTPCMCalculator(
     }
   }
 
+  // not currently being used because I don't think it includes all travel time
   def getTotalTravelTime(
     altAndIdx: (EmbodiedBeamTrip, Int)
   ): Double = {
@@ -75,6 +76,7 @@ class ModeChoiceTPCMCalculator(
     (timeInSeconds / 60)
   }
 
+  // egress time overlaps with vehicle time, but I think that is okay
   def getEgressTime(
     mode: BeamMode,
     altAndIdx: (EmbodiedBeamTrip, Int)
@@ -97,6 +99,7 @@ class ModeChoiceTPCMCalculator(
     (timeInSeconds / 60)
   }
 
+  // wait time may be incorrect, but it is the best we got
   def getWaitTime(
     walkTime: Double,
     vehicleTime: Double,
@@ -157,6 +160,7 @@ class ModeChoiceTPCMCalculator(
     }
   }
 
+  // used to determine the amount of distance below 15 miles to a transit location if driving there
   def getDriveTransitDistance(
     mode: BeamMode,
     altAndIdx: (EmbodiedBeamTrip, Int)
@@ -175,28 +179,33 @@ class ModeChoiceTPCMCalculator(
     }
   }
 
+  // used to determine the distance from the origin location to transit
   def getOriginTransitProximity(
     mode: BeamMode,
     altAndIdx: (EmbodiedBeamTrip, Int)
   ): Double = {
     var proximity = 0.0
+      // only applicable to walk transit
     if (mode == WALK_TRANSIT) {
-      //easier way --> val proximity = altAndIdx._1.legs(0).beamLeg.travelPath.distanceInM
       breakable{ for (n <- 0 to (altAndIdx._1.legs.length - 1)){
+        // add distance of all legs between origin and first transit spot
         proximity = proximity + altAndIdx._1.legs(n).beamLeg.travelPath.distanceInM
         if(altAndIdx._1.legs(n+1).beamLeg.mode.value != "walk") break } }
       proximity * 0.000621371 //convert from meters to miles
     } else {0.0}
   }
 
+  // used to determine the distance from the last transit stop to the destination
   def getDestTransitProximity(
     mode: BeamMode,
     altAndIdx: (EmbodiedBeamTrip, Int)
   ): Double = {
     var proximity = 0.0
     mode match {
+        // only do stuff if a transit leg
       case TRANSIT | WALK_TRANSIT | DRIVE_TRANSIT | RIDE_HAIL_TRANSIT | BIKE_TRANSIT =>
         breakable{ for (n <- 0 to (altAndIdx._1.legs.length - 1)){
+          // add distance of all legs between destination and last transit spot
           proximity = proximity + altAndIdx._1.legs.reverse(n).beamLeg.travelPath.distanceInM
           if(transitModes.contains(altAndIdx._1.legs.reverse(n+1).beamLeg.mode)) break } }
           proximity * 0.000621371 //convert from meters to miles
@@ -235,12 +244,12 @@ class ModeChoiceTPCMCalculator(
     originTAZ: String,
     destTAZ: String
   ): (Double, Double) = {
-    // get data pertainint to TAZ and then get data needed to compute ZDI
+    // get data pertaining to TAZ and then get data needed to compute ZDI
     val originData = locData.toArray.filter(_.tazid.equalsIgnoreCase(originTAZ))
       val (oHh, oRes, oCom, oEmp) =
         (originData.head.tothh, originData.head.resacre, originData.head.ciacre, originData.head.totemp)
       val originZDI = Math.min(150, computeZDI(oHh, oRes, oCom, oEmp))
-    // get data pertainint to TAZ and then get data needed to compute ZDI
+    // get data pertaining to TAZ and then get data needed to compute ZDI
     val destData = locData.toArray.filter(_.tazid.equalsIgnoreCase(destTAZ))
       val (dHh, dRes, dCom, dEmp) =
         (destData.head.tothh, destData.head.resacre, destData.head.ciacre, destData.head.totemp)
@@ -249,11 +258,14 @@ class ModeChoiceTPCMCalculator(
     (originZDI, destZDI)
   }
 
+  // used to determine the zonal density index of a taz
   private def computeZDI(hh: Double, res: Double, com: Double, emp: Double) = {
     if (res == 0 | com == 0 | (hh + emp) == 0 ){ 0.0 }
     else{ (hh / res * emp / com) / (hh / res + emp / com) }
   }
 
+  // used to determine the transit mode
+  // currently not in use because ivtt dependent on mode type is more complex than needed
   def getIVTTMode(
     mode: BeamMode,
     altAndIdx: (EmbodiedBeamTrip, Int)
@@ -287,6 +299,7 @@ class ModeChoiceTPCMCalculator(
     }
   }
 
+  // this is used to parse through the taz location csv input file
   private def parseLocationData(locationDataFileName: String): Seq[locationData] = {
     val beanReader = new CsvBeanReader(
       IOUtils.getBufferedReader(locationDataFileName),

@@ -29,7 +29,7 @@ object UtilityFunctionOperation {
       case ("numbikes", _)       => Multiplier(value)
       case ("numcars", _)        => Multiplier(value)
       case ("surplus", _)        => Multiplier(value)
-      case ("cost", _)           => Multiplier(value)
+      case ("cost", _)           => Multiplier(value) // also used in TPCM
       case ("time", _)           => Multiplier(value)
 
       // for TPCM use
