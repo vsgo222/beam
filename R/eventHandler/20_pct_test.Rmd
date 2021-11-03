@@ -32,7 +32,8 @@ pacman::p_load(
   magrittr,
   devtools,
   namer,
-  kableExtra
+  kableExtra,
+  data.table
   )
 install_github("atchley-sha/R-packageSHA")
 library(packageSHA)
@@ -54,18 +55,12 @@ eventsCSV = "R/eventHandler/test/20_pct_test.csv"
 
 I then loaded the .csv file, Unfortunately, `read_csv` didn't get all the data types right, so I had to set them manually:
 ```{r}
-coltypes <- paste0("cdcdcccddd",
-                   "cddddddddc",
-                   "dcccdddddc",
-                   "cdcccdldcc",
-                   "ccccddcddc",
-                   "cccc"
-                   )
+eventCols <- read_csv("R/eventHandler/eventCols.csv", col_names = F)
+coltypes <- set_names(pull(eventCols, 2), pull(eventCols ,1))
 
 fullEvents <- read_csv(eventsCSV, col_types = coltypes)
 ```
 
-**NOTE** I am in the process of creating a list with each column name and type in case the column order changes or different columns are written. It is not yet finished however.
 
 Then I selected a few columns of interest, and added a couple more:
 ```{r}
@@ -91,7 +86,9 @@ events %<>% mutate(
   travelTime = arrivalTime - departureTime,
   avgSpeed = length / travelTime
 )
-events %<>% arrange(person, time)
+events %<>%
+  {as.data.table(.)[order(person,time)]} %>%
+  as_tibble()
 ```
 
 **TODO:** I will work on code to read in various information from the rhFleet file like shift duration, etc. That info can be important for stats like utilization (passengers/hour/vehicle). For now, I just took the actual values:
@@ -105,14 +102,6 @@ I also loaded some stats from UTA On Demand's monthly reports (the data is avail
 UTAOD <- read_csv("R/eventHandler/test/UTAODpilotinfo.csv")
 UTAOD %>%
   my_kbl(digits = 3, align = 'lrrr')
-```
-
-As a side note, I stored some person IDs that provide useful demonstrations:
-```{r}
-personRH <- 1067049  #normal ridehail
-personRH2 <- 730554   #rh2
-personReplan <- 1060618  #rh replanning
-personModefail <- 1023248 #mode isn't realized by end of simulation
 ```
 
 
@@ -178,13 +167,7 @@ events %>%
 modeComparison$replans %>% sum()
 ```
 
-As it turns out, some people have their day "cut short": they choose a mode but don't arrive at their next event by the end of the simulation:
-```{r}
-events %>%
-  filter(person == personModefail) %>%
-  tail(n = 10) %>%
-  select(1:5)
-```
+As it turns out, some people have their day "cut short": they choose a mode but don't arrive at their next event by the end of the simulation.
 
 
 ### Ridehail Stats
@@ -216,6 +199,7 @@ events %>%
   select(numPassengers, travelTime) %>%
   group_by(numPassengers) %>%
   summarise(
+    n = n(),
     mean = mean(travelTime) / 60,
     median = median(travelTime) /60,
     min = min(travelTime) / 60,
