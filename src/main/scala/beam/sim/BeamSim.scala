@@ -286,6 +286,11 @@ class BeamSim @Inject() (
     VehiclesCsvWriter(beamServices).toCsv(scenario, controllerIO.getOutputFilename("vehicles.csv.gz"))
     HouseholdsCsvWriter.toCsv(scenario, controllerIO.getOutputFilename("households.csv.gz"))
     NetworkCsvWriter.toCsv(scenario, controllerIO.getOutputFilename("network.csv.gz"))
+    //Also write uncompressed files:
+    PopulationCsvWriter.toCsv(scenario, controllerIO.getOutputFilename("population.csv"))
+    VehiclesCsvWriter(beamServices).toCsv(scenario, controllerIO.getOutputFilename("vehicles.csv"))
+    HouseholdsCsvWriter.toCsv(scenario, controllerIO.getOutputFilename("households.csv"))
+    NetworkCsvWriter.toCsv(scenario, controllerIO.getOutputFilename("network.csv"))
 
     dumpMatsimStuffAtTheBeginningOfSimulation()
 

@@ -1,0 +1,289 @@
+---
+title: "BEAM Event Handler"
+author: "Hayden Atchley"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+geometry: margin=1in
+output:
+  html_document:
+    toc: false
+  pdf_document:
+    latex_engine: lualatex
+    includes:
+      in_header: "preamble.tex"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+```{r load_packages, include=FALSE}
+if(!require(pacman)) install.packages("pacman")
+pacman::p_load(
+  pacman,
+  tidyverse,
+  flextable,
+  knitr,
+  magrittr,
+  devtools,
+  namer,
+  kableExtra,
+  data.table
+  )
+install_github("atchley-sha/R-packageSHA")
+library(packageSHA)
+```
+
+
+\RaggedRight
+
+\captionsetup[table]{labelformat=empty}
+
+
+LOADING THE DATA
+================================
+
+BEAM can be configured to output an `events.csv` file for each iteration. This is a 20% scenario that I'm using for further testing:
+```{r}
+eventsCSV = "R/eventHandler/test/20_pct_test.csv"
+```
+
+I then loaded the .csv file, Unfortunately, `read_csv` didn't get all the data types right, so I had to set them manually:
+```{r}
+eventCols <- read_csv("R/eventHandler/eventCols.csv", col_names = F)
+coltypes <- set_names(pull(eventCols, 2), pull(eventCols ,1))
+
+fullEvents <- read_csv(eventsCSV, col_types = coltypes)
+```
+
+
+Then I selected a few columns of interest, and added a couple more:
+```{r}
+eventCols <- c("person",
+               "time",
+               "type",
+               "mode",
+               "legMode",
+               "vehicleType",
+               "vehicle",
+               "arrivalTime",
+               "departureTime",
+               "departTime",
+               "length",
+               "numPassengers",
+               "actType",
+               "personalVehicleAvailable"
+               )
+fullEvents %<>% relocate(all_of(eventCols))
+
+events <- fullEvents %>% select(all_of(eventCols))
+events %<>% mutate(
+  travelTime = arrivalTime - departureTime,
+  avgSpeed = length / travelTime
+)
+events %<>%
+  {as.data.table(.)[order(person,time)]} %>%
+  as_tibble()
+```
+
+**TODO:** I will work on code to read in various information from the rhFleet file like shift duration, etc. That info can be important for stats like utilization (passengers/hour/vehicle). For now, I just took the actual values:
+```{r}
+rhHours <- 80000/3600 #add code to read from the file
+rhNum <- 12
+```
+
+I also loaded some stats from UTA On Demand's monthly reports (the data is available in quarterly reports, I created the csv):
+```{r}
+UTAOD <- read_csv("R/eventHandler/test/UTAODpilotinfo.csv")
+UTAOD %>%
+  my_kbl(digits = 3, align = 'lrrr')
+```
+
+
+\pagebreak
+
+ANALYSIS
+============================
+
+### Event Types
+
+A good place to start is with the event types:
+```{r}
+countEvents <- events %>%
+  group_by(type) %>%
+  summarize(n = n())
+countEvents %>%
+  my_kbl(align = 'lr')
+```
+
+Many of these are self-explanatory, but here is what I've gathered so far:
+
+- `actstart`/`actend` list the person, time, and type of event
+- `arrival`/`departure` list the person, time, and "legmode"
+  * `legmode` according to the BEAM documentation is the overall trip mode, either realized (`arrival`) or to be attempted (`departure`)
+- `PersonEntersVehicle`/`PersonLeavesVehicle` lists the person, vehicle, and time
+- `ReserveRideHail` just lists the person and time
+- `ModeChoice` lists the person, time, mode desired, length (distance) of intended trip, and if a personal vehicle was available when the mode choice was made
+- `Replanning` just lists the person and time; I believe this is triggered when the original mode choice didn't work for whatever reason, so the agent chooses a different mode (in a subsequent `ModeChoice` event)
+- `PathTraversal` is an event for vehicles rather than for agents. It lists time, mode, vehicle type, vehicle, departure time, arrival time, length (distance), and number of passengers. It also lists comma-separated IDs of the links traversed. It does not list the person IDs of the passengers, but may be useful for stats like average trip time. However, these events relate to *sub-legs* of the trip, rather than the overall trip. I believe when it comes to transit modes there is one event per stop, based on the travel time of each such event.
+
+We can see the mode choice distribution, as well as the legmode of `arrival` events:
+```{r}
+modechoice <- events %>%
+  filter(type == "ModeChoice") %>%
+  group_by(mode) %>%
+  summarize(n = n())
+
+legMode <- events %>%
+  filter(!is.na(legMode),
+         type == "arrival") %>%
+  group_by(legMode) %>%
+  summarise(n = n())
+
+modeComparison <- left_join(modechoice,
+          legMode,
+          by = c("mode" = "legMode")
+          ) %>%
+  `colnames<-`(c("mode", "modechoice", "legmode")) %>%
+  mutate(
+    replans = modechoice - legmode,
+    replan_pct = replans / modechoice
+  )
+modeComparison %>%
+  my_kbl(digits = 3, align = 'lrrrr')
+```
+
+Interestingly, the number of `Replanning` events is lower than the sum of the `replans` column above:
+```{r}
+events %>%
+  filter(type == "Replanning") %>%
+  nrow()
+
+modeComparison$replans %>% sum()
+```
+
+As it turns out, some people have their day "cut short": they choose a mode but don't arrive at their next event by the end of the simulation.
+
+
+### Ridehail Stats
+
+We can look at some of the stats pertaining to ridehail vehicles:
+```{r}
+rhPassengers <- events %>%
+  filter(type == "PathTraversal",
+         vehicleType == "micro"
+         ) %>%
+  select(numPassengers) %>%
+  table() %>%
+  as_tibble() %>%
+  `colnames<-`(c("numPassengers", "n")) %>%
+  mutate(pct = n / sum(n))
+rhPassengers %>%
+  my_kbl(digits = 2, align = 'lrr', caption = "Trips by Occupancy")
+
+totRiders <- sum(as.integer(rhPassengers$numPassengers) * rhPassengers$n)
+totRiders  
+
+utilization <- totRiders / rhHours / rhNum
+utilization
+
+events %>%
+  filter(type == "PathTraversal",
+         vehicleType == "micro"
+         ) %>%
+  select(numPassengers, travelTime) %>%
+  group_by(numPassengers) %>%
+  summarise(
+    n = n(),
+    mean = mean(travelTime) / 60,
+    median = median(travelTime) /60,
+    min = min(travelTime) / 60,
+    max = max(travelTime) / 60
+  ) %>%
+  my_kbl(digits = 2, align = 'lrrr', caption = "Travel Times by Occupancy (min)")
+```
+
+We can also look at the average time between reserving a ridehail and the next event, whether that's entering the ridehail or replanning and choosing a different mode:
+```{r}
+rhTimes <- events %>%
+  arrange(person, time) %>%
+  mutate(
+    rhReserveTime = ifelse(
+      type == "ReserveRideHail" & person == lead(person),
+      lead(time) - time,
+      NA
+      ),
+    rhReserveOutcome = ifelse(
+      type == "ReserveRideHail" & person == lead(person),
+      lead(type),
+      NA
+      )
+  ) %>%
+  filter(!is.na(rhReserveTime))
+
+rhTimes %>%
+  group_by(rhReserveOutcome) %>%
+  summarise(
+    mean = mean(rhReserveTime) / 60,
+    median = median(rhReserveTime) /60,
+    min = min(rhReserveTime) / 60,
+    max = max(rhReserveTime) / 60
+    ) %>%
+  my_kbl(digits = 2, caption = "RideHail Reservation Outcomes", align = 'lrrr') %>%
+  add_header_above(c(" " = 1, "Time until outcome (min)" = 4))
+```
+
+
+
+### Travel Times
+
+We can also look at travel times:
+```{r}
+events %>%
+  filter(!is.na(travelTime)) %>%
+  mutate(travelTime = (travelTime + 1) / 60) %>% 
+  ggplot(aes(travelTime, color = vehicleType)) +
+  geom_boxplot() +
+  scale_x_continuous(trans = "log", breaks = c(1,2,10,60,600,1200)) +
+  scale_y_continuous(breaks = NULL) +
+  labs(x = "Travel Time (minutes)",
+       color = "Vehicle Type")
+```
+
+We may have some issues related to routing and/or parking since it seems people are willing to walk upwards of 20 hours. But for now, this gives us an idea. Also note that for fixed-route transit, the times given are between each stop, rather than for individuals' trips (since these times are from `PathTraversal` events), so they're not particularly meaningful. I am working on a way to figure this out. Below is the same plot, but with fixed-route transit removed:
+```{r}
+events %>%
+  filter(!is.na(travelTime),
+         vehicleType %in% c("CAR", "micro", "BODY-TYPE-DEFAULT")
+         ) %>%
+  mutate(travelTime = (travelTime + 1) / 60) %>% 
+  ggplot(aes(travelTime, color = vehicleType)) +
+  geom_boxplot() +
+  scale_x_continuous(trans = "log", breaks = c(1,2,10,60,600,1200)) +
+  scale_y_continuous(breaks = NULL) +
+  labs(x = "Travel Time (minutes)",
+       color = "Vehicle Type")
+```
+
+There are also a significant number of travel times equal to 0, especially in the "walk" (`BODY-TYPE-DEFAULT`) mode. I am planning to spend some more time looking into this to see if these values are legitimate, but for now here is the same plot but only with non-zero travel times:
+```{r}
+events %>%
+  filter(!is.na(travelTime),
+         vehicleType %in% c("CAR", "micro", "BODY-TYPE-DEFAULT"),
+         travelTime != 0
+        ) %>%
+  mutate(travelTime = (travelTime + 1) / 60) %>% 
+  ggplot(aes(travelTime, color = vehicleType)) +
+  geom_boxplot() +
+  scale_x_continuous(trans = "log", breaks = c(1,2,10,60,600,1200)) +
+  scale_y_continuous(breaks = NULL) +
+  labs(x = "Travel Time (minutes)",
+       color = "Vehicle Type")
+```
+
+
