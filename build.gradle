@@ -371,6 +371,10 @@ mainClassName = 'beam.sim.RunBeam'
 //mainClassName = 'beam.analysis.tscore.WavHandlersRunner'
 
 shadowJar{
+    archiveBaseName.set('beam-2021-11-06')
+    archiveClassifier.set('')
+    archiveVersion.set('')
+
     zip64 true
     mergeServiceFiles('reference.conf')
     manifest{
