@@ -1371,6 +1371,11 @@ trait ChoosesMode {
           )
       }
 
+      var tourPurpose = "None"
+      if ("ModeChoiceTourPurpose".equals(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
+        tourPurpose = getTourPurpose(data.personData)
+      }
+
       eventsManager.processEvent(
         new ModeChoiceEvent(
           tick,
@@ -1386,6 +1391,7 @@ trait ChoosesMode {
           data.availablePersonalStreetVehicles.nonEmpty,
           chosenTrip.legs.view.map(_.beamLeg.travelPath.distanceInM).sum,
           _experiencedBeamPlan.tourIndexOfElement(nextActivity(data.personData).get),
+          tourPurpose,
           chosenTrip
         )
       )
