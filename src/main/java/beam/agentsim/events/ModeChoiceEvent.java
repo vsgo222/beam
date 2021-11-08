@@ -16,12 +16,14 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
     public final static String ATTRIBUTE_MODE = "mode";
     public final static String ATTRIBUTE_CURRENT_TOUR_MODE = "currentTourMode";
     public final static String ATTRIBUTE_PERSON_ID = "person";
+    public final static String ATTRIBUTE_INCOME = "income";
     //    public final static String VERBOSE_ATTRIBUTE_EXP_MAX_UTILITY = "expectedMaximumUtility";
 //    public final static String VERBOSE_ATTRIBUTE_LOCATION = "location";
     public final static String ATTRIBUTE_EXP_MAX_UTILITY = "expectedMaximumUtility";
     public final static String ATTRIBUTE_AVAILABLE_ALTERNATIVES = "availableAlternatives";
     public final static String ATTRIBUTE_LOCATION = "location";
     public final static String ATTRIBUTE_PERSONAL_VEH_AVAILABLE = "personalVehicleAvailable";
+    public final static String ATTRIBUTE_VEH_OWNERSHIP = "vehicleOwnership";
     public final static String ATTRIBUTE_TRIP_LENGTH = "length";
     public final static String ATTRIBUTE_TOUR_INDEX = "tourIndex";
     public final static String ATTRIBUTE_TOUR_PURPOSE = "tourPurpose";
@@ -29,26 +31,30 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
     public final Id<Person> personId;
     public final String mode;
     public final String currentTourMode;
+    public final Double income;
     public final String expectedMaxUtility;
     public final String location;
     public final String availableAlternatives;
     public final String vehAvailable;
+    public final String vehOwnership;
     public final Double length;
     public final Integer tourIndex;
     public final String tourPurpose;
 
     public ModeChoiceEvent(double time, Id<Person> personId, String chosenMode, String currentTourMode, Double expectedMaxUtility,
-                           String linkId, String availableAlternatives, Boolean vehAvailable, Double length,
-                           Integer tourIndex, String tourPurpose, EmbodiedBeamTrip chosenTrip) {
+                           Double income, String linkId, String availableAlternatives, Boolean vehAvailable, String vehOwnership,
+                           Double length, Integer tourIndex, String tourPurpose, EmbodiedBeamTrip chosenTrip) {
         super(time);
 
         this.personId = personId;
         this.mode = chosenMode;
         this.currentTourMode = currentTourMode;
         this.expectedMaxUtility = expectedMaxUtility.toString();
+        this.income = income;
         this.location = linkId;
         this.availableAlternatives = availableAlternatives;
         this.vehAvailable = vehAvailable == null ? "" : vehAvailable.toString();
+        this.vehOwnership = vehOwnership;
         this.length = length;
         this.tourIndex = tourIndex;
         this.tourPurpose = tourPurpose;
@@ -63,9 +69,11 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
                     attr.get(ATTRIBUTE_MODE),
                     attr.get(ATTRIBUTE_CURRENT_TOUR_MODE),
                     Double.parseDouble(attr.get(ATTRIBUTE_EXP_MAX_UTILITY)),
+                    Double.parseDouble(attr.get(ATTRIBUTE_INCOME)),
                     attr.get(ATTRIBUTE_LOCATION),
                     attr.get(ATTRIBUTE_AVAILABLE_ALTERNATIVES),
                     Boolean.parseBoolean(attr.get(ATTRIBUTE_PERSONAL_VEH_AVAILABLE)),
+                    attr.get(ATTRIBUTE_VEH_OWNERSHIP),
                     Double.parseDouble(attr.get(ATTRIBUTE_TRIP_LENGTH)),
                     Integer.parseInt(attr.get(ATTRIBUTE_TOUR_INDEX)),
                     attr.get(ATTRIBUTE_TOUR_PURPOSE),
@@ -83,9 +91,11 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
         attr.put(ATTRIBUTE_MODE, mode);
         attr.put(ATTRIBUTE_CURRENT_TOUR_MODE, currentTourMode);
         attr.put(ATTRIBUTE_EXP_MAX_UTILITY, expectedMaxUtility);
+        attr.put(ATTRIBUTE_INCOME, income.toString());
         attr.put(ATTRIBUTE_LOCATION, location);
         attr.put(ATTRIBUTE_AVAILABLE_ALTERNATIVES, availableAlternatives);
         attr.put(ATTRIBUTE_PERSONAL_VEH_AVAILABLE, vehAvailable);
+        attr.put(ATTRIBUTE_VEH_OWNERSHIP, vehOwnership);
         attr.put(ATTRIBUTE_TRIP_LENGTH, length.toString());
         attr.put(ATTRIBUTE_TOUR_INDEX, tourIndex.toString());
         attr.put(ATTRIBUTE_TOUR_PURPOSE, tourPurpose);

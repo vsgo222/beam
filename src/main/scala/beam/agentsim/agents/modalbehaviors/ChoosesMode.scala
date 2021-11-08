@@ -1397,9 +1397,11 @@ trait ChoosesMode {
           )
       }
 
-      var tourPurpose = "None"
+      var (tourPurpose, income, vehOwnership) = ("None", 0.0, "None")
       if ("ModeChoiceTourPurpose".equals(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
         tourPurpose = getTourPurpose(data.personData)
+        income = attributes.income.get
+        vehOwnership = matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString
       }
 
       eventsManager.processEvent(
@@ -1409,12 +1411,14 @@ trait ChoosesMode {
           chosenTrip.tripClassifier.value,
           data.personData.currentTourMode.map(_.value).getOrElse(""),
           data.expectedMaxUtilityOfLatestChoice.getOrElse[Double](Double.NaN),
+          income,
           _experiencedBeamPlan
             .activities(data.personData.currentActivityIndex)
             .getLinkId
             .toString,
           data.availableAlternatives.get,
           data.availablePersonalStreetVehicles.nonEmpty,
+          vehOwnership,
           chosenTrip.legs.view.map(_.beamLeg.travelPath.distanceInM).sum,
           _experiencedBeamPlan.tourIndexOfElement(nextActivity(data.personData).get),
           tourPurpose,
