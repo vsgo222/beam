@@ -128,7 +128,8 @@ object ParkingManagerBenchmark extends StrictLogging {
         parkingStallCountScalingFactor,
         parkingCostScalingFactor,
         seed,
-        beamConfig
+        beamConfig,
+        None
       )
       val searchTree = ParkingZoneFileUtils.createZoneSearchTree(zones.values.toSeq)
       logger.info(s"Number of zones: ${zones.size}")

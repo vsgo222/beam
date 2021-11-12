@@ -40,8 +40,14 @@ class ErrorListener() extends Actor with ActorLogging {
           d.sender ! CompletionNotice(triggerId)
         // Allow RHM to continue
         case interrupt: Interrupt =>
-          log.error(s"Received $interrupt from ${d.sender}")
-          d.sender ! InterruptedWhileOffline
+          log.error(s"Received $interrupt from ${d.sender} supposed to go to ${d.recipient}")
+
+          d.sender ! InterruptedWhileOffline(
+            interrupt.interruptId,
+            interrupt.vehicleId,
+            interrupt.tick,
+            interrupt.triggerId
+          )
         case m: RoutingRequest =>
           log.debug(
             "Retrying {} via {} tell {} using {}",

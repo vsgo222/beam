@@ -402,7 +402,15 @@ class RideHailModifyPassengerScheduleManager(
   ): Unit = {
     //    log.debug("sendInterruptMessage:" + passengerScheduleStatus)
     passengerScheduleStatus.rideHailAgent
-      .tell(Interrupt(passengerScheduleStatus.interruptId, passengerScheduleStatus.tick, triggerId), rideHailManagerRef)
+      .tell(
+        Interrupt(
+          passengerScheduleStatus.interruptId,
+          passengerScheduleStatus.tick,
+          triggerId,
+          passengerScheduleStatus.vehicleId
+        ),
+        rideHailManagerRef
+      )
   }
 
   def doesPendingReservationContainPassSchedule(
@@ -417,7 +425,8 @@ class RideHailModifyPassengerScheduleManager(
   }
 
   def isVehicleNeitherRepositioningNorProcessingReservation(vehicleId: Id[Vehicle]): Boolean = {
-    // TODO: FIXME `vehicleIdToModifyPassengerScheduleStatus` is broken, so for now we return `true`, but fixme, please!
+    // TODO: https://github.com/LBNL-UCB-STI/beam/issues/3296
+    log.warning(s"`vehicleIdToModifyPassengerScheduleStatus` is broken and variable vehicleId($vehicleId) is not used")
     // !vehicleIdToModifyPassengerScheduleStatus.contains(vehicleId)
     true
   }

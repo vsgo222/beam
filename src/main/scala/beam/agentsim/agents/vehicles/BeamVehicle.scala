@@ -6,7 +6,7 @@ import beam.agentsim.agents.vehicles.BeamVehicle.{BeamVehicleState, FuelConsumed
 import beam.agentsim.agents.vehicles.ConsumptionRateFilterStore.{Primary, Secondary}
 import beam.agentsim.agents.vehicles.EnergyEconomyAttributes.Powertrain
 import beam.agentsim.agents.vehicles.FuelType.{Electricity, Gasoline}
-import beam.agentsim.agents.vehicles.VehicleCategory.{Bike, Body, Car, HeavyDutyTruck, LightDutyTruck}
+import beam.agentsim.agents.vehicles.VehicleCategory._
 import beam.agentsim.agents.vehicles.VehicleProtocol.StreetVehicle
 import beam.agentsim.events.SpaceTime
 import beam.agentsim.infrastructure.ParkingStall
@@ -48,7 +48,7 @@ class BeamVehicle(
   val id: Id[BeamVehicle],
   val powerTrain: Powertrain,
   val beamVehicleType: BeamVehicleType,
-  val vehicleManagerId: Id[VehicleManager] = ParkingZone.GlobalReservedFor,
+  val vehicleManagerId: AtomicReference[Id[VehicleManager]] = new AtomicReference(VehicleManager.AnyManager.managerId),
   val randomSeed: Int = 0
 ) extends ExponentialLazyLogging {
   private val manager: AtomicReference[Option[ActorRef]] = new AtomicReference(None)
@@ -98,6 +98,9 @@ class BeamVehicle(
   private var chargerConnectedTick: Option[Int] = None
   private var chargerConnectedPrimaryFuel: Option[Double] = None
 
+  private var waitingToChargeInternal: Boolean = false
+  private var waitingToChargeTick: Option[Int] = None
+
   /**
     * Called by the driver.
     */
@@ -144,6 +147,23 @@ class BeamVehicle(
     }
   }
 
+  def waitingToCharge(startTick: Int): Unit = {
+    if (beamVehicleType.primaryFuelType == Electricity || beamVehicleType.secondaryFuelType.contains(Electricity)) {
+      chargerRWLock.write {
+        waitingToChargeInternal = true
+        waitingToChargeTick = Some(startTick)
+        connectedToCharger = false
+        chargerConnectedTick = None
+        chargerConnectedPrimaryFuel = None
+      }
+    } else {
+      logger.warn(
+        "Trying to connect a non BEV/PHEV to a electricity charging station. " +
+        "This will cause an explosion. Ignoring!"
+      )
+    }
+  }
+
   /**
     * @param startTick
     */
@@ -153,10 +173,13 @@ class BeamVehicle(
         connectedToCharger = true
         chargerConnectedTick = Some(startTick)
         chargerConnectedPrimaryFuel = Some(primaryFuelLevelInJoules)
+        waitingToChargeInternal = false
+        waitingToChargeTick = None
       }
     } else
       logger.warn(
-        "Trying to connect a non BEV/PHEV to a electricity charging station. This will cause an explosion. Ignoring!"
+        "Trying to connect a non BEV/PHEV to a electricity charging station. " +
+        "This will cause an explosion. Ignoring!"
       )
   }
 
@@ -165,6 +188,8 @@ class BeamVehicle(
       connectedToCharger = false
       chargerConnectedTick = None
       chargerConnectedPrimaryFuel = None
+      waitingToChargeInternal = false
+      waitingToChargeTick = None
     }
   }
 

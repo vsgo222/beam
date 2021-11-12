@@ -1,7 +1,8 @@
 package beam.agentsim.infrastructure
 
-import beam.agentsim.agents.ridehail.DefaultRideHailDepotParkingManager
+import beam.agentsim.agents.ridehail.{DefaultRideHailDepotParkingManager, RideHailDepotParkingManager}
 import beam.agentsim.agents.vehicles.VehicleManager
+import beam.agentsim.agents.vehicles.VehicleManager.ReservedFor
 import beam.agentsim.infrastructure.parking.ParkingZoneFileUtils.ParkingLoadingAccumulator
 import beam.agentsim.infrastructure.parking._
 import beam.agentsim.infrastructure.taz.TAZ
@@ -31,7 +32,7 @@ object InfrastructureUtils extends LazyLogging {
   def buildParkingAndChargingNetworks(
     beamServices: BeamServices,
     envelopeInUTM: Envelope
-  ): (ParkingNetwork[_], Map[Id[VehicleManager], ChargingNetwork[_]]) = {
+  ): (ParkingNetwork[_], ChargingNetwork[_], RideHailDepotParkingManager[_]) = {
     implicit val beamScenario: BeamScenario = beamServices.beamScenario
     implicit val geo: GeoUtils = beamServices.geo
     implicit val boundingBox: Envelope = envelopeInUTM
@@ -40,18 +41,18 @@ object InfrastructureUtils extends LazyLogging {
 
     val mainParkingFile: String = beamConfig.beam.agentsim.taz.parkingFilePath
     // ADD HERE ALL PARKING FILES THAT BELONGS TO VEHICLE MANAGERS
-    val vehicleManagersParkingFiles: IndexedSeq[(String, Id[VehicleManager], Seq[ParkingType])] = {
+    val vehicleManagersParkingFiles: IndexedSeq[(String, ReservedFor, Seq[ParkingType])] = {
       // SHARED FLEET
       val sharedFleetsParkingFiles =
         beamConfig.beam.agentsim.agents.vehicles.sharedFleets
           .map(Fleets.lookup)
-          .map(x => (x.parkingFilePath, x.vehicleManagerId, Seq(ParkingType.Public)))
+          .map(x => (x.parkingFilePath, VehicleManager.getReservedFor(x.vehicleManagerId).get, Seq(ParkingType.Public)))
       // FREIGHT
       val freightParkingFile = List(
         (
           beamConfig.beam.agentsim.agents.freight.carrierParkingFilePath.getOrElse(""),
           VehicleManager
-            .createOrGetIdUsingUnique(beamConfig.beam.agentsim.agents.freight.name, VehicleManager.BEAMFreight),
+            .createOrGetReservedFor(beamConfig.beam.agentsim.agents.freight.name, VehicleManager.TypeEnum.Freight),
           Seq(ParkingType.Workplace)
         )
       )
@@ -60,7 +61,7 @@ object InfrastructureUtils extends LazyLogging {
         (
           beamConfig.beam.agentsim.agents.rideHail.initialization.parking.filePath,
           VehicleManager
-            .createOrGetIdUsingUnique(beamConfig.beam.agentsim.agents.rideHail.name, VehicleManager.BEAMRideHail),
+            .createOrGetReservedFor(beamConfig.beam.agentsim.agents.rideHail.name, VehicleManager.TypeEnum.RideHail),
           Seq(ParkingType.Workplace).toList
         )
       )
@@ -78,7 +79,8 @@ object InfrastructureUtils extends LazyLogging {
           beamScenario.beamConfig.beam.agentsim.taz.parkingStallCountScalingFactor,
           beamScenario.beamConfig.beam.agentsim.taz.parkingCostScalingFactor,
           beamScenario.beamConfig.matsim.modules.global.randomSeed,
-          beamScenario.beamConfig
+          beamScenario.beamConfig,
+          Some(beamServices)
         )
       case "link" =>
         loadStalls[Link](
@@ -88,7 +90,8 @@ object InfrastructureUtils extends LazyLogging {
           beamScenario.beamConfig.beam.agentsim.taz.parkingStallCountScalingFactor,
           beamScenario.beamConfig.beam.agentsim.taz.parkingCostScalingFactor,
           beamScenario.beamConfig.matsim.modules.global.randomSeed,
-          beamScenario.beamConfig
+          beamScenario.beamConfig,
+          Some(beamServices)
         )
       case _ =>
         throw new IllegalArgumentException(
@@ -98,63 +101,70 @@ object InfrastructureUtils extends LazyLogging {
 
     // CHARGING ZONES ARE BUILT HERE
     logger.info(s"building charging networks...")
-    val chargingNetworks = beamConfig.beam.agentsim.taz.parkingManager.level.toLowerCase match {
-      case "taz" =>
-        buildChargingZones[TAZ](stalls.asInstanceOf[Map[Id[ParkingZoneId], ParkingZone[TAZ]]]).map {
-          case (managerId, chargingZones) => {
-            managerId -> (VehicleManager.getType(managerId) match {
-              case VehicleManager.BEAMRideHail =>
-                DefaultRideHailDepotParkingManager.init(managerId, chargingZones, envelopeInUTM, beamServices)
-              case _ => ChargingNetwork.init(managerId, chargingZones, envelopeInUTM, beamServices)
-            })
-          }
-        }
-      case "link" =>
-        buildChargingZones[Link](stalls.asInstanceOf[Map[Id[ParkingZoneId], ParkingZone[Link]]]).map {
-          case (managerId, chargingZones) =>
-            managerId -> (VehicleManager.getType(managerId) match {
-              case VehicleManager.BEAMRideHail =>
-                DefaultRideHailDepotParkingManager.init(
-                  managerId,
-                  chargingZones,
-                  beamScenario.linkQuadTree,
-                  beamScenario.linkIdMapping,
-                  beamScenario.linkToTAZMapping,
-                  envelopeInUTM,
-                  beamServices
-                )
-              case _ =>
-                ChargingNetwork.init(
-                  managerId,
-                  chargingZones,
-                  beamScenario.linkQuadTree,
-                  beamScenario.linkIdMapping,
-                  beamScenario.linkToTAZMapping,
-                  envelopeInUTM,
-                  beamServices
-                )
-            })
-        }
-      case _ =>
-        throw new IllegalArgumentException(
-          s"Unsupported parking level type ${parkingManagerCfg.level}, only TAZ | Link are supported"
-        )
-    }
+    val (nonRhChargingNetwork, rhChargingNetwork) =
+      beamConfig.beam.agentsim.taz.parkingManager.level.toLowerCase match {
+        case "taz" =>
+          val stallsTAZ = stalls.asInstanceOf[Map[Id[ParkingZoneId], ParkingZone[TAZ]]]
+          (
+            ChargingNetwork.init(
+              buildNonRideHailChargingZones(stallsTAZ),
+              envelopeInUTM,
+              beamServices
+            ),
+            buildRideHailChargingZones[TAZ](stallsTAZ).map { case (managerId, chargingZones) =>
+              DefaultRideHailDepotParkingManager.init(
+                managerId,
+                chargingZones,
+                envelopeInUTM,
+                beamServices
+              )
+            }.head
+          )
+        case "link" =>
+          val stallsLINK = stalls.asInstanceOf[Map[Id[ParkingZoneId], ParkingZone[Link]]]
+          (
+            ChargingNetwork.init(
+              buildNonRideHailChargingZones(stallsLINK),
+              beamScenario.linkQuadTree,
+              beamScenario.linkIdMapping,
+              beamScenario.linkToTAZMapping,
+              envelopeInUTM,
+              beamServices
+            ),
+            buildRideHailChargingZones[Link](stallsLINK).map { case (managerId, chargingZones) =>
+              DefaultRideHailDepotParkingManager.init(
+                managerId,
+                chargingZones,
+                beamScenario.linkQuadTree,
+                beamScenario.linkIdMapping,
+                beamScenario.linkToTAZMapping,
+                envelopeInUTM,
+                beamServices
+              )
+            }.head
+          )
+        case _ =>
+          throw new IllegalArgumentException(
+            s"Unsupported parking level type ${parkingManagerCfg.level}, only TAZ | Link are supported"
+          )
+      }
 
     // PARKING ZONES ARE BUILT HERE
     logger.info(s"building parking networks...")
-    val parkingNetworks = beamConfig.beam.agentsim.taz.parkingManager.method match {
+    val parkingNetwork = beamConfig.beam.agentsim.taz.parkingManager.method match {
       case "DEFAULT" =>
         beamConfig.beam.agentsim.taz.parkingManager.level.toLowerCase match {
           case "taz" =>
+            val stallsTAZ = stalls.asInstanceOf[Map[Id[ParkingZoneId], ParkingZone[TAZ]]]
             ZonalParkingManager.init(
-              buildParkingZones(stalls.asInstanceOf[Map[Id[ParkingZoneId], ParkingZone[TAZ]]]),
+              buildParkingZones(stallsTAZ),
               envelopeInUTM,
               beamServices
             )
           case "link" =>
+            val stallsLINK = stalls.asInstanceOf[Map[Id[ParkingZoneId], ParkingZone[Link]]]
             ZonalParkingManager.init(
-              buildParkingZones(stalls.asInstanceOf[Map[Id[ParkingZoneId], ParkingZone[Link]]]),
+              buildParkingZones(stallsLINK),
               beamScenario.linkQuadTree,
               beamScenario.linkIdMapping,
               beamScenario.linkToTAZMapping,
@@ -167,9 +177,10 @@ object InfrastructureUtils extends LazyLogging {
             )
         }
       case "HIERARCHICAL" =>
+        val stallsLINK = stalls.asInstanceOf[Map[Id[ParkingZoneId], ParkingZone[Link]]]
         HierarchicalParkingManager
           .init(
-            buildParkingZones(stalls.asInstanceOf[Map[Id[ParkingZoneId], ParkingZone[Link]]]),
+            buildParkingZones(stallsLINK),
             beamScenario.tazTreeMap,
             beamScenario.linkToTAZMapping,
             geo.distUTMInMeters(_, _),
@@ -180,8 +191,9 @@ object InfrastructureUtils extends LazyLogging {
             beamConfig.beam.agentsim.agents.parking.mulitnomialLogit
           )
       case "PARALLEL" =>
+        val stallsTAZ = stalls.asInstanceOf[Map[Id[ParkingZoneId], ParkingZone[TAZ]]]
         ParallelParkingManager.init(
-          buildParkingZones(stalls.asInstanceOf[Map[Id[ParkingZoneId], ParkingZone[TAZ]]]),
+          buildParkingZones(stallsTAZ),
           beamScenario.beamConfig,
           beamScenario.tazTreeMap,
           geo.distUTMInMeters,
@@ -189,34 +201,35 @@ object InfrastructureUtils extends LazyLogging {
         )
       case unknown @ _ => throw new IllegalArgumentException(s"Unknown parking manager type: $unknown")
     }
-    (parkingNetworks, chargingNetworks)
+    (parkingNetwork, nonRhChargingNetwork, rhChargingNetwork)
   }
 
   /**
-    * @param parkingFilePath
-    * @param depotFilePaths
-    * @param geoQuadTree
-    * @param parkingStallCountScalingFactor
-    * @param parkingCostScalingFactor
-    * @param seed
-    * @tparam GEO
+    * @param parkingFilePath parking file path
+    * @param depotFilePaths depot file paths
+    * @param geoQuadTree geo guad
+    * @param parkingStallCountScalingFactor parking stall count
+    * @param parkingCostScalingFactor parking cost
+    * @param seed random seed
+    * @param beamConfig beam config
     * @return
     */
   def loadStalls[GEO: GeoLevel](
     parkingFilePath: String,
-    depotFilePaths: IndexedSeq[(String, Id[VehicleManager], Seq[ParkingType])],
+    depotFilePaths: IndexedSeq[(String, ReservedFor, Seq[ParkingType])],
     geoQuadTree: QuadTree[GEO],
     parkingStallCountScalingFactor: Double,
     parkingCostScalingFactor: Double,
     seed: Long,
-    beamConfig: BeamConfig
+    beamConfig: BeamConfig,
+    beamServicesMaybe: Option[BeamServices]
   ): Map[Id[ParkingZoneId], ParkingZone[GEO]] = {
     val random = new Random(seed)
     val initialAccumulator: ParkingLoadingAccumulator[GEO] = if (parkingFilePath.isEmpty) {
       ParkingZoneFileUtils.generateDefaultParkingAccumulatorFromGeoObjects(
         geoQuadTree.values().asScala,
         random,
-        ParkingZone.GlobalReservedFor
+        VehicleManager.AnyManager
       )
     } else {
       Try {
@@ -224,6 +237,7 @@ object InfrastructureUtils extends LazyLogging {
           parkingFilePath,
           random,
           Some(beamConfig),
+          beamServicesMaybe,
           parkingStallCountScalingFactor,
           parkingCostScalingFactor
         )
@@ -234,18 +248,18 @@ object InfrastructureUtils extends LazyLogging {
           ParkingZoneFileUtils.generateDefaultParkingAccumulatorFromGeoObjects(
             geoQuadTree.values().asScala,
             random,
-            ParkingZone.GlobalReservedFor
+            VehicleManager.AnyManager
           )
       }
     }
     val parkingLoadingAccumulator = depotFilePaths.foldLeft(initialAccumulator) {
-      case (acc, (filePath, defaultVehicleManager, defaultParkingTypes)) =>
+      case (acc, (filePath, defaultReservedFor, defaultParkingTypes)) =>
         filePath.trim match {
-          case "" if VehicleManager.getType(defaultVehicleManager) == VehicleManager.BEAMRideHail =>
+          case "" if defaultReservedFor.managerType == VehicleManager.TypeEnum.RideHail =>
             ParkingZoneFileUtils.generateDefaultParkingAccumulatorFromGeoObjects(
               geoQuadTree.values().asScala,
               random,
-              defaultVehicleManager,
+              defaultReservedFor,
               defaultParkingTypes,
               acc
             )
@@ -257,6 +271,7 @@ object InfrastructureUtils extends LazyLogging {
                 depotParkingFilePath,
                 random,
                 Some(beamConfig),
+                beamServicesMaybe,
                 parkingStallCountScalingFactor,
                 parkingCostScalingFactor,
                 acc
@@ -276,20 +291,31 @@ object InfrastructureUtils extends LazyLogging {
     * @param stalls Map[Id[ParkingZoneId], ParkingZone[GEO]]
     * @return
     */
-  def buildParkingZones[GEO: GeoLevel](
+  def buildParkingZones[GEO](
     stalls: Map[Id[ParkingZoneId], ParkingZone[GEO]]
   ): Map[Id[ParkingZoneId], ParkingZone[GEO]] = stalls.filter(_._2.chargingPointType.isEmpty)
 
   /**
-    * @param stalls Map[Id[ParkingZoneId], ParkingZone[GEO]]
+    * @param stalls list of parking zones
     * @return
     */
-  def buildChargingZones[GEO: GeoLevel](
+  def buildRideHailChargingZones[GEO](
     stalls: Map[Id[ParkingZoneId], ParkingZone[GEO]]
   ): Map[Id[VehicleManager], Map[Id[ParkingZoneId], ParkingZone[GEO]]] = {
+    import VehicleManager._
     stalls
-      .filter(_._2.chargingPointType.isDefined)
-      .groupBy(_._2.reservedFor)
+      .filter(x => x._2.chargingPointType.nonEmpty && x._2.reservedFor.managerType == TypeEnum.RideHail)
+      .groupBy(_._2.reservedFor.managerId)
   }
 
+  /**
+    * @param stalls list of parking zones
+    * @return
+    */
+  def buildNonRideHailChargingZones[GEO](
+    stalls: Map[Id[ParkingZoneId], ParkingZone[GEO]]
+  ): Map[Id[ParkingZoneId], ParkingZone[GEO]] = {
+    import VehicleManager._
+    stalls.filter(x => x._2.chargingPointType.nonEmpty && x._2.reservedFor.managerType != TypeEnum.RideHail)
+  }
 }

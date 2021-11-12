@@ -21,6 +21,7 @@ import org.matsim.api.core.v01.{Coord, Id, Scenario}
 import org.matsim.core.controler.OutputDirectoryHierarchy
 
 import java.nio.file.{Files, Paths}
+import java.util.concurrent.atomic.AtomicReference
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
@@ -49,7 +50,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
 
     RideHailAgentInputData(
       id = id,
-      rideHailManagerId = VehicleManager.createOrGetIdUsingUnique(rideHailManagerId, VehicleManager.BEAMRideHail),
+      rideHailManagerId =
+        VehicleManager.createOrGetReservedFor(rideHailManagerId, VehicleManager.TypeEnum.RideHail).managerId,
       vehicleType = vehicleType,
       initialLocationX = initialLocationX,
       initialLocationY = initialLocationY,
@@ -60,8 +62,7 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
       geofenceTazs = geofenceTazIds,
       geofenceTAZFile = geofenceTAZFile,
       fleetId = fleetId,
-      initialStateOfCharge = initialStateOfCharge,
-      geofencePolygon = geofencePolygon
+      initialStateOfCharge = initialStateOfCharge
     )
   }
 
@@ -111,8 +112,7 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
       "geofenceRadius",
       "geofenceTAZFile",
       "fleetId",
-      "initialStateOfCharge",
-      "geofencePolygon"
+      "initialStateOfCharge"
     )
     if (Files.exists(Paths.get(filePath).getParent)) {
       val csvWriter = new CsvWriter(filePath, fileHeader)
@@ -131,8 +131,7 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
             fleetData.geofenceRadius.getOrElse(""),
             fleetData.geofenceTAZFile.getOrElse(""),
             fleetData.fleetId,
-            fleetData.initialStateOfCharge,
-            fleetData.geofencePolygon
+            fleetData.initialStateOfCharge
           )
         }
 
@@ -238,8 +237,7 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
     geofenceTazs: Option[Set[Id[TAZ]]],
     geofenceTAZFile: Option[String],
     fleetId: String,
-    initialStateOfCharge: Double = 1.0,
-    geofencePolygon: Option[String]
+    initialStateOfCharge: Double = 1.0
   ) {
 
     /*
@@ -327,7 +325,7 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
         beamVehicleId,
         powertrain,
         beamVehicleType,
-        vehicleManagerId = rideHailManagerId,
+        vehicleManagerId = new AtomicReference(rideHailManagerId),
         randomSeed
       )
 
