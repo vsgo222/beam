@@ -123,6 +123,12 @@ configurations {
     scalaCompilerPlugin
 }
 
+configurations.all {
+    resolutionStrategy {
+//       we need this in order to get Elki library working fine.
+        force 'it.unimi.dsi:fastutil:8.5.4'
+    }
+}
 
 dependencies {
 
@@ -145,7 +151,7 @@ dependencies {
     implementation group: 'com.univocity', name: 'univocity-parsers', version: '2.9.1'
 
     //Google CLI Arg parser
-    implementation group: 'com.github.pcj', name: 'google-options', version: '1.0.0'
+    //implementation group: 'com.github.pcj', name: 'google-options', version: '1.0.0'
 
     // LGPL
     implementation group: 'org.geotools', name: 'gt-main', version: '14.5'
@@ -173,7 +179,7 @@ dependencies {
     implementation('com.github.LBNL-UCB-STI:or-tools-wrapper:7.5-0') {
         exclude group: 'com.google.protobuf', module: 'protobuf-java'
     }
-    implementation 'com.github.LBNL-UCB-STI:helics-wrapper:v2.6.1'
+    implementation 'com.github.LBNL-UCB-STI:helics-wrapper:v2.6.2'
 
     // GPLv3
     implementation group: 'org.matsim.contrib', name: 'multimodal', version: '0.10.0'
@@ -514,7 +520,7 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 // Note: colon preceding "run" is necessary to only run the main project and not launch the GUI as well.
 // ./gradlew :run -PappArgs="['--config', 'production/application-sfbay/beam.conf']"
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//mainClassName = "beam.sim.RunBeam"
+mainClassName = "beam.sim.RunBeam"
 
 def myAvailableRam = (System.getenv("MAXRAM") ?: (project.findProperty('maxRAM') ?: "140")).toString().replace("g", "").toInteger()
 def halfOfAvailableMem = (myAvailableRam / 2).toInteger()
