@@ -80,14 +80,4 @@ object VehicleManager extends LazyLogging {
     reservedForMaybe map { case ReservedFor(mngId, mngType) => createOrGetReservedFor(mngId.toString, mngType) }
   }
 
-  def getType(vehicleManagerId: Id[VehicleManager]): VehicleManagerType = vehicleManagers(vehicleManagerId)
-
-  sealed trait VehicleManagerType
-  case object BEAMCore extends VehicleManagerType
-  case object BEAMRideHail extends VehicleManagerType
-  case object BEAMShared extends VehicleManagerType
-  case object BEAMFreight extends VehicleManagerType
-  case object Others extends VehicleManagerType
-
-  private val vehicleManagers: TrieMap[Id[VehicleManager], VehicleManagerType] = TrieMap(noManager -> Others)
 }

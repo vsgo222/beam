@@ -62,7 +62,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
       geofenceTazs = geofenceTazIds,
       geofenceTAZFile = geofenceTAZFile,
       fleetId = fleetId,
-      initialStateOfCharge = initialStateOfCharge
+      initialStateOfCharge = initialStateOfCharge,
+      geofencePolygon = geofencePolygon
     )
   }
 
@@ -112,7 +113,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
       "geofenceRadius",
       "geofenceTAZFile",
       "fleetId",
-      "initialStateOfCharge"
+      "initialStateOfCharge",
+      "geofencePolygon"
     )
     if (Files.exists(Paths.get(filePath).getParent)) {
       val csvWriter = new CsvWriter(filePath, fileHeader)
@@ -131,7 +133,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
             fleetData.geofenceRadius.getOrElse(""),
             fleetData.geofenceTAZFile.getOrElse(""),
             fleetData.fleetId,
-            fleetData.initialStateOfCharge
+            fleetData.initialStateOfCharge,
+            fleetData.geofencePolygon
           )
         }
 
@@ -237,7 +240,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
     geofenceTazs: Option[Set[Id[TAZ]]],
     geofenceTAZFile: Option[String],
     fleetId: String,
-    initialStateOfCharge: Double = 1.0
+    initialStateOfCharge: Double = 1.0,
+    geofencePolygon: Option[String]
   ) {
 
     /*
