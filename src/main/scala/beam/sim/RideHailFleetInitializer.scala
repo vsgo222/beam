@@ -21,6 +21,7 @@ import org.matsim.api.core.v01.{Coord, Id, Scenario}
 import org.matsim.core.controler.OutputDirectoryHierarchy
 
 import java.nio.file.{Files, Paths}
+import java.util.concurrent.atomic.AtomicReference
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
@@ -49,7 +50,8 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
 
     RideHailAgentInputData(
       id = id,
-      rideHailManagerId = VehicleManager.createOrGetIdUsingUnique(rideHailManagerId, VehicleManager.BEAMRideHail),
+      rideHailManagerId =
+        VehicleManager.createOrGetReservedFor(rideHailManagerId, VehicleManager.TypeEnum.RideHail).managerId,
       vehicleType = vehicleType,
       initialLocationX = initialLocationX,
       initialLocationY = initialLocationY,
@@ -327,7 +329,7 @@ object RideHailFleetInitializer extends OutputDataDescriptor with LazyLogging {
         beamVehicleId,
         powertrain,
         beamVehicleType,
-        vehicleManagerId = rideHailManagerId,
+        vehicleManagerId = new AtomicReference(rideHailManagerId),
         randomSeed
       )
 

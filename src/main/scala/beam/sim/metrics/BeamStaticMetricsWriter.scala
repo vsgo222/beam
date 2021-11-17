@@ -98,6 +98,7 @@ object BeamStaticMetricsWriter {
               chargingDepotsFilePath,
               rand,
               Some(beamScenario.beamConfig),
+              Some(beamServices),
               parkingStallCountScalingFactor
             )
 
@@ -121,6 +122,7 @@ object BeamStaticMetricsWriter {
                 publicFastChargerFilePath,
                 rand,
                 Some(beamConfig),
+                Some(beamServices),
                 parkingStallCountScalingFactor
               )
 
