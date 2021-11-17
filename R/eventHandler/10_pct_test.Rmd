@@ -40,9 +40,9 @@ library(packageSHA)
 LOADING THE DATA
 ================================
 
-BEAM can be configured to output an `events.csv` file for each iteration. This is a 20% scenario that I'm using for further testing:
+BEAM can be configured to output an `events.csv` file for each iteration. This is a 10% scenario that I'm using for further testing:
 ```{r}
-eventsCSV = "R/eventHandler/test/20_pct_test.csv"
+eventsCSV = "R/eventHandler/test/10_pct_test.csv"
 ```
 
 I then loaded the .csv file, Unfortunately, `read_csv` didn't get all the data types right, so I had to set them manually:
