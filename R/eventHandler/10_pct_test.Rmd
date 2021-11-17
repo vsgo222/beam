@@ -142,10 +142,12 @@ modeComparison <- left_join(modechoice,
           by = c("mode" = "legMode")
           ) %>%
   `colnames<-`(c("mode", "modechoice", "legmode")) %>%
+  replace(is.na(.),0) %>% 
   mutate(
     replans = modechoice - legmode,
     replan_pct = replans / modechoice
   )
+
 modeComparison %>%
   my_kbl(digits = 3, align = 'lrrrr')
 ```
