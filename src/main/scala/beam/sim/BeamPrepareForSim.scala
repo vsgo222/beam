@@ -10,7 +10,9 @@ import scala.util.Random
 class BeamPrepareForSim @Inject() (scenario: Scenario) extends PrepareForSim {
 
   override def run(): Unit = {
-    assignInitialModalityStyles()
+//    keepOnlyActivities()
+//    assignInitialModalityStyles()
+
   }
 
   def assignInitialModalityStyles(): Unit = {
