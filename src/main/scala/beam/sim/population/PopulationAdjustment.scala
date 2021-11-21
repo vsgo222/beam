@@ -1,5 +1,9 @@
 package beam.sim.population
 
+import java.util.Random
+
+import beam.agentsim
+import beam.replanning.SwitchModalityStyle
 import beam.router.Modes.BeamMode
 import beam.sim.{BeamScenario, BeamServices}
 import beam.utils.plan.sampling.AvailableModeUtils
@@ -12,7 +16,7 @@ import org.matsim.households.Household
 
 import java.util.Random
 import scala.collection.JavaConverters._
-import scala.collection.mutable
+import java.util.Random
 
 /**
   * An interface that handles setting/updating attributes for the population.
@@ -251,10 +255,11 @@ object PopulationAdjustment extends LazyLogging {
     val income = Option(personAttributes.getAttribute(person.getId.toString, "income"))
       .map(_.asInstanceOf[Double])
       .getOrElse(0D)
-    // Randomly assign person attribute "modalityStyle"
-    val random = new Random()
-    val modalityList = Seq("class1","class2","class3","class4","class5","class6")
-    val modalityStyle =Option(modalityList(random.nextInt(modalityList.length)))
+    //modality style stuff
+    val modalityStyle =
+      Option(person.getSelectedPlan)
+        .map(_.getAttributes)
+        .flatMap(attrib => Option(attrib.getAttribute("modality-style")).map(_.toString))
     peeps += (person.getId.toString -> modalityStyle)
     // Read household attributes for the person
     val householdAttributes = HouseholdAttributes(
