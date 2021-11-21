@@ -161,7 +161,8 @@ object BeamConfig {
           mulitnomialLogit: BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.MulitnomialLogit,
           overrideAutomationForVOTT: scala.Boolean,
           overrideAutomationLevel: scala.Int,
-          poolingMultiplier: BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.PoolingMultiplier
+          poolingMultiplier: BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.PoolingMultiplier,
+          modalityStyle: java.lang.String
         )
 
         object ModalBehaviors {
@@ -655,7 +656,9 @@ object BeamConfig {
               poolingMultiplier = BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.PoolingMultiplier(
                 if (c.hasPathOrNull("poolingMultiplier")) c.getConfig("poolingMultiplier")
                 else com.typesafe.config.ConfigFactory.parseString("poolingMultiplier{}")
-              )
+              ),
+              modalityStyle = if (c.hasPathOrNull("modalityStyle")) c.getString("modalityStyle")
+              else "random",
             )
           }
         }
