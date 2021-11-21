@@ -147,6 +147,7 @@ class ModeChoiceLCCM(
   }
 
   def utilityOf(
+    person: Person,
     mode: BeamMode,
     cost: Double,
     time: Double,
@@ -176,23 +177,26 @@ class ModeChoiceLCCM(
 
   def utilityAcrossModalityStyles(
     embodiedBeamTrip: EmbodiedBeamTrip,
-    tourType: TourType
+    tourType: TourType,
+    person: Person
   ): Map[String, Double] = {
     lccm
       .classMembershipModelMaps(tourType)
       .keySet
-      .map(theStyle => (theStyle, utilityOf(embodiedBeamTrip, theStyle, tourType)))
+      .map(theStyle => (theStyle, utilityOf(embodiedBeamTrip, theStyle, tourType, person)))
       .toMap
   }
 
   def utilityOf(
     embodiedBeamTrip: EmbodiedBeamTrip,
     conditionedOnModalityStyle: String,
-    tourType: TourType
+    tourType: TourType,
+    person: Person
   ): Double = {
     val best = altsToBestInGroup(Vector(embodiedBeamTrip), tourType).head
 
     utilityOf(
+      person,
       best.mode,
       conditionedOnModalityStyle,
       tourType,
@@ -267,6 +271,7 @@ class ModeChoiceLCCM(
   }
 
   def utilityOf(
+    person: Person,
     mode: BeamMode,
     conditionedOnModalityStyle: String,
     tourType: TourType,
@@ -284,7 +289,8 @@ class ModeChoiceLCCM(
   override def utilityOf(
     alternative: EmbodiedBeamTrip,
     attributesOfIndividual: AttributesOfIndividual,
-    destinationActivity: Option[Activity]
+    destinationActivity: Option[Activity],
+    person: Person
   ): Double = 0.0
 
   override def computeAllDayUtility(
@@ -302,8 +308,9 @@ class ModeChoiceLCCM(
         )
       }
       .toMap
-      .mapValues(modeChoiceCalculatorForStyle =>
-        trips.map(trip => modeChoiceCalculatorForStyle.utilityOf(trip, attributesOfIndividual, None)).sum
+      .mapValues(
+        modeChoiceCalculatorForStyle =>
+          trips.map(trip => modeChoiceCalculatorForStyle.utilityOf(trip, attributesOfIndividual, None, person)).sum
       )
       .toArray
       .toMap // to force computation DO NOT TOUCH IT, because here is call-by-name and it's lazy which will hold a lot of memory !!! :)
