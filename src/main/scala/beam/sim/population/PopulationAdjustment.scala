@@ -16,7 +16,7 @@ import org.matsim.households.Household
 
 import java.util.Random
 import scala.collection.JavaConverters._
-import java.util.Random
+import scala.collection.mutable
 
 /**
   * An interface that handles setting/updating attributes for the population.
