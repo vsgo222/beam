@@ -275,13 +275,9 @@ class ModeChoiceLCCM(
           walkTime,
           waitTime,
           bikeTime,
-<<<<<<< HEAD
-          totalCost,
-=======
           numTransfers,
           occupancyLevel,
-          totalCost.toDouble,
->>>>>>> 8bb1f43... Calculate new parameters for choice models
+          totalCost,
           altAndIdx._2
         )
       }
