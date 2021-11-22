@@ -1383,13 +1383,43 @@ trait ChoosesMode {
         data.expectedMaxUtilityOfLatestChoice.getOrElse[Double](Double.NaN),
         _experiencedBeamPlan
           .activities(data.personData.currentActivityIndex)
-          .getLinkId
-          .toString,
-        data.availableAlternatives.get,
-        data.availablePersonalStreetVehicles.nonEmpty,
-        chosenTrip.legs.view.map(_.beamLeg.travelPath.distanceInM).sum,
-        _experiencedBeamPlan.tourIndexOfElement(nextActivity(data.personData).get),
-        chosenTrip
+          .setLinkId(
+            Id.createLinkId(
+              beamServices.geo.getNearestR5Edge(transportNetwork.streetLayer, origin, 10000)
+            )
+          )
+        _experiencedBeamPlan
+          .activities(data.personData.currentActivityIndex + 1)
+          .setLinkId(
+            Id.createLinkId(
+              beamServices.geo.getNearestR5Edge(transportNetwork.streetLayer, destination, 10000)
+            )
+          )
+      }
+
+      var tourPurpose = "None"
+      if ("ModeChoiceTourPurpose".equals(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
+        tourPurpose = getTourPurpose(data.personData)
+      }
+
+      eventsManager.processEvent(
+        new ModeChoiceEvent(
+          tick,
+          id,
+          chosenTrip.tripClassifier.value,
+          data.personData.currentTourMode.map(_.value).getOrElse(""),
+          data.expectedMaxUtilityOfLatestChoice.getOrElse[Double](Double.NaN),
+          _experiencedBeamPlan
+            .activities(data.personData.currentActivityIndex)
+            .getLinkId
+            .toString,
+          data.availableAlternatives.get,
+          data.availablePersonalStreetVehicles.nonEmpty,
+          chosenTrip.legs.view.map(_.beamLeg.travelPath.distanceInM).sum,
+          _experiencedBeamPlan.tourIndexOfElement(nextActivity(data.personData).get),
+          tourPurpose,
+          chosenTrip
+        )
       )
     )
 

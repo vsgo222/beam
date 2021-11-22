@@ -24,6 +24,7 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
     public final static String ATTRIBUTE_PERSONAL_VEH_AVAILABLE = "personalVehicleAvailable";
     public final static String ATTRIBUTE_TRIP_LENGTH = "length";
     public final static String ATTRIBUTE_TOUR_INDEX = "tourIndex";
+    public final static String ATTRIBUTE_TOUR_PURPOSE = "tourPurpose";
     public final EmbodiedBeamTrip chosenTrip;
     public final Id<Person> personId;
     public final String mode;
@@ -34,10 +35,11 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
     public final String vehAvailable;
     public final Double length;
     public final Integer tourIndex;
+    public final String tourPurpose;
 
     public ModeChoiceEvent(double time, Id<Person> personId, String chosenMode, String currentTourMode, Double expectedMaxUtility,
                            String linkId, String availableAlternatives, Boolean vehAvailable, Double length,
-                           Integer tourIndex, EmbodiedBeamTrip chosenTrip) {
+                           Integer tourIndex, String tourPurpose, EmbodiedBeamTrip chosenTrip) {
         super(time);
 
         this.personId = personId;
@@ -49,6 +51,7 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
         this.vehAvailable = vehAvailable == null ? "" : vehAvailable.toString();
         this.length = length;
         this.tourIndex = tourIndex;
+        this.tourPurpose = tourPurpose;
         this.chosenTrip = chosenTrip;
     }
 
@@ -65,7 +68,9 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
                     Boolean.parseBoolean(attr.get(ATTRIBUTE_PERSONAL_VEH_AVAILABLE)),
                     Double.parseDouble(attr.get(ATTRIBUTE_TRIP_LENGTH)),
                     Integer.parseInt(attr.get(ATTRIBUTE_TOUR_INDEX)),
+                    attr.get(ATTRIBUTE_TOUR_PURPOSE),
                     null
+
             );
         }
         return (ModeChoiceEvent) event;
@@ -83,6 +88,7 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
         attr.put(ATTRIBUTE_PERSONAL_VEH_AVAILABLE, vehAvailable);
         attr.put(ATTRIBUTE_TRIP_LENGTH, length.toString());
         attr.put(ATTRIBUTE_TOUR_INDEX, tourIndex.toString());
+        attr.put(ATTRIBUTE_TOUR_PURPOSE, tourPurpose);
         return attr;
     }
 
