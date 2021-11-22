@@ -1374,29 +1374,6 @@ trait ChoosesMode {
         )
     }
 
-    eventsManager.processEvent(
-      new ModeChoiceEvent(
-        tick,
-        id,
-        chosenTrip.tripClassifier.value,
-        data.personData.currentTourMode.map(_.value).getOrElse(""),
-        data.expectedMaxUtilityOfLatestChoice.getOrElse[Double](Double.NaN),
-        _experiencedBeamPlan
-          .activities(data.personData.currentActivityIndex)
-          .setLinkId(
-            Id.createLinkId(
-              beamServices.geo.getNearestR5Edge(transportNetwork.streetLayer, origin, 10000)
-            )
-          )
-        _experiencedBeamPlan
-          .activities(data.personData.currentActivityIndex + 1)
-          .setLinkId(
-            Id.createLinkId(
-              beamServices.geo.getNearestR5Edge(transportNetwork.streetLayer, destination, 10000)
-            )
-          )
-      }
-
       var (tourPurpose, income, vehOwnership) = ("None", 0.0, "None")
       if ("ModeChoiceTourPurpose".equals(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
         tourPurpose = getTourPurpose(data.personData)
@@ -1425,7 +1402,6 @@ trait ChoosesMode {
           chosenTrip
         )
       )
-    )
 
     val (vehiclesUsed, vehiclesNotUsed) = data.availablePersonalStreetVehicles
       .partition(vehicle => chosenTrip.vehiclesInTrip.contains(vehicle.id))
