@@ -1,0 +1,34 @@
+---
+title: "ModeChoice Calibration Using Events File"
+author: "Chris Day"
+date: "11/4/2021"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+events2.0 <- read_csv("events/1.events.2.5k.all.csv", col_types = cols(.default = "c")) %>%
+  filter(type == "ModeChoice") %>%
+  group_by(mode) %>%
+  select(person, tourIndex, tourPurpose, mode, income, vehicleOwnership, availableAlternatives, personalVehicleAvailable, length, time, type) %>%
+  arrange(person)
+
+modalsplits <- events2.0 %>%
+  group_by(tourPurpose, mode) %>% 
+   ##(mode) ##(tourPurpose,mode) ##(vehicleOwnership,mode)
+  summarise(cnt = n()) %>%
+  mutate(pct = cnt / sum(cnt) * 100)
+
+ggplot(modalsplits) + 
+    aes(x = tourPurpose, y = pct, color = mode) + 
+    #labs(fill='Mode', y = 'Count', x = 'Tour Purposes') +
+    #ggtitle("Modal Split by Tour Purpose") +
+  geom_point()+  
+  geom_line(aes(group = mode)) + 
+    scale_fill_brewer(palette = "Pastel2")
+
+```
+

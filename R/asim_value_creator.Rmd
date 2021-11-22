@@ -1,0 +1,331 @@
+---
+title: "New Mode Choice Parameters"
+author: "Chris Day"
+date: "10/7/2021"
+output: html_document
+---
+# {.tabset}
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(dotwhisker)
+library(ggpubr)
+library(scales)
+library(rmarkdown)
+source("table_maker.R")
+```
+
+## Introduction
+### Introduction
+In this markdown, we develop a csv file that houses all the utility parameter values that will be used in the ModeChoiceTPCM in BEAM. In other words, a csv file filled with the MTC/ActivitySim parameter values is created in a form that is readable in BEAM. Parameter values will be given to each of the alternatives that exist in BEAM for each of the Tour Purpose values that exist in ActivitySim.
+
+The modal alternatives in BEAM include the following:
+  
+  - Walk
+  - Bike
+  - Car
+  - Ride Hail
+  - Ride Hail Pooled
+  - Ride Hail Transit
+  - Walk Transit
+  - Drive Transit
+  - Bike Transit
+  - CAV
+
+Parameter values will be given to each of these values, except for CAV. There will be values for each of the purposes. The purposes that exist from ActivitySim include the following:
+
+  - work
+  - univ
+  - school
+  - escort
+  - shopping
+  - eatout
+  - othmaint
+  - social
+  - othdiscr
+  - atwork
+
+### Data Overview
+There are a few sources that we use to get the data to create the csv file. These locations are shown below:
+
+  - MTC 2012 Release Draft (Tour Mode Choice Coefficients) [http://analytics.mtc.ca.gov/foswiki/pub/Main/Documents/2012_05_18_RELEASE_DRAFT_Calibration_and_Validation.pdf]
+  - Example MTC (Tour Mode Choice Coefficients)
+  - 
+  
+Notice how we use the values from the Tour Mode Choice model. This is done because of how the BEAM structure is set up. For the path variables, the tour values will be doubled to account for the fact that they are tour values, and we need trip values.
+
+## ASC Values
+First, lets read in the constand data from the ActivitySim github page. We are going to steal the constant values from the example_mtc tour_mode_choice_coefficients.csv. 
+
+```{r}
+as_asc <- read_csv("https://raw.githubusercontent.com/ActivitySim/activitysim/885f5874c499f041442d1376fbd401281e0db369/activitysim/examples/example_mtc/configs/tour_mode_choice_coefficients.csv")
+```
+
+Now, lets create a vector that stores all the purposes. This will be useful later.
+```{r}
+purps <- c("work","univ","school","escort","shopping","eatout","othmaint","social","othdiscr","atwork")
+```
+
+Now, we manipulate the read in dataframe to have the correct columns that we want. We separate the main variable name into sections, and manipulate the dataset to look like how we want it to look. 
+```{r, message=FALSE, warning=FALSE}
+asim_asc <- tail(as_asc,-33) %>% 
+  mutate(
+    alternative = gsub('.{1}$', '', word(coefficient_name,1,sep="ASC")),
+    autos = word(sub(".*ASC_", "", coefficient_name),1,2,sep="_"),
+    variable =  case_when(
+      autos == "no_auto" ~ "ascNoAuto",
+      autos == "auto_deficient" ~ "ascAutoDeficient",
+      autos == "auto_sufficient" ~ "ascAutoSufficient"),
+    latentClass = case_when(
+      variable == "ascNoAuto" ~ 
+        sub(".*auto ","", gsub("_"," ",coefficient_name)),
+      variable == "ascAutoDeficient" ~ 
+        sub(".*deficient ","", gsub("_"," ",coefficient_name)),
+      variable == "ascAutoSufficient" ~ 
+        sub(".*sufficient ","", gsub("_"," ",coefficient_name)),
+      variable == NA ~ 
+        sub(".*ASC ","", gsub("_"," ",coefficient_name)))) %>% 
+  select(coefficient_name,variable,alternative,latentClass,value) %>%
+  mutate(
+    latentClass = case_when(
+      latentClass == "all" ~ list(purps),
+      TRUE ~ as.list(strsplit(latentClass, '\\s+')))) %>% unnest() %>%
+  filter(alternative %in% c("bike","drive_transit","tnc_single","tnc_shared","walk","walk_transit")) %>%
+  arrange(variable,alternative)
+```
+
+Next, we replace the tnc_single and tnc_shared alternatives with ride_hail and ride_hail_pooled alternatives. I figure that the tnc values were close enough to just adopt them to the ride_hail values that we actually need for BEAM. 
+```{r}
+
+asim_asc[asim_asc == "tnc_single"] <- "ride_hail"
+asim_asc[asim_asc == "tnc_shared"] <- "ride_hail_pooled"
+```
+
+Unfortunately, there are no "bike_transit" and "ride_hail_transit" values in this dataset. As a result, we are going to make them up. First, we steal all the walk_transit values and adopt them to the bike_transit values. For ride_hail_transit, we adopt the drive_transit values except for when there is no auto. We don't want there to be a penalty for ride_hail_transit users when they don't own a car. For this reason, we just copy over the drive_transit auto deficient values. In addition, the for the atwork purpose, drive_transit is -999 (because they don't have a car at work). For ride_hail, this isn't the case, so we just substitute that value with 0. In addition, we add in all the car values (they are all 0).
+```{r}
+bt_asc <- asim_asc %>% 
+  filter(alternative == "walk_transit") %>%
+  mutate(alternative = "bike_transit")
+
+rht_noauto <- asim_asc %>%
+  filter(alternative == "drive_transit" & variable == "ascAutoDeficient") %>%
+  mutate(alternative = "ride_hail_transit", variable = "ascNoAuto")
+
+rht_asc <- asim_asc %>%
+  filter(alternative == "drive_transit" & variable != "ascNoAuto") %>%
+  mutate(alternative = "ride_hail_transit") %>%
+  rbind(rht_noauto) %>%
+  mutate(value = ifelse(value < -900, 0, value))
+
+car_asc <- asim_asc %>%
+  filter(alternative == "drive_transit") %>%
+  mutate(alternative = "car", value = 0)
+
+asim_asc_complete <- asim_asc %>% 
+  rbind(car_asc,bt_asc, rht_asc) %>% 
+  arrange(variable,alternative,latentClass) %>%
+  rename(Variable = coefficient_name)
+paged_table(asim_asc_complete)
+```
+
+## Coefficient Data
+### Reading in the Data
+First, lets read in the  variable coefficient values from the MTC 2012 release draft. In addition, we use the time values from the MTC 2012 release draft to estimate a cost coefficient. This is done in the following code, and then attached to the mtc data frame.
+
+```{r, message=FALSE, warning=FALSE}
+mtc2012 <- read_table2("model_data/mtc/mtc_2012_tour_mode_choice_coefficients_path.txt")
+cols <- sapply(mtc2012, is.numeric)
+mtc2012[, cols] <- mtc2012[, cols]
+
+
+# create a cost table by purpose
+cost <- cost_creator(mtc2012[c(1:6,8,9),]) %>% select(!time_coef) %>%
+  pivot_wider(names_from = "purpose", values_from = "cost_coef") %>% 
+  mutate(Variable = "cost_coef")
+
+# create a cost table that is simply just a repeat of the ivtt
+cost_time <- head(mtc2012,1) %>% mutate(Variable = "cost_coef")
+
+mtc_cost <- mtc2012 %>% rbind(cost_time)
+```
+
+### Assigning Integers to Alternatives
+In order to make data table manipulation a little bit easier, we are going to assign an integer value to each alternative. This is done in the code below.
+
+```{r, echo =FALSE}
+#create a table of the alternatives, and assign an integer to each one of the values for easier data table manipulation
+alts <- c("bike","bike_transit","car","drive_transit","ride_hail","ride_hail_pooled","ride_hail_transit","walk","walk_transit")
+vals <- c(1:9)
+alt_vals <- data.frame(vals,alts) %>% as_tibble()
+  # bike              1
+  # bike_transit      2
+  # car               3
+  # drive_transit     4
+  # ride_hail         5
+  # ride_hail_pooled  6
+  # ride_hail_transit 7
+  # walk              8
+  # walk_transit      9
+alt_vals
+```
+
+### Creating a Coeff Dataframe
+Now that we have read in the data, and given an integer to each alternative, we can create the dataframe with the correct struction. First, we assign the corresponding alternatives to each variable type. 
+
+```{r}
+#determine which path variables correspond to which alternatives
+costAlts <- c(2,3,4,5,6,7,9)
+vehicleTimeAlts <- c(2,3,4,5,6,7,9)
+waitTimeAlts <- c(2,4,5,6,7,9)
+egressTimeAlts <- c(2,3,4,5,6,7,9)
+transferAlts <- c(2,4,7,9)
+walkDistAlts <- c(8,9)
+bikeDistAlts <- c(1,2)
+originTransitAlts <- c(2,9)
+destTransitAlts <- c(2,4,7,9)
+age1619Alts <- c(3)
+age010Alts <- c(2,4,7,9)
+ztiAlts <- c(1,2,4,7,8,9)
+destZdiAlts <- c(1,2,4,7,8,9)
+originZdiAlts <- c(1,2,8,9)
+cbdAlts <- c(2,4,7,9)
+shortDriveAlts <- c(4,7)
+```
+
+Next, we rename all the variables to the correct variable name, and divide up the dataframe to have variables for each alternative option. Then, we assign the value of 0 to the alternatives that don't fit the variable type.
+
+```{r}
+#rename the mtc dataset so that the variables have the correct name value to match the BEAM code
+renamed_mtc <- mtc_cost %>%
+  rename(work=Work,univ=College,school=School,escort=Escort,shopping=Shop,eatout=Eat_Out,othmaint=Maint.,social=Social,othdiscr=Discr.,atwork="At-Work") %>%
+  mutate(variable = case_when(
+    Variable == "cost_coef" ~ "cost",
+    Variable == "ivtt_auto_bus" ~ "vehicleTime",
+    Variable == "wait_time_under_10_min" ~ "waitTime",
+    Variable == "egress_time" ~ "egressTime",
+    Variable == "transfer_number_drive_transit" ~ "transfer",
+    Variable == "walk_short_dist" ~ "shortWalkDist",
+    Variable == "walk_long_dist" ~ "longWalkDist",
+    Variable == "bike_short_dist" ~ "shortBikeDist",
+    Variable == "bike_long_dist" ~ "longBikeDist",
+    Variable == "origin_close_to_transit_walk-transit" ~ "originCloseToTransit",
+    Variable == "origin_far_from_transit_walk-transit" ~ "originFarFromTransit",
+    Variable == "destination_close_to_transit_transit" ~ "destCloseToTransit",
+    Variable == "destination_far_from_transit_transit" ~ "destFarFromTransit", 
+    Variable == "age1619" ~ Variable,
+    Variable == "age010" ~ Variable,
+    Variable == "zti_walk" ~ "ZTI",
+    Variable == "zdi_dest" ~ "destZDI",
+    Variable == "zdi_origin" ~ "originZDI",
+    Variable == "cbd_dest_drive_transit" ~ "CBD",
+    Variable == "miles_less_15" ~ "shortDrive"
+    )
+  ) %>%
+  filter(is.na(variable)==FALSE) %>%
+  mutate(alternative = list(c(1:9))) %>%
+  unnest(alternative) 
+
+#update the previous datatable so that alternatives with variable numbers that don't apply update to have the value of 0 instead
+path_coeff <- renamed_mtc %>% pivot_longer(!c(variable,Variable, alternative), names_to = "latentClass", values_to = "value") %>%
+  mutate(value = case_when(
+    variable == "cost" & alternative %!in% costAlts ~ 0,
+    variable == "vehicleTime" & alternative %!in% vehicleTimeAlts ~ 0,
+    variable == "waitTime" & alternative %!in% waitTimeAlts ~ 0,
+    variable == "egressTime" & alternative %!in% egressTimeAlts ~ 0,
+    variable == "transfer" & alternative %!in% transferAlts ~ 0 ,
+    variable %in% c("shortWalkDist","longWalkDist") & alternative %!in% walkDistAlts ~ 0,
+    variable %in% c("shortBikeDist","longBikeDist") & alternative %!in% bikeDistAlts ~ 0, 
+    variable %in% c("originCloseToTransit","originFarFromTransit") & alternative %!in% originTransitAlts ~ 0,
+    variable %in% c("destCloseToTransit","destFarFromTransit") & alternative %!in% destTransitAlts ~ 0,
+    variable == "age1619" & alternative %!in% age1619Alts ~ 0,
+    variable == "age010" & alternative %!in% age010Alts ~ 0,
+    variable == "ZTI" & alternative %!in% ztiAlts ~ 0,
+    variable == "destZDI" & alternative %!in% destZdiAlts ~ 0,
+    variable == "originZDI" & alternative %!in% originZdiAlts ~ 0,
+    variable == "CBD" & alternative %!in% cbdAlts ~ 0,
+    variable == "shortDrive" & alternative %!in% shortDriveAlts ~0,
+    TRUE ~ value
+  ))
+```
+
+Now, since there were two transfer values in the original dataset (one for drive transit and one for walk transit), we grab the walk transit values and replace them with the incorrect drive transit values for the walk_transit and bike_transit alternatives. 
+
+```{r}
+##create a data table that holds the updated values that correspond to walk & bike
+transferwt <- mtc2012 %>%
+  filter(Variable == "transfer_number_walk_transit") %>%
+  mutate(variable = "transfer", alternative = list(c(2,9))) %>% unnest(alternative) %>% pivot_longer(!c(variable,Variable, alternative), names_to = "latentClass", values_to = "value")
+
+path_coeff$value[which(path_coeff$variable == "transfer" & path_coeff$alternative %in% c(2,9))] <- transferwt$value
+```
+
+There were also two CBD values and 3 ZTI values that we need to grab from the original dataset.
+```{r}
+cbdwt <- mtc2012 %>%
+  filter(Variable == "cbd_dest_walk_transit") %>%
+  mutate(variable = "CBD", alternative = list(c(2,9))) %>% unnest(alternative) %>% pivot_longer(!c(variable,Variable, alternative), names_to = "latentClass", values_to = "value")
+
+path_coeff$value[which(path_coeff$variable == "CBD" & path_coeff$alternative %in% c(2,9))] <- cbdwt$value
+```
+
+```{r}
+zti_bike <- mtc2012 %>%
+  filter(Variable == "zti_bike") %>%
+  mutate(variable = "ZTI", alternative = list(c(1))) %>%
+unnest(alternative) %>% pivot_longer(!c(variable,Variable, alternative), names_to = "latentClass", values_to = "value")
+
+zti_trans <- mtc2012 %>%
+  filter(Variable == "zti_transit") %>%
+  mutate(variable = "ZTI", alternative = list(c(2,4,7,9))) %>%
+unnest(alternative) %>% pivot_longer(!c(variable,Variable, alternative), names_to = "latentClass", values_to = "value")
+
+path_coeff$value[which(path_coeff$variable == "ZTI" & path_coeff$alternative %in% c(1))] <- zti_bike$value
+path_coeff$value[which(path_coeff$variable == "ZTI" & path_coeff$alternative %in% c(2,4,7,9))] <- zti_trans$value
+```
+
+Finally, to check our work, we change the number assignment to the correct string for the alternative types. 
+```{r}
+# replace numeric representation of alternatives with actual string values
+path_cf <- path_coeff %>% mutate(alternative = as.factor(alternative))
+levels(path_cf$alternative)= alts
+paged_table(path_cf)
+#write_csv(path_cf,"test.csv")
+```
+
+## Complete File
+First, lets create a few vectors that specify the variable types.
+```{r}
+path_variables <- c("vehicleTime","waitTime","egressTime","transfer","shortWalkDist","longWalkDist","shortBikeDist","longBikeDist","originCloseToTransit","originFarFromTransit","destCloseToTransit","destFarFromTransit","shortDrive")
+person_variables <- c("ascAutoDeficient","ascAutoSufficient","ascNoAuto","cost","age1619","age010")
+location_variables <- c("ZTI","destZDI","originZDI","CBD")
+
+asim_vars <- c("vehicleTime","waitTime","egressTime","originCloseToTransit","originFarFromTransit","destCloseToTransit","destFarFromTransit","transfer","shortWalkDist","longWalkDist","shortBikeDist","longBikeDist","cost","ZTI","destZDI","originZDI","age1619","age010","shortDrive","CBD","ascNoAuto","ascAutoDeficient","ascAutoSufficient")
+```
+
+Lets combine all the file parts into one file, and print it to a csv!
+```{r}
+asim_long <- rbind(asim_asc_complete,path_cf) %>%
+  arrange(factor(variable, levels = asim_vars),alternative,factor(latentClass, levels = purps)) %>%
+  mutate(
+    model = "modeChoice", 
+    value = ifelse(variable %in% path_variables | variable == "cost",value*2,value),
+    tourType = case_when(
+      variable %in% path_variables ~ "Path",
+      variable %in% person_variables ~ "Person",
+      variable %in% location_variables ~ "Location"
+    ),
+    units = case_when(
+      grepl("asc",variable) ~ "util",
+      grepl("Time",variable) ~ "util/min",
+      grepl("Dist",variable) ~ "util/mile",
+      variable == "cost" ~ "util/min", # this isn't the complete cost coef, but simply the ivtt value. The complete cost coef is determined in BEAM using the individual's VOT
+      variable == "transfer" ~ "util",
+      TRUE ~ "util"
+    )) %>%
+  select(model,tourType,variable,alternative,units,latentClass,value) %>%
+  filter(variable != "ZTI")
+paged_table(asim_long)
+
+write_csv(asim_long,"asim-long-R.csv")
+```
+
