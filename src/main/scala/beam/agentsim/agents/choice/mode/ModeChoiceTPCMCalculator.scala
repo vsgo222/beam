@@ -80,12 +80,12 @@ class ModeChoiceTPCMCalculator(
     }
   }
 
-  def getDistance(
+  def getWalkDistance(
     mode: BeamMode,
     altAndIdx: (EmbodiedBeamTrip, Int)
   ): Double = {
     mode match {
-      case BIKE | WALK =>
+      case WALK =>
         var distance = 0.0
         altAndIdx._1.legs.foreach{ leg =>
           distance = distance + leg.beamLeg.travelPath.distanceInM
@@ -94,7 +94,22 @@ class ModeChoiceTPCMCalculator(
       case _ =>
         0
     }
+  }
 
+  def getBikeDistance(
+    mode: BeamMode,
+    altAndIdx: (EmbodiedBeamTrip, Int)
+  ): Double = {
+    mode match {
+      case BIKE =>
+        var distance = 0.0
+        altAndIdx._1.legs.foreach{ leg =>
+          distance = distance + leg.beamLeg.travelPath.distanceInM
+        }
+        distance * 0.000621371 //convert from meters to miles
+      case _ =>
+        0
+    }
   }
 
   def getIVTTMode(

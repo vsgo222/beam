@@ -71,7 +71,10 @@ class ModeChoiceTPCM(
           alt.vehicleTime,
           alt.waitTime,
           alt.numTransfers,
-          alt.occupancyLevel
+          if (alt.walkDistance <= 1.5) {alt.walkDistance} else {0.0},
+          if (alt.walkDistance > 1.5)  {alt.walkDistance} else {0.0},
+          if (alt.bikeDistance <= 1.5) {alt.bikeDistance} else {0.0},
+          if (alt.bikeDistance > 1.5)  {alt.bikeDistance} else {0.0}
         )
         (alt.mode, theParams)
       }.toMap
@@ -100,14 +103,20 @@ class ModeChoiceTPCM(
     vehicleTime: Double,
     waitTime: Double,
     numTransfers: Double,
-    transitOccupancy: Double
+    shortWalkDist: Double,
+    longWalkDist: Double,
+    shortBikeDist: Double,
+    longBikeDist: Double
   ) = {
     Map(
       "cost"                  -> cost,
       "vehicleTime"           -> vehicleTime,
       "waitTime"              -> waitTime,
       "transfer"              -> numTransfers.toDouble,
-      "transitOccupancy"      -> transitOccupancy
+      "shortWalkDist"         -> shortWalkDist,
+      "longWalkDist"          -> longWalkDist,
+      "shortBikeDist"         -> shortBikeDist,
+      "longBikeDist"          -> longBikeDist
     )
   }
 
@@ -133,7 +142,8 @@ class ModeChoiceTPCM(
           val numTransfers = TPCMCalculator.getNumTransfers(mode, altAndIdx)
           assert(numTransfers >= 0)
         //determine distance for walk or bike modes
-          val walkBikeDistance = TPCMCalculator.getDistance(mode, altAndIdx)
+          val walkDistance = TPCMCalculator.getWalkDistance(mode, altAndIdx)
+          val bikeDistance = TPCMCalculator.getBikeDistance(mode, altAndIdx)
         //determine percentile, occupancy level, and embodied trip value
           val percentile = beamConfig.beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.transit_crowding_percentile
           val occupancyLevel = transitCrowding.getTransitOccupancyLevelForPercentile(altAndIdx._1, percentile)
@@ -147,7 +157,8 @@ class ModeChoiceTPCM(
           waitTime,
           bikeTime,
           numTransfers,
-          occupancyLevel,
+          walkDistance,
+          bikeDistance,
           totalCost.toDouble,
           altAndIdx._2
         )
@@ -192,11 +203,15 @@ class ModeChoiceTPCM(
     tourPurpose: String
   ): Double = {
     val beamTrip = mcd.embodiedBeamTrip
-    val theParams = attributes(1.0,
+    val theParams = attributes(
       mcd.cost,
-      mcd.walkTime + mcd.bikeTime + mcd.vehicleTime + mcd.waitTime,
+      mcd.vehicleTime,
+      mcd.waitTime,
       mcd.numTransfers,
-      mcd.occupancyLevel
+      if (mcd.walkDistance <= 1.5) {mcd.walkDistance} else {0.0},
+      if (mcd.walkDistance > 1.5) {mcd.walkDistance} else {0.0},
+      if (mcd.bikeDistance <= 1.5) {mcd.bikeDistance} else {0.0},
+      if (mcd.bikeDistance > 1.5) {mcd.bikeDistance} else {0.0}
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(Mandatory)(tourPurpose)
     model.getUtilityOfAlternative(beamTrip, theParams).getOrElse(0)
@@ -210,11 +225,12 @@ class ModeChoiceTPCM(
     numTransfers: Int = 0,
     transitOccupancyLevel: Double
   ): Double = {
-    val theParams = attributes(1.0,
+    val theParams = attributes(
       cost,
-      time,
+      time,//fix this
+      time,//fix this
       numTransfers,
-      transitOccupancyLevel
+      0,0,0,0 //fix this
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(Mandatory)(tourPurpose)
     modeModel.getUtilityOfAlternative(mode, theParams).getOrElse(0)
@@ -252,7 +268,8 @@ class ModeChoiceTPCM(
     waitTime: Double,
     bikeTime: Double,
     numTransfers: Double,
-    occupancyLevel: Double,
+    walkDistance: Double,
+    bikeDistance: Double,
     cost: Double,
     index: Int = -1
   )
