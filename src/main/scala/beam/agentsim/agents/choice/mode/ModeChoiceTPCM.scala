@@ -70,6 +70,7 @@ class ModeChoiceTPCM(
           alt.cost,
           alt.vehicleTime,
           alt.waitTime,
+          alt.egressTime,
           alt.numTransfers,
           if (alt.walkDistance <= 1.5) {alt.walkDistance} else {0.0},
           if (alt.walkDistance > 1.5)  {alt.walkDistance} else {0.0},
@@ -102,6 +103,7 @@ class ModeChoiceTPCM(
     cost: Double,
     vehicleTime: Double,
     waitTime: Double,
+    egressTime: Double,
     numTransfers: Double,
     shortWalkDist: Double,
     longWalkDist: Double,
@@ -112,6 +114,7 @@ class ModeChoiceTPCM(
       "cost"                  -> cost,
       "vehicleTime"           -> vehicleTime,
       "waitTime"              -> waitTime,
+      "egressTime"            -> egressTime,
       "transfer"              -> numTransfers.toDouble,
       "shortWalkDist"         -> shortWalkDist,
       "longWalkDist"          -> longWalkDist,
@@ -134,10 +137,11 @@ class ModeChoiceTPCM(
           //val ivttMode = TPCMCalculator.getIVTTMode(mode, altAndIdx)
           val totalCost = TPCMCalculator.getTotalCost(mode, altAndIdx, transitFareDefaults)
         //TODO verify wait time is correct, look at transit and ride_hail in particular
-          val vehicleTime = TPCMCalculator.getVehicleTime(altAndIdx)
+          val egressTime = if (mode.value == "drive_transit") {TPCMCalculator.getEgressTime(altAndIdx)} else {0.0}
+          val vehicleTime = TPCMCalculator.getVehicleTime(altAndIdx) - egressTime
           val walkTime = TPCMCalculator.getWalkTime(altAndIdx)
           val bikeTime = TPCMCalculator.getBikeTime(altAndIdx)
-          val waitTime = TPCMCalculator.getWaitTime(altAndIdx, walkTime, vehicleTime)
+          val waitTime = TPCMCalculator.getWaitTime(altAndIdx, walkTime, vehicleTime, egressTime)
         //TODO verify number of transfers is correct
           val numTransfers = TPCMCalculator.getNumTransfers(mode, altAndIdx)
           assert(numTransfers >= 0)
@@ -156,6 +160,7 @@ class ModeChoiceTPCM(
           walkTime,
           waitTime,
           bikeTime,
+          egressTime,
           numTransfers,
           walkDistance,
           bikeDistance,
@@ -207,6 +212,7 @@ class ModeChoiceTPCM(
       mcd.cost,
       mcd.vehicleTime,
       mcd.waitTime,
+      mcd.egressTime,
       mcd.numTransfers,
       if (mcd.walkDistance <= 1.5) {mcd.walkDistance} else {0.0},
       if (mcd.walkDistance > 1.5) {mcd.walkDistance} else {0.0},
@@ -227,6 +233,7 @@ class ModeChoiceTPCM(
   ): Double = {
     val theParams = attributes(
       cost,
+      time,//fix this
       time,//fix this
       time,//fix this
       numTransfers,
@@ -267,6 +274,7 @@ class ModeChoiceTPCM(
     walkTime: Double,
     waitTime: Double,
     bikeTime: Double,
+    egressTime: Double,
     numTransfers: Double,
     walkDistance: Double,
     bikeDistance: Double,

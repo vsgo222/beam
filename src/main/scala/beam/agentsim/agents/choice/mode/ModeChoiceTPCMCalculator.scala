@@ -11,7 +11,6 @@ import com.conveyal.r5.api.util.TransitModes
 class ModeChoiceTPCMCalculator(
   beamServices: BeamServices
 ) {
-
   val transitModes = Seq(BUS, FUNICULAR, GONDOLA, CABLE_CAR, FERRY, TRAM, TRANSIT, RAIL, SUBWAY)
   val massTransitModes: List[BeamMode] = List(FERRY, TRANSIT, RAIL, SUBWAY, TRAM)
 
@@ -44,6 +43,14 @@ class ModeChoiceTPCMCalculator(
       .sum
   }
 
+
+  def getEgressTime(altAndIdx: (EmbodiedBeamTrip, Int)): Double = {
+    altAndIdx._1.legs.view
+      .filter(_.beamLeg.mode == CAR)
+      .map(_.beamLeg.duration)
+      .sum
+  }
+
   def getVehicleTime(altAndIdx: (EmbodiedBeamTrip, Int)): Double = {
     altAndIdx._1.legs.view
       .filter(_.beamLeg.mode != WALK)
@@ -55,9 +62,10 @@ class ModeChoiceTPCMCalculator(
   def getWaitTime(
     altAndIdx: (EmbodiedBeamTrip, Int),
     walkTime: Double,
-    vehicleTime: Double
+    vehicleTime: Double,
+    egressTime: Double
   ): Double = {
-    altAndIdx._1.totalTravelTimeInSecs - walkTime - vehicleTime
+    altAndIdx._1.totalTravelTimeInSecs - walkTime - vehicleTime - egressTime
   }
 
   def getNumTransfers(
