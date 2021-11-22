@@ -89,12 +89,12 @@ class ModeChoiceTPCM(
           if (alt.bikeDistance <= 1.5) {alt.bikeDistance} else {0.0},
           if (alt.bikeDistance > 1.5)  {alt.bikeDistance} else {0.0},
           alt.cost * 60 / vot, // the cost utility values in the csv are actually vehicleTime values, and this conversion creates the cost coefficient
-          0.0,
-          0.0,
+          alt.destZDI,
+          alt.originZDI,
           if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
           if (age <= 10.0)                {age} else {0.0},
           alt.dtDistance,
-          0.0,
+          alt.destCBD,
           if (autoWork.equals("no_auto"))         {1.0} else {0.0},
           if (autoWork.equals("auto_deficient"))  {1.0} else {0.0},
           if (autoWork.equals("auto_sufficient")) {1.0} else {0.0}
@@ -204,8 +204,9 @@ class ModeChoiceTPCM(
         //determine proximity to transit
           val originTransitProximity = TPCMCalculator.getOriginTransitProximity(mode, altAndIdx)
           val destTransitProximity = TPCMCalculator.getDestTransitProximity(mode, altAndIdx)
-          val originTAZ = TPCMCalculator.getOriginTAZ(altAndIdx, beamConfig)
-          val originCBD = TPCMCalculator.getOriginCBD(originTAZ)
+          val (originTAZ, destTAZ) = TPCMCalculator.getTAZs(altAndIdx, beamConfig)
+          val (originZDI, destZDI) = TPCMCalculator.getZDIs(originTAZ, destTAZ)
+          val destCBD = TPCMCalculator.getCBD(destTAZ)
         //determine percentile, occupancy level, and embodied trip value
           val percentile = beamConfig.beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.transit_crowding_percentile
           val occupancyLevel = transitCrowding.getTransitOccupancyLevelForPercentile(altAndIdx._1, percentile)
@@ -225,6 +226,9 @@ class ModeChoiceTPCM(
           bikeDistance,
           bikeTime,
           dtDistance,
+          destZDI,
+          originZDI,
+          destCBD,
           totalCost,
           altAndIdx._2
         )
@@ -289,12 +293,12 @@ class ModeChoiceTPCM(
       if (mcd.bikeDistance <= 1.5) {mcd.bikeDistance} else {0.0},
       if (mcd.bikeDistance > 1.5) {mcd.bikeDistance} else {0.0},
       mcd.cost * 60 / vot,
-      0.0,
-      0.0,
+      mcd.destZDI,
+      mcd.originZDI,
       if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
       if (age <= 10.0)                {age} else {0.0},
-      0.0,
-      0.0,
+      mcd.dtDistance,
+      mcd.destCBD,
       if (autoWork.equals("no_auto"))         {1.0} else {0.0},
       if (autoWork.equals("auto_deficient"))  {1.0} else {0.0},
       if (autoWork.equals("auto_sufficient")) {1.0} else {0.0}
@@ -369,6 +373,9 @@ class ModeChoiceTPCM(
     bikeDistance: Double,
     bikeTime: Double,
     dtDistance: Double,
+    destZDI: Double,
+    originZDI: Double,
+    destCBD: Double,
     cost: Double,
     index: Int = -1
   )
