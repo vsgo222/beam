@@ -34,7 +34,7 @@ apply plugin: 'scala'
 apply plugin: 'maven-publish'
 
 apply plugin: 'idea'
-apply plugin: 'kr.motd.sphinx'
+//apply plugin: 'kr.motd.sphinx'
 
 apply plugin: 'application'
 apply plugin: 'ManifestClasspath'
@@ -151,7 +151,7 @@ dependencies {
     implementation group: 'com.univocity', name: 'univocity-parsers', version: '2.9.1'
 
     //Google CLI Arg parser
-    //implementation group: 'com.github.pcj', name: 'google-options', version: '1.0.0'
+    implementation group: 'com.github.pcj', name: 'google-options', version: '1.0.0'
 
     // LGPL
     implementation group: 'org.geotools', name: 'gt-main', version: '14.5'
@@ -393,7 +393,7 @@ shadowJar{
 // You can run it with a number of threads: ./gradlew spec -PnumThreads=4
 task spec(dependsOn: ['testClasses'], type: JavaExec) {
     def n = project.hasProperty('numThreads') ? numThreads : 4
-    main = 'org.scalatest.tools.Runner'
+    'org.scalatest.tools.Runner'
     args = ['-R', 'build/classes/scala/test', '-h', 'build/scalatest-report', '-oD', '-l', 'beam.tags.ExcludeRegular',
             "-PS$n", '-T', '120']
     classpath = sourceSets.test.runtimeClasspath
@@ -415,13 +415,13 @@ processTestResources {
 }
 
 task taggedTest(dependsOn: ['testClasses'], type: JavaExec) {
-    main = 'org.scalatest.tools.Runner'
+    'org.scalatest.tools.Runner'
     args = ['-R', 'build/classes/scala/test', '-o', '-n'] << (project.findProperty('tags') ?: 'org.scalatest.Ignore')
     classpath = sourceSets.test.runtimeClasspath
 }
 
 task specificTest(dependsOn: ['testClasses'], type: JavaExec) {
-    main = 'org.scalatest.tools.Runner'
+    'org.scalatest.tools.Runner'
     args = ['-R', 'build/classes/scala/test', '-o', '-s'] << (project.findProperty('suite') ?: 'org.scalatest.Ignore')
     classpath = sourceSets.test.runtimeClasspath
 }
@@ -431,7 +431,7 @@ task specificTest(dependsOn: ['testClasses'], type: JavaExec) {
 // ./gradlew  periodicTest -Pconfig=test/input/sf-light/sf-light-1k.conf -Piterations=1
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 task periodicTest(dependsOn: ['testClasses'], type: JavaExec) {
-    main = 'org.scalatest.tools.Runner'
+    'org.scalatest.tools.Runner'
     args = ['-R', 'build/classes/scala/test', '-o', '-n', 'beam.tags.Periodic'] <<
             (project.hasProperty('config') ? '-Dconfig=' + project.findProperty('config') :
                     (project.hasProperty('iterations') ? '-Diterations=' + project.findProperty('iterations') : '')) <<
@@ -490,7 +490,7 @@ generateConfig.finalizedBy(copyConfigWithoutTimeStamp)
 copyConfigWithoutTimeStamp.finalizedBy(removeTempConfig)
 
 task repl(type: JavaExec) {
-    main = "scala.tools.nsc.MainGenericRunner"
+    "scala.tools.nsc.MainGenericRunner"
     classpath = sourceSets.main.runtimeClasspath
     standardInput System.in
     args '-usejavacp'
@@ -614,7 +614,7 @@ task execute(type: JavaExec) {
 
 
 task matsimConversion(type: JavaExec) {
-    main = 'beam.utils.matsim_conversion.MatsimConversionTool'
+    'beam.utils.matsim_conversion.MatsimConversionTool'
     classpath = sourceSets.main.runtimeClasspath
     environment "PWD", "na"
     if (project.hasProperty("confPath")) {
@@ -628,7 +628,7 @@ task generateDocumentation(type: JavaExec) {
     group 'Documentation'
     description 'Format the data using Sphinx RST formats'
 
-    main = 'beam.docs.GenerateDocumentationTask'
+    'beam.docs.GenerateDocumentationTask'
     classpath = sourceSets.main.runtimeClasspath
 }
 
