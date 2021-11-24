@@ -21,7 +21,7 @@ object WgsCoordinate {
   }
 
   private val geoUtilsUtm: GeoUtils = new GeoUtils {
-    override def localCRS: String = "epsg:4326"
+    override def localCRS: String = "epsg:26912"
   }
 
   def fromUtm(longitude: Double, latitude: Double): WgsCoordinate = {
