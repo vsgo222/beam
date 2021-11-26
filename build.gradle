@@ -377,7 +377,7 @@ mainClassName = 'beam.sim.RunBeam'
 //mainClassName = 'beam.analysis.tscore.WavHandlersRunner'
 
 shadowJar{
-    archiveBaseName.set('beam-2021-11-06')
+    archiveBaseName.set(mainClassName)
     archiveClassifier.set('')
     archiveVersion.set('')
 
