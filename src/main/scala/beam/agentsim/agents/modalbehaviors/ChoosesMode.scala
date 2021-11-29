@@ -1481,7 +1481,7 @@ trait ChoosesMode {
         income = attributes.income.get
         vehOwnership = matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString
       }
-    }
+
 
     val chosenMode = chosenTrip.tripClassifier.value
     val modeChoiceEvent = new ModeChoiceEvent(
@@ -1490,14 +1490,17 @@ trait ChoosesMode {
       chosenMode,
       data.personData.currentTourMode.map(_.value).getOrElse(""),
       data.expectedMaxUtilityOfLatestChoice.getOrElse[Double](Double.NaN),
+      income,
       _experiencedBeamPlan
         .activities(data.personData.currentActivityIndex)
         .getLinkId
         .toString,
       data.availableAlternatives.get,
       data.availablePersonalStreetVehicles.nonEmpty,
+      vehOwnership,
       chosenTrip.legs.view.map(_.beamLeg.travelPath.distanceInM).sum,
       _experiencedBeamPlan.tourIndexOfElement(nextActivity(data.personData).get),
+      tourPurpose,
       chosenTrip
     )
     eventsManager.processEvent(modeChoiceEvent)
