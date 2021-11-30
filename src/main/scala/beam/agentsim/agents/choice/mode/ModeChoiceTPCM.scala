@@ -33,7 +33,8 @@ import scala.collection.mutable.ListBuffer
       *  shortWalkDist, longWalkDist, shortBikeDist, longBikeDist, shortDrive
   *  Person Variables:
       *  cost
-      *  age1619, age010
+      *  age1619, age010, age16P
+      *  hhSize1, hhSize2
       *  ascNoAuto, ascAutoDeficient, ascAutoSufficient
   *  Location Variables:
       *  destZDI, originZDI
@@ -64,10 +65,11 @@ class ModeChoiceTPCM(
   ): Option[EmbodiedBeamTrip] = {
     // get person attributes from the person object to determine utility coefficients later on
       val age = attributesOfIndividual.age.get.asInstanceOf[Double]
+      val hhSize = person.get.getAttributes.getAttribute("hhSize").asInstanceOf[Double]
       val vot = person.get.getAttributes.getAttribute("vot").asInstanceOf[Double]
       val autoWork = person.get.getAttributes.getAttribute("autoWorkRatio").toString
     // pass tour alternatives, tour purpose, and person attributes to choice model
-    choose(alternatives, tourPurpose, autoWork, age, vot)
+    choose(alternatives, tourPurpose, autoWork, age, hhSize, vot)
   }
 
   private def choose(
@@ -75,6 +77,7 @@ class ModeChoiceTPCM(
     purpose: String,
     autoWork: String,
     age: Double,
+    hhSize: Double,
     vot: Double
   ): Option[EmbodiedBeamTrip] = {
     if (alternatives.isEmpty) {
@@ -99,8 +102,11 @@ class ModeChoiceTPCM(
           alt.cost * 60 / vot, // the cost utility values in the csv are actually vehicleTime values, and this conversion creates the cost coefficient
           alt.destZDI,
           alt.originZDI,
-          if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
+          if (age >= 16.0 & age <= 19.0)  {age} else {0.0}, // is it age, or 1.0? (is this value a coeff or const?)
           if (age <= 10.0)                {age} else {0.0},
+          if (age >= 16.0)                {age} else {0.0},
+          if (hhSize == 1.0)              {hhSize} else {0.0}, // is it hhSize, or 1.0? (is this value a coeff or const?)
+          if (hhSize == 2.0)              {hhSize} else {0.0},
           alt.dtDistance,
           alt.destCBD,
           if (autoWork.equals("no_auto"))         {1.0} else {0.0},
@@ -148,6 +154,9 @@ class ModeChoiceTPCM(
     originZDI: Double,
     age1619: Double,
     age010: Double,
+    age16P: Double,
+    hhSize1: Double,
+    hhSize2: Double,
     shortDrive: Double,
     CBD: Double,
     ascNoAuto: Double,
@@ -172,6 +181,9 @@ class ModeChoiceTPCM(
       "originZDI"             -> originZDI,
       "age1619"               -> age1619,
       "age010"                -> age010,
+      "age16P"                -> age16P,
+      "hhSize1"               -> hhSize1,
+      "hhSize2"               -> hhSize2,
       "shortDrive"            -> shortDrive,
       "CBD"                   -> CBD,
       "ascNoAuto"             -> ascNoAuto,
@@ -286,6 +298,7 @@ class ModeChoiceTPCM(
     val autoWork = person.getAttributes.getAttribute("autoWorkRatio").toString
     val vot = person.getAttributes.getAttribute("vot").asInstanceOf[Double]
     val age = person.getAttributes.getAttribute("age").asInstanceOf[Int].asInstanceOf[Double]
+    val hhSize = person.getAttributes.getAttribute("hhSize").asInstanceOf[Double]
     val theParams = attributes(
       mcd.vehicleTime,
       mcd.waitTime,
@@ -304,6 +317,9 @@ class ModeChoiceTPCM(
       mcd.originZDI,
       if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
       if (age <= 10.0)                {age} else {0.0},
+      if (age >= 16.0)                {age} else {0.0},
+      if (hhSize == 1.0)              {hhSize} else {0.0},
+      if (hhSize == 2.0)              {hhSize} else {0.0},
       mcd.dtDistance,
       mcd.destCBD,
       if (autoWork.equals("no_auto"))         {1.0} else {0.0},
@@ -332,7 +348,8 @@ class ModeChoiceTPCM(
       0,0,0,0, //fix walk-bike-dist
       cost,
       0,0, // fix ZTI & ZDI
-      0,0, // fix age
+      0,0,0, // fix age
+      0,0, // fix hhSize
       0,0, // fix drive-dist and CBD
       0,0,0//fix ascAuto
 
