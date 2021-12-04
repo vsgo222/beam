@@ -1475,15 +1475,11 @@ trait ChoosesMode {
         )
     }
 
-      var (tourPurpose, income, vehOwnership) = ("None", 0.0, "None")
-      if ("ModeChoiceTourPurpose".equals(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
-        tourPurpose = getTourPurpose(data.personData)
-        income = attributes.income.get
-        vehOwnership = matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString
-      }
-
-
+    val tourPurpose = getTourPurpose(data.personData)
+    val income = attributes.income.get
+    val vehOwnership = matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString
     val chosenMode = chosenTrip.tripClassifier.value
+
     val modeChoiceEvent = new ModeChoiceEvent(
       tick,
       id,
