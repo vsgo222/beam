@@ -33,7 +33,7 @@ class ModeChoiceTPCMCalculator(
   private val locData: Seq[locationData] = parseLocationData(
     beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.tpcmLoc.filePath
   )
-  val ct: CoordinateTransformation = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, "epsg:26912")
+  val ct: CoordinateTransformation = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, "epsg:26910")
 
   def getTotalCost(
     mode: BeamMode,
