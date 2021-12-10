@@ -20,7 +20,7 @@ import beam.agentsim.scheduler.BeamAgentScheduler.{CompletionNotice, ScheduleTri
 import beam.router.BeamRouter._
 import beam.router.Modes.BeamMode
 import beam.router.Modes.BeamMode.{WALK, _}
-import beam.router.model.{BeamLeg, EmbodiedBeamLeg, EmbodiedBeamTrip}
+import beam.router.model.{BeamLeg, BeamPath, EmbodiedBeamLeg, EmbodiedBeamTrip}
 import beam.router.{Modes, RoutingWorker}
 import beam.sim.population.AttributesOfIndividual
 import beam.sim.{BeamServices, Geofence}
@@ -1203,6 +1203,42 @@ trait ChoosesMode {
     tourPurp
   }
 
+  def convertToHOV(chosenTrip: EmbodiedBeamTrip): Option[EmbodiedBeamTrip] = {
+    val firstTrip = chosenTrip.legs.head
+    val lastTrip = chosenTrip.legs(chosenTrip.legs.length - 1)
+      var mode = CAR_HOV2
+      //if (chosenTrip.tripClassifier.value == "car_hov3") {mode = CAR_HOV3} else mode = CAR_HOV2
+      val leg1 = chosenTrip.legs(1).beamLeg
+      val path1 = leg1.travelPath
+      val leg2 = chosenTrip.legs(2).beamLeg
+      val path2 = leg2.travelPath
+      val teleportVehicle = createSharedTeleportationVehicle(chosenTrip.legs(1).beamLeg.travelPath.startPoint)
+      //beamVehicles.put(teleportVehicle.id,ActualVehicle(teleportVehicle))
+      val totalTravelTime1 = math.round((path1.linkTravelTime ++ path2.linkTravelTime).tail.sum).toInt
+      val totalTravelTime2 = path2.endPoint.time - path1.startPoint.time
+    val teleportationTrip = EmbodiedBeamLeg(
+      BeamLeg(
+        leg1.startTime,
+        mode,
+        leg1.duration + leg2.duration,
+        BeamPath(
+          path1.linkIds ++ path2.linkIds,
+          path1.linkTravelTime ++ path2.linkTravelTime,
+          path1.transitStops,
+          path1.startPoint,
+          path2.endPoint,
+          path1.distanceInM + path2.distanceInM
+        )
+      ),
+      teleportVehicle.id,
+      teleportVehicle.beamVehicleType.id,
+      true, // should this be false?
+      chosenTrip.legs(1).cost + chosenTrip.legs(2).cost,
+      true
+    )
+    Some(EmbodiedBeamTrip(IndexedSeq(firstTrip,teleportationTrip,lastTrip)))
+  }
+
   def completeChoiceIfReady: PartialFunction[State, State] = {
     case FSM.State(
           _,
@@ -1329,11 +1365,15 @@ trait ChoosesMode {
           .asInstanceOf[AttributesOfIndividual]
       val availableAlts = Some(filteredItinerariesForChoice.map(_.tripClassifier).mkString(":"))
 
+//      var zMode = filteredItinerariesForChoice.map(_.tripClassifier.value).toArray.head
+//      zMode = "chum"
+
       var tourPurpose = "None"
       if ("ModeChoiceTourPurpose".equals(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
         tourPurpose = getTourPurpose(choosesModeData.personData)
         logger.warn("The current tour purpose is " + tourPurpose)
       }
+
       modeChoiceCalculator(
         filteredItinerariesForChoice,
         attributesOfIndividual,
@@ -1342,10 +1382,20 @@ trait ChoosesMode {
         tourPurpose
       ) match {
         case Some(chosenTrip) =>
-          val dataForNextStep = choosesModeData.copy(
+          var dataForNextStep = choosesModeData.copy(
             pendingChosenTrip = Some(chosenTrip),
             availableAlternatives = availableAlts
           )
+          if (chosenTrip.tripClassifier.value == "car_hov2" || chosenTrip.tripClassifier.value == "car_hov3") {
+            val newTrip = convertToHOV(chosenTrip).get
+            dataForNextStep = choosesModeData.copy(
+              pendingChosenTrip = Some(newTrip),
+              personData = personData.copy(currentTourMode = Some(HOV2_TELEPORTATION)),
+              parkingResponses = Map(),
+              parkingRequestIds = Map(),
+              availableAlternatives = Some("HOV2_TELEPORTATION")
+            )
+          }
           goto(FinishingModeChoice) using dataForNextStep
         case None =>
           choosesModeData.personData.currentTourMode match {
