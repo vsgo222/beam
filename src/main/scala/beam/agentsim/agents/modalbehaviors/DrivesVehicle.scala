@@ -475,8 +475,8 @@ trait DrivesVehicle[T <: DrivingData] extends BeamAgent[T] with Stash with Expon
       case bpd: BasePersonData =>
         (bpd.currentTourMode, currentLeg.mode) match {
           // can't directly check HOV2/3 because the equals in BeamMode is overridden
-          case (Some(mode @ BeamMode.CAR), BeamMode.CAR) if mode.value == BeamMode.CAR_HOV2.value => riders.size + 1
-          case (Some(mode @ BeamMode.CAR), BeamMode.CAR) if mode.value == BeamMode.CAR_HOV3.value => riders.size + 2
+          case (Some(mode @ BeamMode.HOV2), BeamMode.HOV2) if mode.value == BeamMode.HOV2.value => riders.size + 1
+          case (Some(mode @ BeamMode.HOV3), BeamMode.HOV3) if mode.value == BeamMode.HOV3.value => riders.size + 2
           case _                                                                                  => riders.size
         }
       case _ => riders.size

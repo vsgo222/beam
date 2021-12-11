@@ -28,7 +28,7 @@ class ScenarioAdjuster(val urbansim: Beam.Urbansim, val population: Population, 
       urbansim.fractionOfModesToClear.bike,
       seed
     )
-    Seq(BeamMode.CAR, BeamMode.CAR_HOV2, BeamMode.CAR_HOV3).foreach { mode =>
+    Seq(BeamMode.CAR, BeamMode.HOV2, BeamMode.HOV3).foreach { mode =>
       clearModes(
         persons,
         mode.value,

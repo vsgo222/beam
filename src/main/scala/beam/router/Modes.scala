@@ -1,6 +1,6 @@
 package beam.router
 
-import beam.router.Modes.BeamMode.{BIKE, CAR, CAR_HOV2, CAR_HOV3, CAV, WALK}
+import beam.router.Modes.BeamMode.{BIKE, CAR, HOV2, HOV3, CAV, WALK}
 import com.conveyal.r5.api.util.{LegMode, TransitModes}
 import com.conveyal.r5.profile.StreetMode
 import enumeratum.values._
@@ -40,8 +40,8 @@ object Modes {
 
     def isCar(stringMode: String): Boolean =
       stringMode.equalsIgnoreCase(CAR.value) ||
-      stringMode.equalsIgnoreCase(CAR_HOV2.value) ||
-      stringMode.equalsIgnoreCase(CAR_HOV3.value)
+      stringMode.equalsIgnoreCase(HOV2.value) ||
+      stringMode.equalsIgnoreCase(HOV3.value)
 
     override val values: immutable.IndexedSeq[BeamMode] = findValues
 
@@ -54,10 +54,10 @@ object Modes {
     case object CAR extends BeamMode(value = "car", Some(Left(LegMode.CAR)), TransportMode.car)
 
     // car with 1 guaranteed additional passenger
-    case object CAR_HOV2 extends BeamMode(value = "car_hov2", Some(Left(LegMode.CAR)), TransportMode.car)
+    case object HOV2 extends BeamMode(value = "hov2", Some(Left(LegMode.CAR)), TransportMode.car)
 
     // car with 2 guaranteed additional passengers
-    case object CAR_HOV3 extends BeamMode(value = "car_hov3", Some(Left(LegMode.CAR)), TransportMode.car)
+    case object HOV3 extends BeamMode(value = "hov3", Some(Left(LegMode.CAR)), TransportMode.car)
 
     case object CAV extends BeamMode(value = "cav", Some(Left(LegMode.CAR)), TransportMode.car)
 
@@ -121,7 +121,7 @@ object Modes {
           TransportMode.pt
         )
 
-    val chainBasedModes = Seq(CAR, BIKE)
+    val chainBasedModes = Seq(CAR,BIKE)
 
     val transitModes =
       Seq(BUS, FUNICULAR, GONDOLA, CABLE_CAR, FERRY, TRAM, TRANSIT, RAIL, SUBWAY)
@@ -141,6 +141,7 @@ object Modes {
         DRIVE_TRANSIT,
         WALK_TRANSIT,
         BIKE_TRANSIT,
+        HOV2, HOV3,
         HOV2_TELEPORTATION,
         HOV3_TELEPORTATION
       )
@@ -199,6 +200,8 @@ object Modes {
     case BIKE => StreetMode.BICYCLE
     case WALK => StreetMode.WALK
     case CAR  => StreetMode.CAR
+    case HOV2 => StreetMode.CAR
+    case HOV3 => StreetMode.CAR
     case CAV  => StreetMode.CAR
     case _    => throw new IllegalArgumentException
   }

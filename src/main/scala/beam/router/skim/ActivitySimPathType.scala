@@ -168,7 +168,7 @@ object ActivitySimPathType {
     case BeamMode.CAR | BeamMode.CAV | BeamMode.RIDE_HAIL | BeamMode.RIDE_HAIL_POOLED                      => false
     case BeamMode.FUNICULAR | BeamMode.GONDOLA | BeamMode.WALK | BeamMode.BIKE | BeamMode.BIKE_TRANSIT     => false
     case BeamMode.TRANSIT | BeamMode.WALK_TRANSIT | BeamMode.DRIVE_TRANSIT | BeamMode.RIDE_HAIL_TRANSIT    => false
-    case BeamMode.CAR_HOV2 | BeamMode.CAR_HOV3 | BeamMode.HOV2_TELEPORTATION | BeamMode.HOV3_TELEPORTATION => false
+    case BeamMode.HOV2 | BeamMode.HOV3 | BeamMode.HOV2_TELEPORTATION | BeamMode.HOV3_TELEPORTATION => false
   }
 
   private def isCar(beamMode: BeamMode): Boolean = beamMode match {

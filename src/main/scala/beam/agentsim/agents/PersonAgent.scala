@@ -35,6 +35,8 @@ import beam.agentsim.scheduler.{BeamAgentSchedulerTimer, Trigger}
 import beam.router.Modes.BeamMode
 import beam.router.Modes.BeamMode.{
   CAR,
+  HOV2,
+  HOV3,
   CAV,
   HOV2_TELEPORTATION,
   HOV3_TELEPORTATION,

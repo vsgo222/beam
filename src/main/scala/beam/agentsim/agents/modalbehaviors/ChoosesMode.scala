@@ -453,12 +453,12 @@ trait ChoosesMode {
           responsePlaceholders = makeResponsePlaceholders(withPrivateCAV = true)
         case Some(HOV2_TELEPORTATION) =>
           val vehicles = filterStreetVehiclesForQuery(newlyAvailableBeamVehicles.map(_.streetVehicle), CAR)
-            .map(car_vehicle => car_vehicle.copy(mode = CAR_HOV2))
+            .map(car_vehicle => car_vehicle.copy(mode = HOV2))
           makeRequestWith(withTransit = false, vehicles :+ bodyStreetVehicle)
           responsePlaceholders = makeResponsePlaceholders(withRouting = true)
         case Some(HOV3_TELEPORTATION) =>
           val vehicles = filterStreetVehiclesForQuery(newlyAvailableBeamVehicles.map(_.streetVehicle), CAR)
-            .map(car_vehicle => car_vehicle.copy(mode = CAR_HOV3))
+            .map(car_vehicle => car_vehicle.copy(mode = HOV3))
           makeRequestWith(withTransit = false, vehicles :+ bodyStreetVehicle)
           responsePlaceholders = makeResponsePlaceholders(withRouting = true)
         case Some(tourMode @ (CAR | BIKE)) =>
@@ -1195,10 +1195,10 @@ trait ChoosesMode {
       case Some(mode) if (mode.value == "car" && routingItineraries.map(_.tripClassifier).contains(CAR)) =>
         val carItin = routingItineraries.filter(_.tripClassifier.value == "car").head
           val (leg1, leg4) = (carItin.legs.head,carItin.legs.last)
-          val (leg2Hov2, leg3Hov2) = (carItin.legs(1).copy(carItin.legs(1).beamLeg.copy(mode = CAR_HOV2)),
-            carItin.legs(2).copy(carItin.legs(2).beamLeg.copy(mode = CAR_HOV2)))
-          val (leg2Hov3, leg3Hov3) = (carItin.legs(1).copy(carItin.legs(1).beamLeg.copy(mode = CAR_HOV3)),
-            carItin.legs(2).copy(carItin.legs(2).beamLeg.copy(mode = CAR_HOV3)))
+          val (leg2Hov2, leg3Hov2) = (carItin.legs(1).copy(carItin.legs(1).beamLeg.copy(mode = HOV2)),
+            carItin.legs(2).copy(carItin.legs(2).beamLeg.copy(mode = HOV2)))
+          val (leg2Hov3, leg3Hov3) = (carItin.legs(1).copy(carItin.legs(1).beamLeg.copy(mode = HOV3)),
+            carItin.legs(2).copy(carItin.legs(2).beamLeg.copy(mode = HOV3)))
         val carHov2Itin = carItin.copy(legs = IndexedSeq(leg1,leg2Hov2,leg3Hov2,leg4))
         val carHov3Itin = carItin.copy(legs = IndexedSeq(leg1,leg2Hov3,leg3Hov3,leg4))
         Seq(carHov2Itin,carHov3Itin)
@@ -1213,7 +1213,7 @@ trait ChoosesMode {
         //val teleportItin = routingItineraries.filter(_.tripClassifier.value.startsWith("hov"))
         Seq()
       case _ =>
-        //add case that if car_hov2 or car_hov3 adds the other hov car and also a normal car option
+        //add case that if hov2 or hov3 adds the other hov car and also a normal car option
         Seq()
     }
     //Seq(carHov2Itin,carHov3Itin)
@@ -1268,12 +1268,12 @@ trait ChoosesMode {
     choosesModeData: ChoosesModeData,
     availableAlts: Some[String]
   ): ChoosesModeData = {
-    val modeType = if(chosenTrip.tripClassifier.value =="car_hov2"){ CAR_HOV2 } else CAR_HOV3
+    val modeType = if(chosenTrip.tripClassifier.value =="hov2"){ HOV2 } else HOV3
     var (newTrip, dataForNextStep) = (chosenTrip, choosesModeData)
     val rand = new Random //instance of random class
     val double_random = rand.nextDouble
 
-    if (double_random <= .5 && chosenTrip.tripClassifier.value =="car_hov2"){ // double check the random assignment
+    if (double_random <= .5 && chosenTrip.tripClassifier.value =="hov2"){ // double check the random assignment
       newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(newTrip),
@@ -1282,7 +1282,7 @@ trait ChoosesMode {
         parkingRequestIds = Map(),
         availableAlternatives = Some("HOV2_TELEPORTATION")
       )
-    } else if ( double_random < .667 && chosenTrip.tripClassifier.value =="car_hov3") { // double check the random assignment
+    } else if ( double_random < .667 && chosenTrip.tripClassifier.value =="hov3") { // double check the random assignment
       newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(newTrip),
@@ -1415,8 +1415,12 @@ trait ChoosesMode {
           combinedItinerariesForChoice.filter(_.tripClassifier == HOV2_TELEPORTATION)
         case Some(HOV3_TELEPORTATION) =>
           combinedItinerariesForChoice.filter(_.tripClassifier == HOV3_TELEPORTATION)
-        case Some(mode) =>
-          combinedItinerariesForChoice.filter(_.tripClassifier == mode)
+        case Some(mode) if mode == CAR || mode == HOV2 || mode == HOV3 =>
+          combinedItinerariesForChoice.filter(trip =>
+            trip.tripClassifier == CAR || trip.tripClassifier == HOV2 || trip.tripClassifier == HOV3
+          )
+//        case Some(mode) =>
+//          combinedItinerariesForChoice.filter(_.tripClassifier == mode)
         case _ =>
           combinedItinerariesForChoice
       }).filter(itin => availableModesForTrips.contains(itin.tripClassifier))
@@ -1448,7 +1452,7 @@ trait ChoosesMode {
             pendingChosenTrip = Some(chosenTrip),
             availableAlternatives = availableAlts
           )
-//          if (chosenTrip.tripClassifier.value == "car_hov2" || chosenTrip.tripClassifier.value == "car_hov3") {
+//          if (chosenTrip.tripClassifier.value == "hov2" || chosenTrip.tripClassifier.value == "hov3") {
 //            dataForNextStep = createHovDataForNextStep (chosenTrip, choosesModeData, availableAlts)
 //          }
           goto(FinishingModeChoice) using dataForNextStep

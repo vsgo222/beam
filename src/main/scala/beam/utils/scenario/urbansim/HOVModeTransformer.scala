@@ -25,13 +25,13 @@ import scala.util.Random
   * However it is unknown who is a driver and who is passenger.
   * The transformation is done in several steps: <br>
   * 1) If it is impossible for a person to be a driver [[HOV2_TELEPORTATION]]/[[HOV3_TELEPORTATION]] assigned. <br>
-  * 2) If seems that it is impossible for a person to be a passenger [[CAR_HOV2]]/[[CAR_HOV3]] assigned. <br>
+  * 2) If seems that it is impossible for a person to be a passenger [[HOV2]]/[[HOV3]] assigned. <br>
   * 3) For all others the random choice is used.
   * The driver person is chosen randomly with 50% chance for `HOV2` and 33% for `HOV3`.<br>
-  * The mode for the driver is replaced from `HOV2` to [[CAR_HOV2]] and respectively to [[CAR_HOV3]] for `HOV3`.<br>
+  * The mode for the driver is replaced from `HOV2` to [[HOV2]] and respectively to [[HOV3]] for `HOV3`.<br>
   * The same action is done for passengers for which mode is chosen [[HOV2_TELEPORTATION]] or [[HOV3_TELEPORTATION]].
   * If the person doesnt have an available car from the household, only [[HOV2_TELEPORTATION]] or [[HOV3_TELEPORTATION]]
-  * will be assigned, not [[CAR_HOV2]]/[[CAR_HOV3]].
+  * will be assigned, not [[HOV2]]/[[HOV3]].
   */
 object HOVModeTransformer extends LazyLogging {
 
@@ -51,7 +51,7 @@ object HOVModeTransformer extends LazyLogging {
     case _      => false
   }
 
-  private val allCarModes = Seq(CAR, CAV, CAR_HOV2, CAR_HOV3).map(_.value.toLowerCase)
+  private val allCarModes = Seq(CAR, CAV, HOV2, HOV3).map(_.value.toLowerCase)
   private val allHOVModes = Set(hov2, hov3)
 
   private val allCarModesWithHOV: Set[String] =
@@ -94,11 +94,11 @@ object HOVModeTransformer extends LazyLogging {
       trip.map {
         case hov2Leg if itIsAnHOV2Leg(hov2Leg) =>
           forcedHOV2Teleports -= 1
-          hov2Leg.copy(legMode = Some(CAR_HOV2.value))
+          hov2Leg.copy(legMode = Some(HOV2.value))
         case hov3Leg if itIsAnHOV3Leg(hov3Leg) =>
-          //as car_hov3 contains two passengers, reduce by 2
+          //as hov3 contains two passengers, reduce by 2
           forcedHOV3Teleports -= 2
-          hov3Leg.copy(legMode = Some(CAR_HOV3.value))
+          hov3Leg.copy(legMode = Some(HOV3.value))
         case other => other
       }
     }
@@ -364,7 +364,7 @@ object HOVModeTransformer extends LazyLogging {
       modes.exists(allCarModes.contains) && modes.exists(allHOVModes.contains)
     }
 
-    /** @return the tuple of (transformed trip, transformed CAR_HOV2 count, transformed CAR_HOV3 count) */
+    /** @return the tuple of (transformed trip, transformed HOV2 count, transformed HOV3 count) */
     def mapToForcedCarHOVTrip(trip: List[PlanElement]): (List[PlanElement], Int, Int) = {
       var forcedCarHOV2Count = 0
       var forcedCarHOV3Count = 0
@@ -372,11 +372,11 @@ object HOVModeTransformer extends LazyLogging {
       val transformedTrip = trip.map {
         case hov2Leg if itIsAnHOV2Leg(hov2Leg) =>
           forcedCarHOV2Count += 1
-          hov2Leg.copy(legMode = Some(CAR_HOV2.value))
+          hov2Leg.copy(legMode = Some(HOV2.value))
 
         case hov3Leg if itIsAnHOV3Leg(hov3Leg) =>
           forcedCarHOV3Count += 1
-          hov3Leg.copy(legMode = Some(CAR_HOV3.value))
+          hov3Leg.copy(legMode = Some(HOV3.value))
 
         case leg if leg.planElementType == PlanElement.Leg                => leg
         case activity if activity.planElementType == PlanElement.Activity => activity
@@ -393,7 +393,7 @@ object HOVModeTransformer extends LazyLogging {
     def mapRandomHOVTeleportationOrCar(trip: List[PlanElement])(implicit rand: Random): List[PlanElement] = {
       def getHOV2CarOrTeleportation: String = {
         if (rand.nextDouble <= chanceToBeCarHOV2) {
-          CAR_HOV2.value
+          HOV2.value
         } else {
           HOV2_TELEPORTATION.value
         }
@@ -401,7 +401,7 @@ object HOVModeTransformer extends LazyLogging {
 
       def getHOV3CarOrTeleportation: String = {
         if (rand.nextDouble <= chanceToBeCarHOV3) {
-          CAR_HOV3.value
+          HOV3.value
         } else {
           HOV3_TELEPORTATION.value
         }

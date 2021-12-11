@@ -591,11 +591,11 @@ object ModeChoiceMultinomialLogit {
         "intercept" ->
         UtilityFunctionOperation("intercept", params.car_intercept)
       ),
-      BeamMode.CAR_HOV2.value -> Map(
+      BeamMode.HOV2.value -> Map(
         "intercept" ->
         UtilityFunctionOperation("intercept", params.car_intercept)
       ),
-      BeamMode.CAR_HOV3.value -> Map(
+      BeamMode.HOV3.value -> Map(
         "intercept" ->
         UtilityFunctionOperation("intercept", params.car_intercept)
       ),

@@ -15,7 +15,7 @@ class HOVModeTransformerTest extends AnyFunSuite with Matchers {
   import HOVModeTransformerTest._
 
   test("only 'HOV' legs should be affected") {
-    val modes = BeamMode.allModes ++ Seq(HOV2_TELEPORTATION, HOV3_TELEPORTATION, CAR_HOV2, CAR_HOV3)
+    val modes = BeamMode.allModes ++ Seq(HOV2_TELEPORTATION, HOV3_TELEPORTATION, HOV2, HOV3)
     val plansBefore = modes.zipWithIndex.flatMap { case (mode, idx) =>
       newTrip(personId = 1, idx, mode.value)
     }
@@ -38,8 +38,8 @@ class HOVModeTransformerTest extends AnyFunSuite with Matchers {
     }
   }
 
-  test("'HOV2' legs should be transformed only into car_hov2|hov2_teleportation") {
-    val expected = Set(CAR_HOV2.value, HOV2_TELEPORTATION.value)
+  test("'HOV2' legs should be transformed only into hov2|hov2_teleportation") {
+    val expected = Set(HOV2.value, HOV2_TELEPORTATION.value)
     val allHov = Set("HOV2", "hov2")
     allHov.foreach { mode =>
       val plansBefore = newTrip(1, 1, mode)
@@ -54,8 +54,8 @@ class HOVModeTransformerTest extends AnyFunSuite with Matchers {
     }
   }
 
-  test("'HOV3' legs should be transformed only into car_hov3|hov3_teleportation") {
-    val expected = Set(CAR_HOV3.value, HOV3_TELEPORTATION.value)
+  test("'HOV3' legs should be transformed only into hov3|hov3_teleportation") {
+    val expected = Set(HOV3.value, HOV3_TELEPORTATION.value)
     val allHov = Set("HOV3", "hov3")
     allHov.foreach { mode =>
       val plansBefore = newTrip(1, 1, mode)
@@ -79,7 +79,7 @@ class HOVModeTransformerTest extends AnyFunSuite with Matchers {
     }
   }
 
-  test("hov2 / hov3 legs if car available should be transformed into car_hov / hov_teleportation") {
+  test("hov2 / hov3 legs if car available should be transformed into hov / hov_teleportation") {
     val plansBefore = getNumberOfHOVTrips(302)
 
     val plansAfter = HOVModeTransformer.transformHOVtoHOVCARorHOVTeleportation(plansBefore)
@@ -89,7 +89,7 @@ class HOVModeTransformerTest extends AnyFunSuite with Matchers {
       modesAfter shouldNot contain(mode)
     }
 
-    Seq(CAR_HOV2, CAR_HOV3, HOV2_TELEPORTATION, HOV3_TELEPORTATION)
+    Seq(HOV2, HOV3, HOV2_TELEPORTATION, HOV3_TELEPORTATION)
       .map(_.value.toLowerCase)
       .foreach { mode =>
         modesAfter should contain(mode)
@@ -311,8 +311,8 @@ class HOVModeTransformerTest extends AnyFunSuite with Matchers {
     modes should contain(HOV2_TELEPORTATION.value.toLowerCase)
     modes should contain(HOV3_TELEPORTATION.value.toLowerCase)
 
-    modes shouldNot contain(CAR_HOV2.value.toLowerCase)
-    modes shouldNot contain(CAR_HOV3.value.toLowerCase)
+    modes shouldNot contain(HOV2.value.toLowerCase)
+    modes shouldNot contain(HOV3.value.toLowerCase)
   }
 
   test("trips with both hov and car must be forced to hov car") {
@@ -329,7 +329,7 @@ class HOVModeTransformerTest extends AnyFunSuite with Matchers {
 
     val tripsModes = processedTrips.map(_.flatMap(_.legMode))
 
-    tripsModes.head shouldBe Seq("car_hov3", "car_hov3", "car_hov3", "CAR", "CAR")
+    tripsModes.head shouldBe Seq("hov3", "hov3", "hov3", "CAR", "CAR")
   }
 
   test("trips with both hov and car must be forced to hov car, when car was left at some location and then picked up") {
@@ -354,7 +354,7 @@ class HOVModeTransformerTest extends AnyFunSuite with Matchers {
 
     val tripsModes = processedTrips.map(_.flatMap(_.legMode))
 
-    tripsModes.head shouldBe Seq("car_hov2", "car_hov2", "car_hov2", "WALK", "WALK", "CAR", "CAR")
+    tripsModes.head shouldBe Seq("hov2", "hov2", "hov2", "WALK", "WALK", "CAR", "CAR")
   }
 
   test("trip must not contain hov_car when car is lost on the go") {
@@ -400,9 +400,9 @@ class HOVModeTransformerTest extends AnyFunSuite with Matchers {
       "hov2_teleportation",
       "WALK",
       "hov2_teleportation",
-      "car_hov2",
+      "hov2",
       "CAR",
-      "car_hov2"
+      "hov2"
     )
   }
 
@@ -432,8 +432,8 @@ class HOVModeTransformerTest extends AnyFunSuite with Matchers {
       "hov3_teleportation",
       "hov3_teleportation",
       "WALK",
-      "car_hov3",
-      "car_hov3",
+      "hov3",
+      "hov3",
       "CAR"
     )
   }

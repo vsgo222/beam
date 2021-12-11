@@ -13,7 +13,7 @@ case class PercentagePopulationAdjustment(beamServices: BeamServices) extends Po
   override def updatePopulation(scenario: Scenario): Population = {
     val population = scenario.getPopulation
 
-    Seq(BeamMode.CAR, BeamMode.CAR_HOV2, BeamMode.CAR_HOV3).foreach { mode =>
+    Seq(BeamMode.CAR, BeamMode.HOV2, BeamMode.HOV3).foreach { mode =>
       removeModeAll(population, mode.value)
       assignModeUniformDistribution(population, mode.value, 0.5)
     }
