@@ -32,6 +32,7 @@ import org.matsim.api.core.v01.population.{Activity, Leg}
 import org.matsim.core.population.routes.NetworkRoute
 import org.matsim.core.utils.misc.Time
 
+import java.util.Random
 import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -1203,23 +1204,20 @@ trait ChoosesMode {
     tourPurp
   }
 
-  def convertToHOV(chosenTrip: EmbodiedBeamTrip): Option[EmbodiedBeamTrip] = {
+  def convertFromCarHOVToTeleportHOV(chosenTrip: EmbodiedBeamTrip, modeType:BeamMode): Option[EmbodiedBeamTrip] = {
     val firstTrip = chosenTrip.legs.head
     val lastTrip = chosenTrip.legs(chosenTrip.legs.length - 1)
-      var mode = CAR_HOV2
-      //if (chosenTrip.tripClassifier.value == "car_hov3") {mode = CAR_HOV3} else mode = CAR_HOV2
       val leg1 = chosenTrip.legs(1).beamLeg
       val path1 = leg1.travelPath
       val leg2 = chosenTrip.legs(2).beamLeg
       val path2 = leg2.travelPath
       val teleportVehicle = createSharedTeleportationVehicle(chosenTrip.legs(1).beamLeg.travelPath.startPoint)
-      //beamVehicles.put(teleportVehicle.id,ActualVehicle(teleportVehicle))
-      val totalTravelTime1 = math.round((path1.linkTravelTime ++ path2.linkTravelTime).tail.sum).toInt
-      val totalTravelTime2 = path2.endPoint.time - path1.startPoint.time
+      //val totalTravelTime1 = math.round((path1.linkTravelTime ++ path2.linkTravelTime).tail.sum).toInt
+      //val totalTravelTime2 = path2.endPoint.time - path1.startPoint.time
     val teleportationTrip = EmbodiedBeamLeg(
       BeamLeg(
         leg1.startTime,
-        mode,
+        modeType,
         leg1.duration + leg2.duration,
         BeamPath(
           path1.linkIds ++ path2.linkIds,
@@ -1237,6 +1235,43 @@ trait ChoosesMode {
       true
     )
     Some(EmbodiedBeamTrip(IndexedSeq(firstTrip,teleportationTrip,lastTrip)))
+  }
+
+  def createHovDataForNextStep(
+    chosenTrip: EmbodiedBeamTrip,
+    choosesModeData: ChoosesModeData,
+    availableAlts: Some[String]
+  ): ChoosesModeData = {
+    val modeType = if(chosenTrip.tripClassifier.value =="car_hov2"){ CAR_HOV2 } else CAR_HOV3
+    var (newTrip, dataForNextStep) = (chosenTrip, choosesModeData)
+    val rand = new Random //instance of random class
+    val double_random = rand.nextDouble
+
+    if (double_random <= .5 && chosenTrip.tripClassifier.value =="car_hov2"){
+      newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
+      dataForNextStep = choosesModeData.copy(
+        pendingChosenTrip = Some(newTrip),
+        personData = choosesModeData.personData.copy(currentTourMode = Some(HOV2_TELEPORTATION)),
+        parkingResponses = Map(),
+        parkingRequestIds = Map(),
+        availableAlternatives = Some("HOV2_TELEPORTATION")
+      )
+    } else if ( double_random < .667 && chosenTrip.tripClassifier.value =="car_hov3") {
+      newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
+      dataForNextStep = choosesModeData.copy(
+        pendingChosenTrip = Some(newTrip),
+        personData = choosesModeData.personData.copy(currentTourMode = Some(HOV3_TELEPORTATION)),
+        parkingResponses = Map(),
+        parkingRequestIds = Map(),
+        availableAlternatives = Some("HOV3_TELEPORTATION")
+      )
+    } else {
+      dataForNextStep = choosesModeData.copy(
+        pendingChosenTrip = Some(chosenTrip),
+        availableAlternatives = availableAlts
+      )
+    }
+    dataForNextStep
   }
 
   def completeChoiceIfReady: PartialFunction[State, State] = {
@@ -1324,6 +1359,7 @@ trait ChoosesMode {
         routingResponse.itineraries,
         parkingResponses
       ) ++ rideHail2TransitIinerary.toVector
+      //++ hovItinerary
 
       val availableModesForTrips: Seq[BeamMode] = availableModesForPerson(matsimPlan.getPerson)
         .filterNot(mode => choosesModeData.excludeModes.contains(mode))
@@ -1387,14 +1423,7 @@ trait ChoosesMode {
             availableAlternatives = availableAlts
           )
           if (chosenTrip.tripClassifier.value == "car_hov2" || chosenTrip.tripClassifier.value == "car_hov3") {
-            val newTrip = convertToHOV(chosenTrip).get
-            dataForNextStep = choosesModeData.copy(
-              pendingChosenTrip = Some(newTrip),
-              personData = personData.copy(currentTourMode = Some(HOV2_TELEPORTATION)),
-              parkingResponses = Map(),
-              parkingRequestIds = Map(),
-              availableAlternatives = Some("HOV2_TELEPORTATION")
-            )
+            dataForNextStep = createHovDataForNextStep (chosenTrip, choosesModeData, availableAlts)
           }
           goto(FinishingModeChoice) using dataForNextStep
         case None =>
