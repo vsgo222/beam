@@ -1190,6 +1190,35 @@ trait ChoosesMode {
     }
   }
 
+  def createHovItinerary(routingItineraries: Seq[EmbodiedBeamTrip], choosesModeData: ChoosesModeData): Seq[EmbodiedBeamTrip] = {
+     choosesModeData.personData.currentTourMode match {
+      case Some(mode) if (mode.value == "car" && routingItineraries.map(_.tripClassifier).contains(CAR)) =>
+        val carItin = routingItineraries.filter(_.tripClassifier.value == "car").head
+          val (leg1, leg4) = (carItin.legs.head,carItin.legs.last)
+          val (leg2Hov2, leg3Hov2) = (carItin.legs(1).copy(carItin.legs(1).beamLeg.copy(mode = CAR_HOV2)),
+            carItin.legs(2).copy(carItin.legs(2).beamLeg.copy(mode = CAR_HOV2)))
+          val (leg2Hov3, leg3Hov3) = (carItin.legs(1).copy(carItin.legs(1).beamLeg.copy(mode = CAR_HOV3)),
+            carItin.legs(2).copy(carItin.legs(2).beamLeg.copy(mode = CAR_HOV3)))
+        val carHov2Itin = carItin.copy(legs = IndexedSeq(leg1,leg2Hov2,leg3Hov2,leg4))
+        val carHov3Itin = carItin.copy(legs = IndexedSeq(leg1,leg2Hov3,leg3Hov3,leg4))
+        Seq(carHov2Itin,carHov3Itin)
+      case Some(mode) if (mode.value == "walk" && routingItineraries.map(_.tripClassifier).contains(WALK)) =>
+        val walkItin = routingItineraries.filter(_.tripClassifier.value == "walk").head
+        Seq()
+      case Some(HOV2_TELEPORTATION) =>
+        // check if car itinerary exists for teleportation options
+        //val teleportItin = routingItineraries.filter(_.tripClassifier.value.startsWith("hov"))
+        Seq()
+      case Some(HOV3_TELEPORTATION) =>
+        //val teleportItin = routingItineraries.filter(_.tripClassifier.value.startsWith("hov"))
+        Seq()
+      case _ =>
+        //add case that if car_hov2 or car_hov3 adds the other hov car and also a normal car option
+        Seq()
+    }
+    //Seq(carHov2Itin,carHov3Itin)
+  }
+
   def mustBeDrivenHome(vehicle: VehicleOrToken): Boolean = {
     vehicle match {
       case ActualVehicle(beamVehicle) =>
@@ -1205,12 +1234,9 @@ trait ChoosesMode {
   }
 
   def convertFromCarHOVToTeleportHOV(chosenTrip: EmbodiedBeamTrip, modeType:BeamMode): Option[EmbodiedBeamTrip] = {
-    val firstTrip = chosenTrip.legs.head
-    val lastTrip = chosenTrip.legs(chosenTrip.legs.length - 1)
-      val leg1 = chosenTrip.legs(1).beamLeg
-      val path1 = leg1.travelPath
-      val leg2 = chosenTrip.legs(2).beamLeg
-      val path2 = leg2.travelPath
+    val (firstTrip, lastTrip) = (chosenTrip.legs.head, chosenTrip.legs(chosenTrip.legs.length - 1))
+      val (leg1, leg2) = (chosenTrip.legs(1).beamLeg, chosenTrip.legs(2).beamLeg)
+      val (path1, path2) = (leg1.travelPath, leg2.travelPath)
       val teleportVehicle = createSharedTeleportationVehicle(chosenTrip.legs(1).beamLeg.travelPath.startPoint)
       //val totalTravelTime1 = math.round((path1.linkTravelTime ++ path2.linkTravelTime).tail.sum).toInt
       //val totalTravelTime2 = path2.endPoint.time - path1.startPoint.time
@@ -1247,7 +1273,7 @@ trait ChoosesMode {
     val rand = new Random //instance of random class
     val double_random = rand.nextDouble
 
-    if (double_random <= .5 && chosenTrip.tripClassifier.value =="car_hov2"){
+    if (double_random <= .5 && chosenTrip.tripClassifier.value =="car_hov2"){ // double check the random assignment
       newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(newTrip),
@@ -1256,7 +1282,7 @@ trait ChoosesMode {
         parkingRequestIds = Map(),
         availableAlternatives = Some("HOV2_TELEPORTATION")
       )
-    } else if ( double_random < .667 && chosenTrip.tripClassifier.value =="car_hov3") {
+    } else if ( double_random < .667 && chosenTrip.tripClassifier.value =="car_hov3") { // double check the random assignment
       newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(newTrip),
@@ -1358,8 +1384,8 @@ trait ChoosesMode {
       val combinedItinerariesForChoice = rideHailItinerary ++ addParkingCostToItins(
         routingResponse.itineraries,
         parkingResponses
-      ) ++ rideHail2TransitIinerary.toVector
-      //++ hovItinerary
+      ) ++ rideHail2TransitIinerary.toVector ++
+        createHovItinerary(routingResponse.itineraries, choosesModeData).toVector
 
       val availableModesForTrips: Seq[BeamMode] = availableModesForPerson(matsimPlan.getPerson)
         .filterNot(mode => choosesModeData.excludeModes.contains(mode))
@@ -1422,9 +1448,9 @@ trait ChoosesMode {
             pendingChosenTrip = Some(chosenTrip),
             availableAlternatives = availableAlts
           )
-          if (chosenTrip.tripClassifier.value == "car_hov2" || chosenTrip.tripClassifier.value == "car_hov3") {
-            dataForNextStep = createHovDataForNextStep (chosenTrip, choosesModeData, availableAlts)
-          }
+//          if (chosenTrip.tripClassifier.value == "car_hov2" || chosenTrip.tripClassifier.value == "car_hov3") {
+//            dataForNextStep = createHovDataForNextStep (chosenTrip, choosesModeData, availableAlts)
+//          }
           goto(FinishingModeChoice) using dataForNextStep
         case None =>
           choosesModeData.personData.currentTourMode match {
