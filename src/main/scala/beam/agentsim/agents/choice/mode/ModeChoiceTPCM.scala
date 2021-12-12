@@ -8,8 +8,9 @@ import beam.agentsim.agents.modalbehaviors.ModeChoiceCalculator
 import beam.agentsim.agents.vehicles.BeamVehicle
 import beam.agentsim.infrastructure.taz
 import beam.agentsim.infrastructure.taz.TAZTreeMap
+import beam.router.Modes
 import beam.router.Modes.BeamMode
-import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, DRIVE_TRANSIT, RIDE_HAIL, RIDE_HAIL_TRANSIT, TRANSIT, WALK, WALK_TRANSIT}
+import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, CAR, DRIVE_TRANSIT, HOV2, HOV3, RIDE_HAIL, RIDE_HAIL_TRANSIT, TRANSIT, WALK, WALK_TRANSIT}
 import beam.router.model.EmbodiedBeamTrip
 import beam.router.skim.readonly.TransitCrowdingSkims
 import beam.sim.config.BeamConfig
@@ -114,7 +115,7 @@ class ModeChoiceTPCM(
           if (autoWork.equals("auto_sufficient")) {1.0} else {0.0}
         )
         (alt.mode, theParams)
-      }.toMap
+      }// instead of .toMap, we keep it in a Vector to prevent HOV2 and HOV3 options from grouping together into CAR
 
       // Evaluate and sample from mode choice model
       val (model, modeModel) = lccm.modeChoiceTourModels(varType)(purpose)
@@ -252,22 +253,7 @@ class ModeChoiceTPCM(
           altAndIdx._2
         )
       }
-    val groupedByMode: Map[BeamMode, Seq[ModeChoiceData]] =
-      modeChoiceAlternatives.groupBy(_.mode)
-    val bestInGroup = groupedByMode.map {
-      case (_, alts) =>
-        // Which dominates at $18/hr for total time
-        alts
-          .map { alt =>
-            (
-              (alt.vehicleTime + alt.walkTime + alt.waitTime + alt.bikeTime) / 3600 * 18 + alt.cost,
-              alt
-            )
-          }
-          .minBy(_._1)
-          ._2
-    }
-    bestInGroup.toVector
+    modeChoiceAlternatives.toVector
   }
 
   override def utilityOf(
