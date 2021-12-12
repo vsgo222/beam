@@ -103,10 +103,10 @@ class ModeChoiceTPCM(
           alt.cost * 60 / vot, // the cost utility values in the csv are actually vehicleTime values, and this conversion creates the cost coefficient
           alt.destZDI,
           alt.originZDI,
-          if (age >= 16.0 & age <= 19.0)  {age} else {0.0}, // is it age, or 1.0? (is this value a coeff or const?)
+          if (age >= 16.0 & age <= 19.0)  {age} else {0.0}, // TODO: is it age, or 1.0? (is this value a coeff or const?)
           if (age <= 10.0)                {age} else {0.0},
           if (age >= 16.0)                {age} else {0.0},
-          if (hhSize == 1.0)              {hhSize} else {0.0}, // is it hhSize, or 1.0? (is this value a coeff or const?)
+          if (hhSize == 1.0)              {hhSize} else {0.0}, // TODO: is it hhSize, or 1.0? (is this value a coeff or const?)
           if (hhSize == 2.0)              {hhSize} else {0.0},
           alt.dtDistance,
           alt.destCBD,
@@ -115,7 +115,7 @@ class ModeChoiceTPCM(
           if (autoWork.equals("auto_sufficient")) {1.0} else {0.0}
         )
         (alt.mode, theParams)
-      }// instead of .toMap, we keep it in a Vector to prevent HOV2 and HOV3 options from grouping together into CAR
+      }// TODO: instead of .toMap, we keep it in a Vector to prevent HOV2 and HOV3 options from grouping together into CAR
 
       // Evaluate and sample from mode choice model
       val (model, modeModel) = lccm.modeChoiceTourModels(varType)(purpose)

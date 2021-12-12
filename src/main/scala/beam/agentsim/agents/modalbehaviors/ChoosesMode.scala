@@ -1206,14 +1206,14 @@ trait ChoosesMode {
         val walkItin = routingItineraries.filter(_.tripClassifier.value == "walk").head
         Seq()
       case Some(HOV2_TELEPORTATION) =>
-        // check if car itinerary exists for teleportation options
+        // TODO: check if car itinerary exists for teleportation options
         //val teleportItin = routingItineraries.filter(_.tripClassifier.value.startsWith("hov"))
         Seq()
       case Some(HOV3_TELEPORTATION) =>
         //val teleportItin = routingItineraries.filter(_.tripClassifier.value.startsWith("hov"))
         Seq()
       case _ =>
-        //add case that if hov2 or hov3 adds the other hov car and also a normal car option
+        //TODO: add case that if hov2 or hov3 adds the other hov car and also a normal car option
         Seq()
     }
     //Seq(carHov2Itin,carHov3Itin)
@@ -1256,7 +1256,7 @@ trait ChoosesMode {
       ),
       teleportVehicle.id,
       teleportVehicle.beamVehicleType.id,
-      true, // should this be false?
+      true, // TODO: should this be false?
       chosenTrip.legs(1).cost + chosenTrip.legs(2).cost,
       true
     )
@@ -1273,7 +1273,7 @@ trait ChoosesMode {
     val rand = new Random //instance of random class
     val double_random = rand.nextDouble
 
-    if (double_random <= .5 && chosenTrip.tripClassifier.value =="hov2"){ // double check the random assignment
+    if (double_random <= .5 && chosenTrip.tripClassifier.value =="hov2"){ // TODO:double check the random assignment
       newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(newTrip),
@@ -1282,7 +1282,7 @@ trait ChoosesMode {
         parkingRequestIds = Map(),
         availableAlternatives = Some("HOV2_TELEPORTATION")
       )
-    } else if ( double_random < .667 && chosenTrip.tripClassifier.value =="hov3") { // double check the random assignment
+    } else if ( double_random < .667 && chosenTrip.tripClassifier.value =="hov3") { // TODO:double check the random assignment
       newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(newTrip),
@@ -1419,6 +1419,7 @@ trait ChoosesMode {
           combinedItinerariesForChoice.filter(trip =>
             trip.tripClassifier == CAR || trip.tripClassifier == HOV2 || trip.tripClassifier == HOV3
           )
+          // TODO: Should I use the case from below or above? IDK if I need the one above.
 //        case Some(mode) =>
 //          combinedItinerariesForChoice.filter(_.tripClassifier == mode)
         case _ =>
@@ -1430,9 +1431,6 @@ trait ChoosesMode {
           .get("beam-attributes")
           .asInstanceOf[AttributesOfIndividual]
       val availableAlts = Some(filteredItinerariesForChoice.map(_.tripClassifier).mkString(":"))
-
-//      var zMode = filteredItinerariesForChoice.map(_.tripClassifier.value).toArray.head
-//      zMode = "chum"
 
       var tourPurpose = "None"
       if ("ModeChoiceTourPurpose".equals(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
