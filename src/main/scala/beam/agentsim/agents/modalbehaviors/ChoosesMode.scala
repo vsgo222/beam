@@ -1452,9 +1452,9 @@ trait ChoosesMode {
             pendingChosenTrip = Some(chosenTrip),
             availableAlternatives = availableAlts
           )
-//          if (chosenTrip.tripClassifier.value == "hov2" || chosenTrip.tripClassifier.value == "hov3") {
-//            dataForNextStep = createHovDataForNextStep (chosenTrip, choosesModeData, availableAlts)
-//          }
+          if (chosenTrip.tripClassifier.value == "hov2" || chosenTrip.tripClassifier.value == "hov3") {
+            dataForNextStep = createHovDataForNextStep (chosenTrip, choosesModeData, availableAlts)
+          }
           goto(FinishingModeChoice) using dataForNextStep
         case None =>
           choosesModeData.personData.currentTourMode match {
