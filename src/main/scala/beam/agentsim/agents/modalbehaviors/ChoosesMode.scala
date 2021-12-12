@@ -1193,6 +1193,7 @@ trait ChoosesMode {
   def createHovItinerary(routingItineraries: Seq[EmbodiedBeamTrip], choosesModeData: ChoosesModeData): Seq[EmbodiedBeamTrip] = {
      choosesModeData.personData.currentTourMode match {
       case Some(mode) if (mode.value == "car" && routingItineraries.map(_.tripClassifier).contains(CAR)) =>
+        //TODO: HOV options should only be give to those that have a household size > 1
         val carItin = routingItineraries.filter(_.tripClassifier.value == "car").head
           val (leg1, leg4) = (carItin.legs.head,carItin.legs.last)
           val (leg2Hov2, leg3Hov2) = (carItin.legs(1).copy(carItin.legs(1).beamLeg.copy(mode = HOV2)),
@@ -1203,6 +1204,7 @@ trait ChoosesMode {
         val carHov3Itin = carItin.copy(legs = IndexedSeq(leg1,leg2Hov3,leg3Hov3,leg4))
         Seq(carHov2Itin,carHov3Itin)
       case Some(mode) if (mode.value == "walk" && routingItineraries.map(_.tripClassifier).contains(WALK)) =>
+        // TODO: Need HOV options for those agents that don't have a car.
         val walkItin = routingItineraries.filter(_.tripClassifier.value == "walk").head
         Seq()
       case Some(HOV2_TELEPORTATION) =>
@@ -1411,6 +1413,7 @@ trait ChoosesMode {
           combinedItinerariesForChoice.filter(trip =>
             trip.tripClassifier == WALK_TRANSIT || trip.tripClassifier == RIDE_HAIL_TRANSIT
           )
+        //TODO: All teleport options should be changed back to car or hov, before random hov sampling
         case Some(HOV2_TELEPORTATION) =>
           combinedItinerariesForChoice.filter(_.tripClassifier == HOV2_TELEPORTATION)
         case Some(HOV3_TELEPORTATION) =>
