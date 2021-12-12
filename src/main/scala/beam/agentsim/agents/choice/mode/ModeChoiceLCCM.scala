@@ -106,7 +106,7 @@ class ModeChoiceLCCM(
           val modeChoiceExpectedMaxUtility = lccm
             .modeChoiceModels(tourType)(theClassName)
             ._2
-            .getExpectedMaximumUtility(modeChoiceInputData)
+            .getExpectedMaximumUtility(modeChoiceInputData.toVector)
           val surplusAttrib: Map[String, Double] =
             Map("surplus" -> modeChoiceExpectedMaxUtility.getOrElse(0))
           (theClassName, attribIndivData.head._2 ++ surplusAttrib)
@@ -118,7 +118,7 @@ class ModeChoiceLCCM(
 
       val chosenClassOpt = lccm
         .classMembershipModels(tourType)
-        .sampleAlternative(classMembershipInputData, random)
+        .sampleAlternative(classMembershipInputData.toVector, random)
 
       chosenClassOpt match {
         case None =>
@@ -129,11 +129,11 @@ class ModeChoiceLCCM(
           val chosenModeOpt = lccm
             .modeChoiceModels(tourType)(chosenClass.alternativeType)
             ._2
-            .sampleAlternative(modeChoiceInputData, new Random())
+            .sampleAlternative(modeChoiceInputData.toVector, new Random())
           expectedMaximumUtility = lccm
             .modeChoiceModels(tourType)(chosenClass.alternativeType)
             ._2
-            .getExpectedMaximumUtility(modeChoiceInputData)
+            .getExpectedMaximumUtility(modeChoiceInputData.toVector)
             .getOrElse(0)
 
           chosenModeOpt match {
@@ -178,7 +178,7 @@ class ModeChoiceLCCM(
     lccm
       .modeChoiceModels(tourType)(conditionedOnModalityStyle)
       ._2
-      .sampleAlternative(modeChoiceInputData, new Random())
+      .sampleAlternative(modeChoiceInputData.toVector, new Random())
   }
 
   def utilityAcrossModalityStyles(

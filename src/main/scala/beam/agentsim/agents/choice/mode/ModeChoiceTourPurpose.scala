@@ -108,10 +108,10 @@ class ModeChoiceTourPurpose(
         (mct.embodiedBeamTrip, theParams ++ transferParam)
       }.toMap
 
-      val alternativesWithUtility = model.calcAlternativesWithUtility(inputData)
+      val alternativesWithUtility = model.calcAlternativesWithUtility(inputData.toVector)
       val chosenModeOpt = model.sampleAlternative(alternativesWithUtility, random)
 
-      expectedMaximumUtility = model.getExpectedMaximumUtility(inputData).getOrElse(0)
+      expectedMaximumUtility = model.getExpectedMaximumUtility(inputData.toVector).getOrElse(0)
 
       if (shouldLogDetails) {
         val personId = person.map(_.getId)
@@ -166,7 +166,7 @@ class ModeChoiceTourPurpose(
           mct => mct.embodiedBeamTrip -> attributes(timeAndCost(mct), mct.transitOccupancyLevel, mct.numTransfers)
         )
         .toMap
-      val alternativesWithUtility = model.calcAlternativesWithUtility(inputData)
+      val alternativesWithUtility = model.calcAlternativesWithUtility(inputData.toVector)
       val chosenModeOpt = model.sampleAlternative(alternativesWithUtility, random)
       chosenModeOpt
         .flatMap(sample => group.find(_.embodiedBeamTrip == sample.alternativeType))

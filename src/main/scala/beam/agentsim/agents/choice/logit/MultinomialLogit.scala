@@ -34,7 +34,7 @@ class MultinomialLogit[A, T](
     * @return
     */
   def sampleAlternative(
-    alternatives: Map[A, Map[T, Double]],
+    alternatives: Vector[(A, Map[T, Double])],
     random: Random
   ): Option[MultinomialLogit.MNLSample[A]] = {
     if (alternatives.isEmpty) None
@@ -44,7 +44,7 @@ class MultinomialLogit[A, T](
   }
 
   def calcAlternativesWithUtility(
-    alternatives: Map[A, Map[T, Double]]
+    alternatives: Vector[(A, Map[T, Double])]
   ): Iterable[AlternativeWithUtility[A]] = {
     // evaluate utility of alternatives
     val altsWithUtility: Iterable[AlternativeWithUtility[A]] =
@@ -123,7 +123,7 @@ class MultinomialLogit[A, T](
     * @return
     */
   def getExpectedMaximumUtility(
-    alternatives: Map[A, Map[T, Double]]
+    alternatives: Vector[(A, Map[T, Double])]
   ): Option[Double] = {
     val scaledUtilityOfAlternatives: Iterable[Double] =
       for {

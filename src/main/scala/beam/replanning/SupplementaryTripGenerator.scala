@@ -158,13 +158,13 @@ class SupplementaryTripGenerator(
 
         val modeChoice: Map[SupplementaryTripAlternative, Map[TripParameters, Double]] =
           modeTazCosts.map { case (alt, modeCost) =>
-            val tazMaxUtility = modeMNL.getExpectedMaximumUtility(modeCost)
+            val tazMaxUtility = modeMNL.getExpectedMaximumUtility(modeCost.toVector)
             alt -> Map[TripParameters, Double](
               TripParameters.ExpMaxUtility -> tazMaxUtility.getOrElse(0)
             )
           }
 
-        val tripMaxUtility = destinationMNL.getExpectedMaximumUtility(modeChoice)
+        val tripMaxUtility = destinationMNL.getExpectedMaximumUtility(modeChoice.toVector)
 
         val tripChoice: Map[Boolean, Map[TripParameters, Double]] =
           Map[Boolean, Map[TripParameters, Double]](
@@ -174,8 +174,8 @@ class SupplementaryTripGenerator(
             false -> noTrip
           )
 
-        tripMNL.sampleAlternative(tripChoice, r) match {
-          case Some(mnlSample) if mnlSample.alternativeType => destinationMNL.sampleAlternative(modeChoice, r)
+        tripMNL.sampleAlternative(tripChoice.toVector, r) match {
+          case Some(mnlSample) if mnlSample.alternativeType => destinationMNL.sampleAlternative(modeChoice.toVector, r)
           case _                                            => None
         }
     }
