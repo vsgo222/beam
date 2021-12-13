@@ -56,7 +56,7 @@ types <- unique(events$type)
 UTAOD <- read_csv("from_BYUsc/UTAODpilotinfo.csv")
 rhFleet <- read_csv(rhFleetFile)
 
-rhHours <- 80000/3600 #add code to read from the shifts
+rhHours <- 20.25 #add code to read from the shifts
 rhNum <- nrow(rhFleet)
 
 ############# MESSING AROUND ###################################################
