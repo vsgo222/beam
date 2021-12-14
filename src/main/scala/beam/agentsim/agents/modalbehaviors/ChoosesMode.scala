@@ -1193,29 +1193,28 @@ trait ChoosesMode {
   def createHovItinerary(routingItineraries: Seq[EmbodiedBeamTrip], choosesModeData: ChoosesModeData): Seq[EmbodiedBeamTrip] = {
      choosesModeData.personData.currentTourMode match {
       case Some(mode) if (mode.value == "car" && routingItineraries.map(_.tripClassifier).contains(CAR)) =>
-        //TODO: HOV options should only be give to those that have a household size > 1
+        //TODO HOV options should only be given to those that have a household size > 1
         val carItin = routingItineraries.filter(_.tripClassifier.value == "car").head
-          val (leg1, leg4) = (carItin.legs.head,carItin.legs.last)
-          val (leg2Hov2, leg3Hov2) = (carItin.legs(1).copy(carItin.legs(1).beamLeg.copy(mode = HOV2)),
-            carItin.legs(2).copy(carItin.legs(2).beamLeg.copy(mode = HOV2)))
-          val (leg2Hov3, leg3Hov3) = (carItin.legs(1).copy(carItin.legs(1).beamLeg.copy(mode = HOV3)),
-            carItin.legs(2).copy(carItin.legs(2).beamLeg.copy(mode = HOV3)))
-        val carHov2Itin = carItin.copy(legs = IndexedSeq(leg1,leg2Hov2,leg3Hov2,leg4))
-        val carHov3Itin = carItin.copy(legs = IndexedSeq(leg1,leg2Hov3,leg3Hov3,leg4))
-        Seq(carHov2Itin,carHov3Itin)
+        convertBetweenCarAndCarHOV(carItin, HOV2, HOV3)
       case Some(mode) if (mode.value == "walk" && routingItineraries.map(_.tripClassifier).contains(WALK)) =>
-        // TODO: Need HOV options for those agents that don't have a car.
+        // TODO Need HOV options for those agents that don't have a car.
         val walkItin = routingItineraries.filter(_.tripClassifier.value == "walk").head
         Seq()
       case Some(HOV2_TELEPORTATION) =>
-        // TODO: check if car itinerary exists for teleportation options
+        // TODO check if car itinerary exists for teleportation options
         //val teleportItin = routingItineraries.filter(_.tripClassifier.value.startsWith("hov"))
         Seq()
       case Some(HOV3_TELEPORTATION) =>
+        val vehicless = choosesModeData.availablePersonalStreetVehicles
         //val teleportItin = routingItineraries.filter(_.tripClassifier.value.startsWith("hov"))
         Seq()
       case _ =>
-        //TODO: add case that if hov2 or hov3 adds the other hov car and also a normal car option
+        //TODO add case that if hov2 or hov3, the other hov car and also a normal car option (IF they have one available) are given as choices
+        // Since it is hard to determine if a hov agent has a car, maybe if their household has a car, they get a car alternative, but if their household doesn't, then they don't
+        // Instead, we could use the ratio of household agents to household cars to determine if they get a car alternative
+        val vehicless = choosesModeData.availablePersonalStreetVehicles
+        val numberOfCars = attributes.householdAttributes.numCars
+        val hhSize = attributes.householdAttributes.householdSize
         Seq()
     }
     //Seq(carHov2Itin,carHov3Itin)
@@ -1235,11 +1234,30 @@ trait ChoosesMode {
     tourPurp
   }
 
-  def convertFromCarHOVToTeleportHOV(chosenTrip: EmbodiedBeamTrip, modeType:BeamMode): Option[EmbodiedBeamTrip] = {
+  def convertBetweenCarAndCarHOV(
+    carItin: EmbodiedBeamTrip,
+    mode1: BeamMode,
+    mode2: BeamMode
+  ): Seq[EmbodiedBeamTrip] = {
+    val (leg1, leg4) = (carItin.legs.head, carItin.legs.last)
+    val (leg2Mode1, leg3Mode1) = (carItin.legs(1).copy(carItin.legs(1).beamLeg.copy(mode = mode1)),
+      carItin.legs(2).copy(carItin.legs(2).beamLeg.copy(mode = mode1)))
+    val (leg2Mode2, leg3Mode2) = (carItin.legs(1).copy(carItin.legs(1).beamLeg.copy(mode = mode2)),
+      carItin.legs(2).copy(carItin.legs(2).beamLeg.copy(mode = mode2)))
+    val carHov2Itin = carItin.copy(legs = IndexedSeq(leg1,leg2Mode1,leg3Mode1,leg4))
+    val carHov3Itin = carItin.copy(legs = IndexedSeq(leg1,leg2Mode2,leg3Mode2,leg4))
+    Seq(carHov2Itin,carHov3Itin)
+  }
+
+  def convertFromCarHOVToTeleportHOV(
+    chosenTrip: EmbodiedBeamTrip,
+    modeType:BeamMode
+  ): Option[EmbodiedBeamTrip] = {
     val (firstTrip, lastTrip) = (chosenTrip.legs.head, chosenTrip.legs(chosenTrip.legs.length - 1))
       val (leg1, leg2) = (chosenTrip.legs(1).beamLeg, chosenTrip.legs(2).beamLeg)
       val (path1, path2) = (leg1.travelPath, leg2.travelPath)
       val teleportVehicle = createSharedTeleportationVehicle(chosenTrip.legs(1).beamLeg.travelPath.startPoint)
+    // TODO final link travel time minus first link travel time doesn't always equal sum of all link travel times
       //val totalTravelTime1 = math.round((path1.linkTravelTime ++ path2.linkTravelTime).tail.sum).toInt
       //val totalTravelTime2 = path2.endPoint.time - path1.startPoint.time
     val teleportationTrip = EmbodiedBeamLeg(
@@ -1258,7 +1276,7 @@ trait ChoosesMode {
       ),
       teleportVehicle.id,
       teleportVehicle.beamVehicleType.id,
-      true, // TODO: should this be false?
+      true, // TODO should this be false?
       chosenTrip.legs(1).cost + chosenTrip.legs(2).cost,
       true
     )
@@ -1275,7 +1293,7 @@ trait ChoosesMode {
     val rand = new Random //instance of random class
     val double_random = rand.nextDouble
 
-    if (double_random <= .5 && chosenTrip.tripClassifier.value =="hov2"){ // TODO:double check the random assignment
+    if (double_random <= .5 && chosenTrip.tripClassifier.value =="hov2"){ // TODO double check the random assignment
       newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(newTrip),
@@ -1284,7 +1302,7 @@ trait ChoosesMode {
         parkingRequestIds = Map(),
         availableAlternatives = Some("HOV2_TELEPORTATION")
       )
-    } else if ( double_random < .667 && chosenTrip.tripClassifier.value =="hov3") { // TODO:double check the random assignment
+    } else if ( double_random < .667 && chosenTrip.tripClassifier.value =="hov3") { // TODO double check the random assignment
       newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(newTrip),
