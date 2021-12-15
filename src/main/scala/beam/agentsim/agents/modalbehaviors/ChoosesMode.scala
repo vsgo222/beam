@@ -1191,11 +1191,11 @@ trait ChoosesMode {
   }
 
   def createHovItinerary(routingItineraries: Seq[EmbodiedBeamTrip], choosesModeData: ChoosesModeData): Seq[EmbodiedBeamTrip] = {
-     choosesModeData.personData.currentTourMode match {
-      case Some(mode) if (mode.value == "car" && routingItineraries.map(_.tripClassifier).contains(CAR)) =>
-        //TODO HOV options should only be given to those that have a household size > 1
+    val autoWork = matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString
+    choosesModeData.personData.currentTourMode match {
+       case Some(mode) if (mode.value == "car" && routingItineraries.map(_.tripClassifier).contains(CAR)) =>
         val carItin = routingItineraries.filter(_.tripClassifier.value == "car").head
-        convertBetweenCarAndCarHOV(carItin, HOV2, HOV3)
+        convertBetweenCarAndCarHOV(carItin, HOV2, HOV3, autoWork) // TODO Fix beamVehicleId for HOVs?
       case Some(mode) if (mode.value == "walk" && routingItineraries.map(_.tripClassifier).contains(WALK)) =>
         // TODO Need HOV options for those agents that don't have a car.
         val walkItin = routingItineraries.filter(_.tripClassifier.value == "walk").head
@@ -1205,19 +1205,19 @@ trait ChoosesMode {
         //val teleportItin = routingItineraries.filter(_.tripClassifier.value.startsWith("hov"))
         Seq()
       case Some(HOV3_TELEPORTATION) =>
-        val vehicless = choosesModeData.availablePersonalStreetVehicles
         //val teleportItin = routingItineraries.filter(_.tripClassifier.value.startsWith("hov"))
         Seq()
+      //TODO add cases that if hov2 or hov3, the other hov car and also a normal car option (IF they have one available) are given as choices
+      // Since it is hard to determine if a hov agent has a car, maybe we could use the ratio of household agents to household cars to determine if they get a car alternative
+      case Some(mode) if (mode.value == "hov2" && routingItineraries.map(_.tripClassifier).contains(HOV2)) =>
+        val hov2Itin = routingItineraries.filter(_.tripClassifier.value == "hov2").head
+        convertBetweenCarAndCarHOV(hov2Itin, CAR, HOV3, autoWork)
+      case Some(mode) if (mode.value == "hov3" && routingItineraries.map(_.tripClassifier).contains(HOV3)) =>
+        val hov3Itin = routingItineraries.filter(_.tripClassifier.value == "hov3").head
+        convertBetweenCarAndCarHOV(hov3Itin, CAR, HOV2, autoWork)
       case _ =>
-        //TODO add case that if hov2 or hov3, the other hov car and also a normal car option (IF they have one available) are given as choices
-        // Since it is hard to determine if a hov agent has a car, maybe if their household has a car, they get a car alternative, but if their household doesn't, then they don't
-        // Instead, we could use the ratio of household agents to household cars to determine if they get a car alternative
-        val vehicless = choosesModeData.availablePersonalStreetVehicles
-        val numberOfCars = attributes.householdAttributes.numCars
-        val hhSize = attributes.householdAttributes.householdSize
         Seq()
     }
-    //Seq(carHov2Itin,carHov3Itin)
   }
 
   def mustBeDrivenHome(vehicle: VehicleOrToken): Boolean = {
@@ -1237,16 +1237,19 @@ trait ChoosesMode {
   def convertBetweenCarAndCarHOV(
     carItin: EmbodiedBeamTrip,
     mode1: BeamMode,
-    mode2: BeamMode
+    mode2: BeamMode,
+    autoWork: String
   ): Seq[EmbodiedBeamTrip] = {
     val (leg1, leg4) = (carItin.legs.head, carItin.legs.last)
     val (leg2Mode1, leg3Mode1) = (carItin.legs(1).copy(carItin.legs(1).beamLeg.copy(mode = mode1)),
       carItin.legs(2).copy(carItin.legs(2).beamLeg.copy(mode = mode1)))
     val (leg2Mode2, leg3Mode2) = (carItin.legs(1).copy(carItin.legs(1).beamLeg.copy(mode = mode2)),
       carItin.legs(2).copy(carItin.legs(2).beamLeg.copy(mode = mode2)))
-    val carHov2Itin = carItin.copy(legs = IndexedSeq(leg1,leg2Mode1,leg3Mode1,leg4))
-    val carHov3Itin = carItin.copy(legs = IndexedSeq(leg1,leg2Mode2,leg3Mode2,leg4))
-    Seq(carHov2Itin,carHov3Itin)
+    val mode1Itin = carItin.copy(legs = IndexedSeq(leg1,leg2Mode1,leg3Mode1,leg4))
+    val mode2Itin = carItin.copy(legs = IndexedSeq(leg1,leg2Mode2,leg3Mode2,leg4))
+
+    if(autoWork == "no_auto"){ Seq(mode2Itin) }
+    else Seq(mode1Itin, mode2Itin)
   }
 
   def convertFromCarHOVToTeleportHOV(
