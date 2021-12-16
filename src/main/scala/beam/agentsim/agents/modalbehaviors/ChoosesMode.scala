@@ -54,6 +54,14 @@ trait ChoosesMode {
     needsToCalculateCost = true
   )
 
+  val dummyHovVehicle: StreetVehicle = createDummyVehicle(
+    "dummyHOV",
+    "CAR",
+    CAR,
+    asDriver = true,
+    needsToCalculateCost = true
+  )
+
   //this dummy shared vehicles is used in R5 requests on egress side
   private val dummySharedVehicles: IndexedSeq[StreetVehicle] = possibleSharedVehicleTypes
     .map(_.vehicleCategory)
@@ -326,6 +334,7 @@ trait ChoosesMode {
       }
 
       val bodyStreetVehicle = createBodyStreetVehicle(currentPersonLocation)
+      val dummyHovVehicle = createDummyHovVehicle(currentPersonLocation)
       val nextAct = nextActivity(choosesModeData.personData).get
       val departTime = _currentTick.get
 
@@ -418,6 +427,10 @@ trait ChoosesMode {
 
       var responsePlaceholders = ChoosesModeResponsePlaceholders()
       var requestId: Option[Int] = None
+//      val vehicleRequestSet =
+//        if (matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio") == "no_auto") {
+//          newlyAvailableBeamVehicles.map(_.streetVehicle) :+ bodyStreetVehicle :+ dummyHovVehicle
+//        } else newlyAvailableBeamVehicles.map(_.streetVehicle) :+ bodyStreetVehicle
       // Form and send requests
 
       correctedCurrentTourMode match {
@@ -438,12 +451,12 @@ trait ChoosesMode {
           }
           makeRequestWith(
             withTransit = availableModes.exists(_.isTransit),
-            newlyAvailableBeamVehicles.map(_.streetVehicle) :+ bodyStreetVehicle,
+            newlyAvailableBeamVehicles.map(_.streetVehicle) :+ bodyStreetVehicle :+ dummyHovVehicle,
             possibleEgressVehicles = dummySharedVehicles
           )
         case Some(WALK) =>
           responsePlaceholders = makeResponsePlaceholders(withRouting = true)
-          makeRequestWith(withTransit = false, Vector(bodyStreetVehicle))
+          makeRequestWith(withTransit = false, Vector(bodyStreetVehicle, dummyHovVehicle))
         case Some(WALK_TRANSIT) =>
           responsePlaceholders = makeResponsePlaceholders(withRouting = true)
           makeRequestWith(withTransit = true, Vector(bodyStreetVehicle))
@@ -454,12 +467,12 @@ trait ChoosesMode {
         case Some(HOV2_TELEPORTATION) =>
           val vehicles = filterStreetVehiclesForQuery(newlyAvailableBeamVehicles.map(_.streetVehicle), CAR)
             .map(car_vehicle => car_vehicle.copy(mode = HOV2))
-          makeRequestWith(withTransit = false, vehicles :+ bodyStreetVehicle)
+          makeRequestWith(withTransit = false, Vector(bodyStreetVehicle, dummyHovVehicle))
           responsePlaceholders = makeResponsePlaceholders(withRouting = true)
         case Some(HOV3_TELEPORTATION) =>
           val vehicles = filterStreetVehiclesForQuery(newlyAvailableBeamVehicles.map(_.streetVehicle), CAR)
             .map(car_vehicle => car_vehicle.copy(mode = HOV3))
-          makeRequestWith(withTransit = false, vehicles :+ bodyStreetVehicle)
+          makeRequestWith(withTransit = false, Vector(bodyStreetVehicle, dummyHovVehicle))
           responsePlaceholders = makeResponsePlaceholders(withRouting = true)
         case Some(tourMode @ (CAR | BIKE)) =>
           val maybeLeg = _experiencedBeamPlan.getPlanElements
@@ -887,6 +900,18 @@ trait ChoosesMode {
     )
   }
 
+  private def createDummyHovVehicle(locationUTM: SpaceTime):StreetVehicle = {
+    StreetVehicle(
+      dummyHovVehicle.id,
+      dummyHovVehicle.vehicleTypeId,
+      locationUTM,
+      CAR,
+      false,
+      true
+    )
+  }
+
+
   private def correctRoutingResponse(response: RoutingResponse) = {
     val theRouterResult = response.copy(itineraries = response.itineraries.map { it =>
       it.copy(
@@ -927,7 +952,7 @@ trait ChoosesMode {
     /* we need to park cars and any shared vehicles */
     /* teleportation vehicles are not actual vehicles, so, they do not require parking */
     val isTeleportationVehicle = BeamVehicle.isSharedTeleportationVehicle(embodiedLeg.beamVehicleId)
-    val isRealCar = embodiedLeg.beamLeg.mode == CAR && dummyRHVehicle.id != embodiedLeg.beamVehicleId
+    val isRealCar = embodiedLeg.beamLeg.mode == CAR && dummyRHVehicle.id != embodiedLeg.beamVehicleId && dummyHovVehicle.id != embodiedLeg.beamVehicleId
     !isTeleportationVehicle && (
       isRealCar
       || (embodiedLeg.beamLeg.mode == BIKE && beamVehicles.get(embodiedLeg.beamVehicleId).forall(_.isInstanceOf[Token]))
@@ -1296,7 +1321,7 @@ trait ChoosesMode {
     val rand = new Random //instance of random class
     val double_random = rand.nextDouble
 
-    if (double_random <= .5 && chosenTrip.tripClassifier.value =="hov2"){ // TODO double check the random assignment
+    if (double_random < .5 && chosenTrip.tripClassifier.value =="hov2"){ // TODO double check the random assignment
       newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(newTrip),
