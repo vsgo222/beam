@@ -59,6 +59,7 @@ object UtilityFunctionOperation {
       case ("ascNoAuto", _)            => Intercept(value)
       case ("ascAutoDeficient", _)     => Intercept(value)
       case ("ascAutoSufficient", _)    => Intercept(value)
+      case("walkTime", _)              => Multiplier(value) // only used for TSCORE version
 
       case _                           => throw new RuntimeException(s"Unknown Utility Parameter Type $s")
     }

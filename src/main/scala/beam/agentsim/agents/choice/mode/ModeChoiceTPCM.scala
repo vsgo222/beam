@@ -112,7 +112,8 @@ class ModeChoiceTPCM(
           alt.destCBD,
           if (autoWork.equals("no_auto"))         {1.0} else {0.0},
           if (autoWork.equals("auto_deficient"))  {1.0} else {0.0},
-          if (autoWork.equals("auto_sufficient")) {1.0} else {0.0}
+          if (autoWork.equals("auto_sufficient")) {1.0} else {0.0},
+          alt.walkTime
         )
         (alt.mode, theParams)
       }// TODO: instead of .toMap, we keep it in a Vector to prevent HOV2 and HOV3 options from grouping together into CAR
@@ -162,7 +163,8 @@ class ModeChoiceTPCM(
     CBD: Double,
     ascNoAuto: Double,
     ascAutoDeficient: Double,
-    ascAutoSufficient: Double
+    ascAutoSufficient: Double,
+    walkTime: Double
   ) = {
     Map(
       "vehicleTime"           -> vehicleTime,
@@ -189,7 +191,8 @@ class ModeChoiceTPCM(
       "CBD"                   -> CBD,
       "ascNoAuto"             -> ascNoAuto,
       "ascAutoDeficient"      -> ascAutoDeficient,
-      "ascAutoSufficient"     -> ascAutoSufficient
+      "ascAutoSufficient"     -> ascAutoSufficient,
+      "walkTime"              -> walkTime
     )
   }
 
@@ -310,7 +313,8 @@ class ModeChoiceTPCM(
       mcd.destCBD,
       if (autoWork.equals("no_auto"))         {1.0} else {0.0},
       if (autoWork.equals("auto_deficient"))  {1.0} else {0.0},
-      if (autoWork.equals("auto_sufficient")) {1.0} else {0.0}
+      if (autoWork.equals("auto_sufficient")) {1.0} else {0.0},
+      mcd.walkTime
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(varType)(tourPurpose)
     model.getUtilityOfAlternative(beamTrip, theParams).getOrElse(0)
@@ -337,9 +341,8 @@ class ModeChoiceTPCM(
       0,0,0, // fix age
       0,0, // fix hhSize
       0,0, // fix drive-dist and CBD
-      0,0,0//fix ascAuto
-
-
+      0,0,0,//fix ascAuto
+      time //fix walk time
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(varType)(tourPurpose)
     modeModel.getUtilityOfAlternative(mode, theParams).getOrElse(0)
