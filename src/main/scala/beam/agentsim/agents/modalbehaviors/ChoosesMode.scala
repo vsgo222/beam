@@ -1386,7 +1386,8 @@ trait ChoosesMode {
     } else {
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(chosenTrip),
-        availableAlternatives = availableAlts
+        personData = choosesModeData.personData.copy(currentTourMode = Some(modeType)),
+        availableAlternatives = Some(modeType.toString)
       )
     }
     dataForNextStep
