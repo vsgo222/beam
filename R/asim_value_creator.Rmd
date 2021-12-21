@@ -354,3 +354,40 @@ asim_long_R <- rbind(asim_long,walkTime)
 #write_csv(asim_long_R,"asim-long-R-blank.csv")
 ```
 
+## Adjusted Complete File
+Dr. Erhardt wants to adjust the some of the values in the current version of the asim-long file to ensure uniformity in the equation for vehicle time, wait time, walk time, and number of transfers. The equation he wants is shown below.
+
+\begin{equation}
+  WeightedTravelTime = InVehicleTime + 2(WaitTime) + 2(WalkTime) + 10(NumTransfers)
+\end{equation}
+
+Below, we tweek the values in the current version to ensure that these variables have constant coefficients. In addition, we delete the longWalk variable. Actually, we leave all other variables blank.
+
+
+```{r}
+vehicleVals <- asim_long %>%
+  filter(variable == "vehicleTime") %>%
+  mutate(comName = paste(alternative,latentClass, sep = "_"), vehicleValue = value) %>%
+  select(8,9)
+
+adj_asim <- asim_long %>%
+  filter(variable %in% c("vehicleTime","waitTime","shortWalkDist","transfer")) %>%
+  mutate(variable = ifelse(variable == "shortWalkDist","walkTime",variable)) %>%
+  mutate(value = ifelse(variable == "walkTime",value*.05,value)) %>%
+  mutate(comName = paste(alternative,latentClass, sep = "_")) %>%
+  left_join(vehicleVals, by = "comName") %>% select(-comName) %>%
+  mutate(vehicleValue = ifelse(is.na(value),NA,vehicleValue)) %>%
+  mutate(ratio = value/vehicleValue) %>%
+  mutate(adjValue = case_when(
+    variable == "waitTime" ~ 2 * vehicleValue,
+    variable == "shortWalkDist" ~ 2 * vehicleValue,
+    variable == "transfer" ~ 10 * vehicleValue
+  )) %>%
+  mutate(newRatio = adjValue/vehicleValue)
+```
+
+
+```{r}
+write_csv(asim_long_adj,"asim-long-R-adj.csv")
+```
+
