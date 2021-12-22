@@ -54,14 +54,6 @@ trait ChoosesMode {
     needsToCalculateCost = true
   )
 
-  val dummyHovVehicle: StreetVehicle = createDummyVehicle(
-    "dummyHOV",
-    "CAR",
-    CAR,
-    asDriver = true,
-    needsToCalculateCost = true
-  )
-
   //this dummy shared vehicles is used in R5 requests on egress side
   private val dummySharedVehicles: IndexedSeq[StreetVehicle] = possibleSharedVehicleTypes
     .map(_.vehicleCategory)
@@ -452,22 +444,22 @@ trait ChoosesMode {
           }
           makeRequestWith(
             withTransit = availableModes.exists(_.isTransit),
-//            autoWork match {
-//              case ("no_auto") => Vector(bodyStreetVehicle, dummyHovVehicle)
-//              case _ => Vector(bodyStreetVehicle)
-//            },
-            Vector(bodyStreetVehicle),//, dummyHovVehicle),
+            autoWork match {
+              case ("no_auto") => Vector(bodyStreetVehicle, dummyHovVehicle)
+              case _ => Vector(bodyStreetVehicle)
+            },
+            //Vector(bodyStreetVehicle),//, dummyHovVehicle),
             possibleEgressVehicles = dummySharedVehicles
           )
         case Some(WALK) =>
           responsePlaceholders = makeResponsePlaceholders(withRouting = true)
           makeRequestWith(
             withTransit = false,
-//            autoWork match {
-//              case ("no_auto") => Vector(bodyStreetVehicle, dummyHovVehicle)
-//              case _ => Vector(bodyStreetVehicle)
-//            }
-            Vector(bodyStreetVehicle)//, dummyHovVehicle)
+            autoWork match {
+              case ("no_auto") => Vector(bodyStreetVehicle, dummyHovVehicle)
+              case _ => Vector(bodyStreetVehicle)
+            }
+            //Vector(bodyStreetVehicle, dummyHovVehicle)
           )
         case Some(WALK_TRANSIT) =>
           responsePlaceholders = makeResponsePlaceholders(withRouting = true)
@@ -482,7 +474,7 @@ trait ChoosesMode {
           makeRequestWith(
             withTransit = false,
             (tripIndexOfElement, choosesModeData.personData.hasDeparted) match {
-              //case (0, false) => Vector(bodyStreetVehicle, dummyHovVehicle)
+              case (0, false) => Vector(bodyStreetVehicle, dummyHovVehicle)
               case _ => vehicles :+ bodyStreetVehicle
             }
           )
@@ -493,7 +485,7 @@ trait ChoosesMode {
           makeRequestWith(
             withTransit = false,
             (tripIndexOfElement, choosesModeData.personData.hasDeparted) match {
-              //case (0, false) => Vector(bodyStreetVehicle, dummyHovVehicle)
+              case (0, false) => Vector(bodyStreetVehicle, dummyHovVehicle)
               case _ => vehicles :+ bodyStreetVehicle
             }
           )
@@ -924,14 +916,30 @@ trait ChoosesMode {
     )
   }
 
+  private val hovType: BeamVehicleType = beamScenario.vehicleTypes(
+    Id.create("CAR", classOf[BeamVehicleType])
+  )
+
+  private val hov: BeamVehicle = new BeamVehicle(
+    BeamVehicle.createId(id, Some("dummyHOV")),
+    new Powertrain(0.0),
+    hovType,
+    vehicleManagerId = new AtomicReference(VehicleManager.NoManager.managerId)
+  )
+  hov.setManager(Some(self))
+  beamVehicles.put(hov.id, ActualVehicle(hov))
+
   private def createDummyHovVehicle(locationUTM: SpaceTime):StreetVehicle = {
     StreetVehicle(
-      dummyHovVehicle.id,
-      dummyHovVehicle.vehicleTypeId,
+      hov.id,
+      hov.beamVehicleType.id,
       locationUTM,
       CAR,
-      false,
-      true
+      asDriver = true,// if true, this error:  java.util.NoSuchElementException: key not found: dummyHOV (PersonAgent.scala:939)
+            // if false, this error: WARN beam.sim.monitoring.ErrorListener - Person Actor[akka://ClusterSystem/user/BeamMobsim.iteration/population/1786/341940#-1321973831]
+            //                       attempted to reserve ride with agent Actor[akka://ClusterSystem/user/BeamMobsim.iteration/population/1786/cavDriver-dummyHOV] that was
+            //                       not found, message sent to dead letters.
+      needsToCalculateCost = true
     )
   }
 
@@ -975,7 +983,7 @@ trait ChoosesMode {
     /* we need to park cars and any shared vehicles */
     /* teleportation vehicles are not actual vehicles, so, they do not require parking */
     val isTeleportationVehicle = BeamVehicle.isSharedTeleportationVehicle(embodiedLeg.beamVehicleId)
-    val isRealCar = embodiedLeg.beamLeg.mode == CAR && dummyRHVehicle.id != embodiedLeg.beamVehicleId && dummyHovVehicle.id != embodiedLeg.beamVehicleId // TODO dummyHOV should have parking behavior
+    val isRealCar = embodiedLeg.beamLeg.mode == CAR && dummyRHVehicle.id != embodiedLeg.beamVehicleId //&& hov.id != embodiedLeg.beamVehicleId // TODO dummyHOV should have parking behavior
     !isTeleportationVehicle && (
       isRealCar
       || (embodiedLeg.beamLeg.mode == BIKE && beamVehicles.get(embodiedLeg.beamVehicleId).forall(_.isInstanceOf[Token]))
