@@ -1240,40 +1240,31 @@ trait ChoosesMode {
 
   def hovItinerary(routingItineraries: Seq[EmbodiedBeamTrip], choosesModeData: ChoosesModeData): Seq[EmbodiedBeamTrip] = {
     val autoWork = matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString
+      //val currentTourMode = choosesModeData.personData.currentTourMode.get
+     //val dummyHovItin = routingItineraries.filter(_.tripClassifier == CAR).head
+     //val dummyHovItin2 = convertBetweenCarAndHOV(dummyHovItin, HOV2, HOV3, autoWork)
+     //val teleportItin = routingItineraries.filter(_.tripClassifier.value.startsWith("hov"))
 
     choosesModeData.personData.currentTourMode match {
        case Some(mode) if (mode.value == "car" && routingItineraries.map(_.tripClassifier).contains(CAR)) =>
         val carItin = routingItineraries.filter(_.tripClassifier.value == "car").head
-        convertBetweenCarAndHOV(carItin, HOV2, HOV3, autoWork) // TODO Fix beamVehicleId for HOVs?
-
+        convertBetweenCarAndHOV(carItin, HOV2, HOV3, autoWork)
        case Some(mode) if (mode.value == "walk" && routingItineraries.map(_.tripClassifier).contains(WALK)) =>
-        // TODO Need HOV options for those agents that don't have a car.
-//        val walkItin = routingItineraries.filter(_.tripClassifier.value == "walk").head
-//        val dummyHovItin = routingItineraries.filter(_.tripClassifier == CAR).head
-//        val dummyHovItin2 = convertBetweenCarAndHOV(dummyHovItin, HOV2, HOV3, autoWork)
         Seq()
-
        case Some(HOV2_TELEPORTATION) =>
-        //val dummyHovItin = routingItineraries.
-        //val teleportItin = routingItineraries.filter(_.tripClassifier.value.startsWith("hov"))
         Seq()
-
        case Some(HOV3_TELEPORTATION) =>
-        //val teleportItin = routingItineraries.filter(_.tripClassifier.value.startsWith("hov"))
         Seq()
-
        case Some(mode) if (mode.value == "hov2" && routingItineraries.map(_.tripClassifier).contains(HOV2)) =>
         val hov2Itin = routingItineraries.filter(_.tripClassifier.value == "hov2").head
         convertBetweenCarAndHOV(hov2Itin, CAR, HOV3, autoWork)
-
        case Some(mode) if (mode.value == "hov3" && routingItineraries.map(_.tripClassifier).contains(HOV3)) =>
         val hov3Itin = routingItineraries.filter(_.tripClassifier.value == "hov3").head
         convertBetweenCarAndHOV(hov3Itin, CAR, HOV2, autoWork)
-
        case _ =>
         Seq()
-
     }
+
   }
 
   def mustBeDrivenHome(vehicle: VehicleOrToken): Boolean = {
@@ -1477,25 +1468,41 @@ trait ChoosesMode {
         case _ =>
           Vector()
       }
-      val combinedItinerariesForChoice = rideHailItinerary ++ addParkingCostToItins(
+        val autoWork = matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString
+        val currentTourMode = choosesModeData.personData.currentTourMode.get
+      val hovItinerary =
+        if (routingResponse.itineraries.map(_.tripClassifier.value).contains("car")) {
+          val carItin = routingResponse.itineraries.filter(_.tripClassifier.value == "car").head
+          convertBetweenCarAndHOV(carItin, HOV2, HOV3, "auto_sufficient") // Fix beamVehicleId for HOVs?
+        }
+        else if (routingResponse.itineraries.map(_.tripClassifier.value).contains("hov2")) {
+          val hov2Itin = routingResponse.itineraries.filter(_.tripClassifier.value == "hov2").head
+          convertBetweenCarAndHOV(hov2Itin, CAR, HOV3, autoWork)
+        }
+        else if (routingResponse.itineraries.map(_.tripClassifier.value).contains("hov3")) {
+          val hov3Itin = routingResponse.itineraries.filter(_.tripClassifier.value == "hov3").head
+          convertBetweenCarAndHOV(hov3Itin, CAR, HOV2, autoWork)
+        } else { // HOV options for those agents that don't have a car or hov option already
+          Seq()
+        }
+      var combinedItinerariesForChoice = rideHailItinerary ++ addParkingCostToItins(
         routingResponse.itineraries,
         parkingResponses
-      ) ++ rideHail2TransitIinerary.toVector ++
-        hovItinerary(routingResponse.itineraries, choosesModeData).toVector
+      ) ++ rideHail2TransitIinerary.toVector ++ hovItinerary
+      combinedItinerariesForChoice = if (autoWork == "no_auto")
+        combinedItinerariesForChoice.filter(_.tripClassifier.value != "car")
+      else combinedItinerariesForChoice
+
 
       val availableModesForTrips: Seq[BeamMode] = availableModesForPerson(matsimPlan.getPerson)
         .filterNot(mode => choosesModeData.excludeModes.contains(mode))
+      val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct)
+        .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
 
       val filteredItinerariesForChoice = (choosesModeData.personData.currentTourMode match {
         case Some(mode) if mode == DRIVE_TRANSIT || mode == BIKE_TRANSIT =>
           val LastTripIndex = currentTour(choosesModeData.personData).trips.size - 1
-          val tripIndexOfElement = currentTour(choosesModeData.personData)
-            .tripIndexOfElement(nextAct)
-            .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
-          (
-            tripIndexOfElement,
-            personData.hasDeparted
-          ) match {
+          (tripIndexOfElement, personData.hasDeparted) match {
             case (0 | LastTripIndex, false) =>
               combinedItinerariesForChoice.filter(_.tripClassifier == mode)
             case _ =>
@@ -1507,18 +1514,26 @@ trait ChoosesMode {
           combinedItinerariesForChoice.filter(trip =>
             trip.tripClassifier == WALK_TRANSIT || trip.tripClassifier == RIDE_HAIL_TRANSIT
           )
-        //TODO: On the first trip of the day, all teleporters are given new alternatives. On any other trip, they are given only teleportation alternatives.
         case Some(HOV2_TELEPORTATION) =>
-          combinedItinerariesForChoice.filter(trip => trip.tripClassifier == HOV2_TELEPORTATION)
+          (tripIndexOfElement, personData.hasDeparted) match {
+            case (0, false) =>
+              combinedItinerariesForChoice
+            case _ =>
+              combinedItinerariesForChoice.filter(trip =>
+                trip.tripClassifier == HOV2_TELEPORTATION
+              )
+          }
         case Some(HOV3_TELEPORTATION) =>
-          combinedItinerariesForChoice.filter(trip => trip.tripClassifier == HOV3_TELEPORTATION)
+          (tripIndexOfElement, personData.hasDeparted) match {
+            case (0, false) =>
+              combinedItinerariesForChoice
+            case _ =>
+              combinedItinerariesForChoice.filter(trip =>
+                trip.tripClassifier == HOV3_TELEPORTATION
+              )
+          }
         case Some(mode) if mode.value == "hov2" =>
-          val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct)
-            .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
-          (
-            tripIndexOfElement,
-            personData.hasDeparted
-          ) match {
+          (tripIndexOfElement, personData.hasDeparted) match {
             case (0, false) =>
               combinedItinerariesForChoice
             case _ =>
@@ -1527,12 +1542,7 @@ trait ChoosesMode {
               )
           }
         case Some(mode) if mode.value == "hov3" =>
-          val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct)
-            .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
-          (
-            tripIndexOfElement,
-            personData.hasDeparted
-          ) match {
+          (tripIndexOfElement, personData.hasDeparted) match {
             case (0, false) =>
               combinedItinerariesForChoice
             case _ =>
@@ -1541,12 +1551,7 @@ trait ChoosesMode {
               )
           }
         case Some(mode) if mode.value == "car" =>
-          val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct)
-            .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
-          (
-            tripIndexOfElement,
-            personData.hasDeparted
-          ) match {
+          (tripIndexOfElement, personData.hasDeparted) match {
             case (0, false) =>
               combinedItinerariesForChoice
             case _ =>
@@ -1596,14 +1601,14 @@ trait ChoosesMode {
             }
           }
 
-          // tracing
-          val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct).getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
-          logger.warn("ID: " + matsimPlan.getPerson.getId.toString +
-            ", AvailableAlts: " + dataForNextStep.availableAlternatives.get +
-            ", CurrentTourMode: " + choosesModeData.personData.currentTourMode.get +
-            ", FinalChosenTripMode: " + dataForNextStep.pendingChosenTrip.get.tripClassifier +
-            ", TourTripIndex: " + tripIndexOfElement
-          )
+//          // tracing
+//          val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct).getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
+//          logger.warn("ID: " + matsimPlan.getPerson.getId.toString +
+//            ", AvailableAlts: " + dataForNextStep.availableAlternatives.get +
+//            ", CurrentTourMode: " + choosesModeData.personData.currentTourMode.getOrElse("None") +
+//            ", FinalChosenTripMode: " + dataForNextStep.pendingChosenTrip.get.tripClassifier +
+//            ", TourTripIndex: " + tripIndexOfElement
+//          )
 
           goto(FinishingModeChoice) using dataForNextStep
         case None =>
