@@ -719,6 +719,12 @@ trait ChoosesMode {
         }
         thereAreTeleportations || thereAreTeleportationVehicles
       }
+      val thereAreDummyHovItineraries = response.itineraries.foldLeft(false) { (thereAreDummyHovs, trip) =>
+        val thereAreDummyHovVehicles = trip.legs.foldLeft(false) { (accum, leg) =>
+          accum || BeamVehicle.isDummyHovVehicle(leg.beamVehicleId)
+        }
+        thereAreDummyHovs || thereAreDummyHovVehicles
+      }
       val newParkingRequestIds = if (thereAreTeleportationItineraries) {
         choosesModeData.parkingRequestIds
       } else {
@@ -916,6 +922,7 @@ trait ChoosesMode {
     )
   }
 
+  private val managerId = VehicleManager.createOrGetReservedFor("hov-fleet-1", VehicleManager.TypeEnum.Shared).managerId
   private val hovType: BeamVehicleType = beamScenario.vehicleTypes(
     Id.create("CAR", classOf[BeamVehicleType])
   )
@@ -924,10 +931,19 @@ trait ChoosesMode {
     BeamVehicle.createId(id, Some("dummyHOV")),
     new Powertrain(0.0),
     hovType,
-    vehicleManagerId = new AtomicReference(VehicleManager.NoManager.managerId)
+    vehicleManagerId = new AtomicReference(managerId)//VehicleManager.NoManager.managerId)
   )
   hov.setManager(Some(self))
   beamVehicles.put(hov.id, ActualVehicle(hov))
+
+//  (parkingManager ? ParkingInquiry.init(
+//    SpaceTime(0.0, 0.0, 28800),
+//    "wherever",
+//    triggerId = 0
+//  )).collect { case ParkingInquiryResponse(stall, _, triggerId) =>
+//    hov.useParkingStall(stall)
+//    MobilityStatusResponse(Vector(ActualVehicle(hov)), triggerId)
+//  } pipeTo mockSharedVehicleFleet.lastSender
 
   private def createDummyHovVehicle(locationUTM: SpaceTime):StreetVehicle = {
     StreetVehicle(
@@ -1604,6 +1620,24 @@ trait ChoosesMode {
             ) match {
               case (0, false) =>
                 dataForNextStep = createHovDataForNextStep(chosenTrip, choosesModeData, availableAlts)
+                val thereAreDummyHovItineraries = routingResponse.itineraries.foldLeft(false) { (thereAreDummyHovs, trip) =>
+                  val thereAreDummyHovVehicles = trip.legs.foldLeft(false) { (accum, leg) =>
+                    accum || BeamVehicle.isDummyHovVehicle(leg.beamVehicleId)
+                  }
+                  thereAreDummyHovs || thereAreDummyHovVehicles
+                }
+                val newParkingRequestIds = if (thereAreDummyHovItineraries) {
+                  val parkingRequestIds: Seq[(Int, VehicleOnTrip)] = makeParkingInquiries(choosesModeData, routingResponse.itineraries)
+                  choosesModeData.parkingRequestIds ++ parkingRequestIds
+                } else {
+                  choosesModeData.parkingRequestIds
+                }
+
+                dataForNextStep.copy(
+                  parkingRequestIds = newParkingRequestIds,
+                  routingFinished = true
+                )
+
               case _ =>
                 dataForNextStep = dataForNextStep
             }
