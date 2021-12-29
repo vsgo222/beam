@@ -443,21 +443,12 @@ trait ChoosesMode {
           }
           makeRequestWith(
             withTransit = availableModes.exists(_.isTransit),
-            autoWork match {
-              case ("no_auto") => Vector(bodyStreetVehicle)
-              case _ => Vector(bodyStreetVehicle)
-            },
+            newlyAvailableBeamVehicles.map(_.streetVehicle) :+ bodyStreetVehicle,
             possibleEgressVehicles = dummySharedVehicles
           )
         case Some(WALK) =>
           responsePlaceholders = makeResponsePlaceholders(withRouting = true)
-          makeRequestWith(
-            withTransit = false,
-            autoWork match {
-              case ("no_auto") => Vector(bodyStreetVehicle)
-              case _ => Vector(bodyStreetVehicle)
-            }
-          )
+          makeRequestWith(withTransit = false, Vector(bodyStreetVehicle))
         case Some(WALK_TRANSIT) =>
           responsePlaceholders = makeResponsePlaceholders(withRouting = true)
           makeRequestWith(withTransit = true, Vector(bodyStreetVehicle))
@@ -468,24 +459,12 @@ trait ChoosesMode {
         case Some(HOV2_TELEPORTATION) =>
           val vehicles = filterStreetVehiclesForQuery(newlyAvailableBeamVehicles.map(_.streetVehicle), CAR)
             .map(car_vehicle => car_vehicle.copy(mode = HOV2))
-          makeRequestWith(
-            withTransit = false,
-            (tripIndexOfElement, choosesModeData.personData.hasDeparted) match {
-              case (0, false) => Vector(bodyStreetVehicle)
-              case _ => vehicles :+ bodyStreetVehicle
-            }
-          )
+          makeRequestWith(withTransit = false, vehicles :+ bodyStreetVehicle)
           responsePlaceholders = makeResponsePlaceholders(withRouting = true)
         case Some(HOV3_TELEPORTATION) =>
           val vehicles = filterStreetVehiclesForQuery(newlyAvailableBeamVehicles.map(_.streetVehicle), CAR)
             .map(car_vehicle => car_vehicle.copy(mode = HOV3))
-          makeRequestWith(
-            withTransit = false,
-            (tripIndexOfElement, choosesModeData.personData.hasDeparted) match {
-              case (0, false) => Vector(bodyStreetVehicle)
-              case _ => vehicles :+ bodyStreetVehicle
-            }
-          )
+          makeRequestWith(withTransit = false, vehicles :+ bodyStreetVehicle)
           responsePlaceholders = makeResponsePlaceholders(withRouting = true)
         case Some(tourMode @ (CAR | BIKE)) =>
           val maybeLeg = _experiencedBeamPlan.getPlanElements
