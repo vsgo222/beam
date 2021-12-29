@@ -1286,6 +1286,35 @@ trait ChoosesMode {
     Some(EmbodiedBeamTrip(IndexedSeq(firstTrip,teleportationTrip,lastTrip)))
   }
 
+  def convertFromWalkToTeleportHov(
+    chosenTrip: EmbodiedBeamTrip,
+    modeType:BeamMode
+  ): Option[EmbodiedBeamTrip] = {
+    val (walkLeg, walkPath) = (chosenTrip.legs(0).beamLeg, chosenTrip.legs(0).beamLeg.travelPath)
+    val teleportVehicle = createSharedTeleportationVehicle(walkLeg.travelPath.startPoint)
+    val teleportationTrip = EmbodiedBeamLeg(
+      BeamLeg(
+        walkLeg.startTime,
+        modeType,
+        walkLeg.duration,
+        BeamPath(
+          walkPath.linkIds,
+          walkPath.linkTravelTime,
+          walkPath.transitStops,
+          walkPath.startPoint,
+          walkPath.endPoint,
+          walkPath.distanceInM
+        )
+      ),
+      teleportVehicle.id,
+      teleportVehicle.beamVehicleType.id,
+      true, //should this be false?
+      chosenTrip.legs(0).cost, // another way to calculate cost?
+      true
+    )
+    Some(EmbodiedBeamTrip(IndexedSeq(teleportationTrip)))
+  }
+
   def createHovDataForNextStep(
     chosenTrip: EmbodiedBeamTrip,
     choosesModeData: ChoosesModeData,
