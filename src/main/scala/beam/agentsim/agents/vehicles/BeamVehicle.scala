@@ -552,10 +552,6 @@ object BeamVehicle {
     vehicleId.toString.startsWith(idPrefixSharedTeleportationVehicle)
   }
 
-  def isDummyHovVehicle(vehicleId: Id[BeamVehicle]): Boolean = {
-    vehicleId.toString.startsWith("dummyHOV")
-  }
-
   def noSpecialChars(theString: String): String =
     theString.replaceAll("[\\\\|\\\\^]+", ":")
 
