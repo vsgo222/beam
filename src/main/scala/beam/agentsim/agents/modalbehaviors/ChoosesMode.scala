@@ -1297,7 +1297,11 @@ trait ChoosesMode {
   def createHovDataForNextStep(
     chosenTrip: EmbodiedBeamTrip,
     choosesModeData: ChoosesModeData,
-    availableAlts: Some[String]
+    availableAlts: Some[String],
+    teleportCount2: Int,
+    teleportCount3: Int,
+    hovCarCount2: Int,
+    hovCarCount3: Int
   ): ChoosesModeData = {
     var modeType = if(chosenTrip.tripClassifier.value =="hov2"){ HOV2 } else HOV3
     modeType = if(chosenTrip.tripClassifier.value == "hov2_teleportation"){ HOV2_TELEPORTATION }
@@ -1307,7 +1311,7 @@ trait ChoosesMode {
     val rand = new Random
     val double_random = rand.nextDouble
 
-    if (double_random < .5 && chosenTrip.tripClassifier.value =="hov2"){
+    if (double_random < .5 && chosenTrip.tripClassifier.value =="hov2" && teleportCount2 < hovCarCount2){
       newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(newTrip),
@@ -1316,7 +1320,7 @@ trait ChoosesMode {
         parkingRequestIds = Map(),
         availableAlternatives = Some("HOV2_TELEPORTATION")
       )
-    } else if ( double_random < .667 && chosenTrip.tripClassifier.value =="hov3") {
+    } else if ( double_random < .66 && chosenTrip.tripClassifier.value =="hov3" && teleportCount3 < hovCarCount3 * 2) {
       newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(newTrip),
@@ -1542,6 +1546,14 @@ trait ChoosesMode {
             availableAlternatives = availableAlts
           )
           if (Vector("hov2","hov3","hov2_teleportation","hov3_teleportation").contains(chosenTrip.tripClassifier.value)) {
+              chosenTrip.tripClassifier.value match { // TODO fix counts so they reset to 0 after each iteration
+                case "hov2_teleportation" => hov2TeleportCount += 1
+                case "hov3_teleportation" => hov3TeleportCount += 1
+                case "hov2" => hov2CarCount += 1
+                case "hov3" => hov3CarCount += 1
+              }
+            logger.warn("hov2Teleport: " + hov2TeleportCount + ", hov3Teleport: " + hov3TeleportCount + ", hov2Car: " + hov2CarCount + ", hov3Car: " + hov3CarCount)
+
             val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct)
               .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
             (
@@ -1549,7 +1561,10 @@ trait ChoosesMode {
               personData.hasDeparted
             ) match {
               case (0, false) =>
-                dataForNextStep = createHovDataForNextStep(chosenTrip, choosesModeData, availableAlts)
+                dataForNextStep = createHovDataForNextStep(
+                  chosenTrip, choosesModeData, availableAlts,
+                  hov2TeleportCount, hov3TeleportCount, hov2CarCount, hov3CarCount
+                )
               case _ =>
                 dataForNextStep = dataForNextStep
             }
@@ -1926,5 +1941,8 @@ object ChoosesMode {
      else
        activity.getEndTime).toInt
   }
+
+  var (hov2TeleportCount, hov3TeleportCount) = (0, 0)
+  var (hov2CarCount, hov3CarCount) = (0, 0)
 
 }
