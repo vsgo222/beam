@@ -329,7 +329,6 @@ trait ChoosesMode {
       }
 
       val bodyStreetVehicle = createBodyStreetVehicle(currentPersonLocation)
-      val dummyHovVehicle = createDummyHovVehicle(currentPersonLocation)
       val nextAct = nextActivity(choosesModeData.personData).get
       val departTime = _currentTick.get
 
@@ -445,10 +444,9 @@ trait ChoosesMode {
           makeRequestWith(
             withTransit = availableModes.exists(_.isTransit),
             autoWork match {
-              case ("no_auto") => Vector(bodyStreetVehicle, dummyHovVehicle)
+              case ("no_auto") => Vector(bodyStreetVehicle)
               case _ => Vector(bodyStreetVehicle)
             },
-            //Vector(bodyStreetVehicle),//, dummyHovVehicle),
             possibleEgressVehicles = dummySharedVehicles
           )
         case Some(WALK) =>
@@ -456,10 +454,9 @@ trait ChoosesMode {
           makeRequestWith(
             withTransit = false,
             autoWork match {
-              case ("no_auto") => Vector(bodyStreetVehicle, dummyHovVehicle)
+              case ("no_auto") => Vector(bodyStreetVehicle)
               case _ => Vector(bodyStreetVehicle)
             }
-            //Vector(bodyStreetVehicle, dummyHovVehicle)
           )
         case Some(WALK_TRANSIT) =>
           responsePlaceholders = makeResponsePlaceholders(withRouting = true)
@@ -474,7 +471,7 @@ trait ChoosesMode {
           makeRequestWith(
             withTransit = false,
             (tripIndexOfElement, choosesModeData.personData.hasDeparted) match {
-              case (0, false) => Vector(bodyStreetVehicle, dummyHovVehicle)
+              case (0, false) => Vector(bodyStreetVehicle)
               case _ => vehicles :+ bodyStreetVehicle
             }
           )
@@ -485,7 +482,7 @@ trait ChoosesMode {
           makeRequestWith(
             withTransit = false,
             (tripIndexOfElement, choosesModeData.personData.hasDeparted) match {
-              case (0, false) => Vector(bodyStreetVehicle, dummyHovVehicle)
+              case (0, false) => Vector(bodyStreetVehicle)
               case _ => vehicles :+ bodyStreetVehicle
             }
           )
@@ -719,12 +716,6 @@ trait ChoosesMode {
         }
         thereAreTeleportations || thereAreTeleportationVehicles
       }
-      val thereAreDummyHovItineraries = response.itineraries.foldLeft(false) { (thereAreDummyHovs, trip) =>
-        val thereAreDummyHovVehicles = trip.legs.foldLeft(false) { (accum, leg) =>
-          accum || BeamVehicle.isDummyHovVehicle(leg.beamVehicleId)
-        }
-        thereAreDummyHovs || thereAreDummyHovVehicles
-      }
       val newParkingRequestIds = if (thereAreTeleportationItineraries) {
         choosesModeData.parkingRequestIds
       } else {
@@ -922,44 +913,7 @@ trait ChoosesMode {
     )
   }
 
-  private val managerId = VehicleManager.createOrGetReservedFor("hov-fleet-1", VehicleManager.TypeEnum.Shared).managerId
-  private val hovType: BeamVehicleType = beamScenario.vehicleTypes(
-    Id.create("CAR", classOf[BeamVehicleType])
-  )
-
-  private val hov: BeamVehicle = new BeamVehicle(
-    BeamVehicle.createId(id, Some("dummyHOV")),
-    new Powertrain(0.0),
-    hovType,
-    vehicleManagerId = new AtomicReference(managerId)//VehicleManager.NoManager.managerId)
-  )
-  hov.setManager(Some(self))
-  beamVehicles.put(hov.id, ActualVehicle(hov))
-
-//  (parkingManager ? ParkingInquiry.init(
-//    SpaceTime(0.0, 0.0, 28800),
-//    "wherever",
-//    triggerId = 0
-//  )).collect { case ParkingInquiryResponse(stall, _, triggerId) =>
-//    hov.useParkingStall(stall)
-//    MobilityStatusResponse(Vector(ActualVehicle(hov)), triggerId)
-//  } pipeTo mockSharedVehicleFleet.lastSender
-
-  private def createDummyHovVehicle(locationUTM: SpaceTime):StreetVehicle = {
-    StreetVehicle(
-      hov.id,
-      hov.beamVehicleType.id,
-      locationUTM,
-      CAR,
-      asDriver = true,// if true, this error:  java.util.NoSuchElementException: key not found: dummyHOV (PersonAgent.scala:939)
-            // if false, this error: WARN beam.sim.monitoring.ErrorListener - Person Actor[akka://ClusterSystem/user/BeamMobsim.iteration/population/1786/341940#-1321973831]
-            //                       attempted to reserve ride with agent Actor[akka://ClusterSystem/user/BeamMobsim.iteration/population/1786/cavDriver-dummyHOV] that was
-            //                       not found, message sent to dead letters.
-      needsToCalculateCost = true
-    )
-  }
-
-  private def correctRoutingResponse(response: RoutingResponse) = { // TODO Use this to split dummyHOV legs
+  private def correctRoutingResponse(response: RoutingResponse) = {
     val theRouterResult = response.copy(itineraries = response.itineraries.map { it =>
       it.copy(
         it.legs.flatMap(embodiedLeg =>
@@ -999,7 +953,7 @@ trait ChoosesMode {
     /* we need to park cars and any shared vehicles */
     /* teleportation vehicles are not actual vehicles, so, they do not require parking */
     val isTeleportationVehicle = BeamVehicle.isSharedTeleportationVehicle(embodiedLeg.beamVehicleId)
-    val isRealCar = embodiedLeg.beamLeg.mode == CAR && dummyRHVehicle.id != embodiedLeg.beamVehicleId //&& hov.id != embodiedLeg.beamVehicleId // TODO dummyHOV should have parking behavior
+    val isRealCar = embodiedLeg.beamLeg.mode == CAR && dummyRHVehicle.id != embodiedLeg.beamVehicleId
     !isTeleportationVehicle && (
       isRealCar
       || (embodiedLeg.beamLeg.mode == BIKE && beamVehicles.get(embodiedLeg.beamVehicleId).forall(_.isInstanceOf[Token]))
@@ -1262,35 +1216,6 @@ trait ChoosesMode {
     }
   }
 
-  def hovItinerary(routingItineraries: Seq[EmbodiedBeamTrip], choosesModeData: ChoosesModeData): Seq[EmbodiedBeamTrip] = {
-    val autoWork = matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString
-      //val currentTourMode = choosesModeData.personData.currentTourMode.get
-     //val dummyHovItin = routingItineraries.filter(_.tripClassifier == CAR).head
-     //val dummyHovItin2 = convertBetweenCarAndHOV(dummyHovItin, HOV2, HOV3, autoWork)
-     //val teleportItin = routingItineraries.filter(_.tripClassifier.value.startsWith("hov"))
-
-    choosesModeData.personData.currentTourMode match {
-       case Some(mode) if (mode.value == "car" && routingItineraries.map(_.tripClassifier).contains(CAR)) =>
-        val carItin = routingItineraries.filter(_.tripClassifier.value == "car").head
-        convertBetweenCarAndHOV(carItin, HOV2, HOV3, autoWork)
-       case Some(mode) if (mode.value == "walk" && routingItineraries.map(_.tripClassifier).contains(WALK)) =>
-        Seq()
-       case Some(HOV2_TELEPORTATION) =>
-        Seq()
-       case Some(HOV3_TELEPORTATION) =>
-        Seq()
-       case Some(mode) if (mode.value == "hov2" && routingItineraries.map(_.tripClassifier).contains(HOV2)) =>
-        val hov2Itin = routingItineraries.filter(_.tripClassifier.value == "hov2").head
-        convertBetweenCarAndHOV(hov2Itin, CAR, HOV3, autoWork)
-       case Some(mode) if (mode.value == "hov3" && routingItineraries.map(_.tripClassifier).contains(HOV3)) =>
-        val hov3Itin = routingItineraries.filter(_.tripClassifier.value == "hov3").head
-        convertBetweenCarAndHOV(hov3Itin, CAR, HOV2, autoWork)
-       case _ =>
-        Seq()
-    }
-
-  }
-
   def mustBeDrivenHome(vehicle: VehicleOrToken): Boolean = {
     vehicle match {
       case ActualVehicle(beamVehicle) =>
@@ -1324,19 +1249,7 @@ trait ChoosesMode {
       if(autoWork == "no_auto"){ Seq(mode2Itin) }
       else Seq(mode1Itin, mode2Itin)
     }
-    // conversion between dummyHov and hov/car trips
-    else if (itin.legs.length == 3) {
-      val (leg1, leg3) = (itin.legs.head, itin.legs.last)
-      val (leg2Mode1, leg2Mode2) = (itin.legs(1).copy(itin.legs(1).beamLeg.copy(mode = mode1)),
-        itin.legs(1).copy(itin.legs(1).beamLeg.copy(mode = mode2)))
-      val mode1Itin = itin.copy(legs = IndexedSeq(leg1,leg2Mode1,leg3))
-      val mode2Itin = itin.copy(legs = IndexedSeq(leg1,leg2Mode2,leg3))
-
-      Seq(mode1Itin,mode2Itin)
-    }
     else Seq()
-
-
 }
 
   def convertFromCarHOVToTeleportHOV(
@@ -1620,24 +1533,6 @@ trait ChoosesMode {
             ) match {
               case (0, false) =>
                 dataForNextStep = createHovDataForNextStep(chosenTrip, choosesModeData, availableAlts)
-                val thereAreDummyHovItineraries = routingResponse.itineraries.foldLeft(false) { (thereAreDummyHovs, trip) =>
-                  val thereAreDummyHovVehicles = trip.legs.foldLeft(false) { (accum, leg) =>
-                    accum || BeamVehicle.isDummyHovVehicle(leg.beamVehicleId)
-                  }
-                  thereAreDummyHovs || thereAreDummyHovVehicles
-                }
-                val newParkingRequestIds = if (thereAreDummyHovItineraries) {
-                  val parkingRequestIds: Seq[(Int, VehicleOnTrip)] = makeParkingInquiries(choosesModeData, routingResponse.itineraries)
-                  choosesModeData.parkingRequestIds ++ parkingRequestIds
-                } else {
-                  choosesModeData.parkingRequestIds
-                }
-
-                dataForNextStep.copy(
-                  parkingRequestIds = newParkingRequestIds,
-                  routingFinished = true
-                )
-
               case _ =>
                 dataForNextStep = dataForNextStep
             }
