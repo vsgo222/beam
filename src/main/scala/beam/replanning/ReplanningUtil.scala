@@ -18,7 +18,7 @@ object ReplanningUtil {
 
     if (experiencedPlan != null && experiencedPlan.getPlanElements.size() > 0) {
       // keep track of the vehicles that been used during previous simulation
-      for (i <- 0 until (Math.min(experiencedPlan.getPlanElements.size(), person.getSelectedPlan.getPlanElements.size()) - 1)) {
+      for (i <- 0 until (experiencedPlan.getPlanElements.size() - 1)) {
         experiencedPlan.getPlanElements.get(i) match {
           case leg: Leg =>
             // Make sure it is not `null`
@@ -38,16 +38,15 @@ object ReplanningUtil {
         case (plannedActivity: Activity, experiencedActivity: Activity) =>
           experiencedActivity.setCoord(plannedActivity.getCoord)
           experiencedActivity.setEndTime(plannedActivity.getEndTime)
-          val purpose = if ( plannedActivity.getAttributes.getAttribute("primary_purpose") == null ) { "None" } else {
-            plannedActivity.getAttributes.getAttribute("primary_purpose").toString.toLowerCase }
-          experiencedActivity.getAttributes.putAttribute("primary_purpose", purpose)
         case (_, _) =>
       }
       val attributes = experiencedPlan.getAttributes
-      val modalityStyle = if (person.getSelectedPlan.getAttributes.getAttribute("modality-style") == null) { "class1" } else {
+      val modalityStyle = if (person.getSelectedPlan.getAttributes.getAttribute("modality-style") == null) { "" }
+      else {
         person.getSelectedPlan.getAttributes.getAttribute("modality-style")
       }
-      val scores = if (person.getSelectedPlan.getAttributes.getAttribute("scores") == null) { "class1" } else {
+      val scores = if (person.getSelectedPlan.getAttributes.getAttribute("scores") == null) { "" }
+      else {
         person.getSelectedPlan.getAttributes.getAttribute("scores")
       }
       attributes.putAttribute("modality-style", modalityStyle)

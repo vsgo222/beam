@@ -37,7 +37,7 @@ class ChargingFunctions[GEO: GeoLevel](
   /**
     * function that verifies if RideHail Then Fast Charging Only
     * @param zone ParkingZone
-    * @param activityTypeLowerCased a String expressing activity Type in lower case
+    * @param inquiry ParkingInquiry
     * @return
     */
   def ifRideHailCurrentlyOnShiftThenFastChargingOnly(zone: ParkingZone[GEO], inquiry: ParkingInquiry): Boolean = {
@@ -162,6 +162,7 @@ class ChargingFunctions[GEO: GeoLevel](
   override protected def sampleParkingStallLocation(
     inquiry: ParkingInquiry,
     parkingZone: ParkingZone[GEO],
-    geoArea: GEO
-  ): Coord = super[ParkingFunctions].sampleParkingStallLocation(inquiry, parkingZone, geoArea)
+    geoArea: GEO,
+    inClosestZone: Boolean = false
+  ): Coord = super[ParkingFunctions].sampleParkingStallLocation(inquiry, parkingZone, geoArea, inClosestZone)
 }

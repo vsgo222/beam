@@ -23,10 +23,12 @@ object FailFast extends LazyLogging {
         "The replanning deletion strategy 'tryToKeepOneOfEachClass' must only be used along with the 'ModeChoiceLCCM' mode choice class. In other words, if the parameter beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass!=ModeChoiceLCCM then beamConfig.matsim.modules.strategy.planSelectorForRemoval != 'tryToKeepOneOfEachClass'"
       )
     }
-    if (config.beam.agentsim.agents.modalBehaviors.modalityStyle.equals("random") &&
-       !config.beam.agentsim.agents.modalBehaviors.modeChoiceClass.equals("ModeChoiceLCCM")) {
+    if (
+      !config.matsim.modules.strategy.planSelectorForRemoval.equals("tryToKeepOneOfEachClass") &&
+      config.beam.agentsim.agents.modalBehaviors.modeChoiceClass.equals("ModeChoiceLCCM")
+    ) {
       throw new RuntimeException(
-        "Modality styles must only be used along with 'ModeChoiceLCCM'"
+        "The replanning deletion strategy 'tryToKeepOneOfEachClass' must be used along with the 'ModeChoiceLCCM' mode choice class. In other words, if the parameter beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass==ModeChoiceLCCM then beamConfig.matsim.modules.strategy.planSelectorForRemoval == 'tryToKeepOneOfEachClass'"
       )
     }
 

@@ -1,20 +1,18 @@
 package beam.agentsim.agents.choice.mode
 
 import java.util.Random
+
 import beam.agentsim.agents.choice.logit.LatentClassChoiceModel.{Mandatory, TourType}
 import beam.agentsim.agents.choice.logit.MultinomialLogit.MNLSample
 import beam.agentsim.agents.choice.logit.LatentClassChoiceModel
 import beam.agentsim.agents.choice.mode.ModeChoiceLCCM.ModeChoiceData
 import beam.agentsim.agents.modalbehaviors.ModeChoiceCalculator
-import beam.agentsim.agents.vehicles.BeamVehicle
 import beam.router.Modes.BeamMode
-import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, DRIVE_TRANSIT, RIDE_HAIL, RIDE_HAIL_TRANSIT, TRANSIT, WALK, WALK_TRANSIT}
+import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, DRIVE_TRANSIT, RIDE_HAIL, TRANSIT, WALK, WALK_TRANSIT}
 import beam.router.model.EmbodiedBeamTrip
-import beam.router.skim.readonly.TransitCrowdingSkims
 import beam.sim.config.BeamConfig
 import beam.sim.{BeamServices, MapStringDouble}
 import beam.sim.population.AttributesOfIndividual
-import org.matsim.api.core.v01.Id
 import org.matsim.api.core.v01.population.Activity
 import org.matsim.api.core.v01.population.Person
 
@@ -45,8 +43,7 @@ import scala.collection.mutable.ListBuffer
   */
 class ModeChoiceLCCM(
   val beamServices: BeamServices,
-  val lccm: LatentClassChoiceModel,
-  transitCrowding: TransitCrowdingSkims,
+  val lccm: LatentClassChoiceModel
 ) extends ModeChoiceCalculator {
 
   override lazy val beamConfig: BeamConfig = beamServices.beamConfig
@@ -58,8 +55,7 @@ class ModeChoiceLCCM(
     alternatives: IndexedSeq[EmbodiedBeamTrip],
     attributesOfIndividual: AttributesOfIndividual,
     destinationActivity: Option[Activity],
-    person: Option[Person] = None,
-    tourPurpose : String = "Work"
+    person: Option[Person] = None
   ): Option[EmbodiedBeamTrip] = {
     choose(alternatives, attributesOfIndividual, Mandatory)
   }
@@ -79,9 +75,7 @@ class ModeChoiceLCCM(
       val modeChoiceInputData = bestInGroup.map { alt =>
         val theParams = Map(
           "cost" -> alt.cost,
-          "time" -> (alt.walkTime + alt.bikeTime + alt.vehicleTime + alt.waitTime),
-          "transfer" -> alt.numTransfers,
-          "transitOccupancy" -> alt.occupancyLevel
+          "time" -> (alt.walkTime + alt.bikeTime + alt.vehicleTime + alt.waitTime)
         )
         (alt.mode, theParams)
       }.toMap
@@ -153,7 +147,6 @@ class ModeChoiceLCCM(
   }
 
   def utilityOf(
-    tourPurpose: String,
     mode: BeamMode,
     cost: Double,
     time: Double,
@@ -183,26 +176,23 @@ class ModeChoiceLCCM(
 
   def utilityAcrossModalityStyles(
     embodiedBeamTrip: EmbodiedBeamTrip,
-    tourType: TourType,
-    tourPurpose: String
+    tourType: TourType
   ): Map[String, Double] = {
     lccm
       .classMembershipModelMaps(tourType)
       .keySet
-      .map(theStyle => (theStyle, utilityOf(embodiedBeamTrip, theStyle, tourType, tourPurpose)))
+      .map(theStyle => (theStyle, utilityOf(embodiedBeamTrip, theStyle, tourType)))
       .toMap
   }
 
   def utilityOf(
     embodiedBeamTrip: EmbodiedBeamTrip,
     conditionedOnModalityStyle: String,
-    tourType: TourType,
-    tourPurpose: String
+    tourType: TourType
   ): Double = {
     val best = altsToBestInGroup(Vector(embodiedBeamTrip), tourType).head
 
     utilityOf(
-      tourPurpose,
       best.mode,
       conditionedOnModalityStyle,
       tourType,
@@ -222,8 +212,7 @@ class ModeChoiceLCCM(
       TransitFareDefaults.estimateTransitFares(alternatives)
     val modeChoiceAlternatives: Seq[ModeChoiceData] =
       alternatives.zipWithIndex.map { altAndIdx =>
-        val mode = altAndIdx._1.tripClassifier
-        val totalCost = mode match {
+        val totalCost = altAndIdx._1.tripClassifier match {
           case TRANSIT | WALK_TRANSIT | DRIVE_TRANSIT | BIKE_TRANSIT =>
             (altAndIdx._1.costEstimate + transitFareDefaults(
               altAndIdx._2
@@ -248,35 +237,13 @@ class ModeChoiceLCCM(
           .map(_.beamLeg.duration)
           .sum
         val waitTime = altAndIdx._1.totalTravelTimeInSecs - walkTime - vehicleTime
-        //TODO verify number of transfers is correct
-        val numTransfers = mode match {
-          case TRANSIT | WALK_TRANSIT | DRIVE_TRANSIT | RIDE_HAIL_TRANSIT | BIKE_TRANSIT =>
-            var nVeh = -1
-            var vehId = Id.create("dummy", classOf[BeamVehicle])
-            altAndIdx._1.legs.foreach { leg =>
-              if (leg.beamLeg.mode.isTransit && leg.beamVehicleId != vehId) {
-                vehId = leg.beamVehicleId
-                nVeh = nVeh + 1
-              }
-            }
-            nVeh
-          case _ =>
-            0
-        }
-        assert(numTransfers >= 0)
-        val percentile =
-          beamConfig.beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.transit_crowding_percentile
-        val occupancyLevel =
-          transitCrowding.getTransitOccupancyLevelForPercentile(altAndIdx._1, percentile)
         ModeChoiceData(
-          mode,
+          altAndIdx._1.tripClassifier,
           tourType,
           vehicleTime,
           walkTime,
           waitTime,
           bikeTime,
-          numTransfers,
-          occupancyLevel,
           totalCost,
           altAndIdx._2
         )
@@ -300,7 +267,6 @@ class ModeChoiceLCCM(
   }
 
   def utilityOf(
-    tourPurpose: String,
     mode: BeamMode,
     conditionedOnModalityStyle: String,
     tourType: TourType,
@@ -318,16 +284,7 @@ class ModeChoiceLCCM(
   override def utilityOf(
     alternative: EmbodiedBeamTrip,
     attributesOfIndividual: AttributesOfIndividual,
-    destinationActivity: Option[Activity],
-    tourPurpose: String,
-    person: Person
-  ): Double = 0.0
-
-  override def utilityOf(
-    alternative: EmbodiedBeamTrip,
-    attributesOfIndividual: AttributesOfIndividual,
-    destinationActivity: Option[Activity],
-    person: Person
+    destinationActivity: Option[Activity]
   ): Double = 0.0
 
   override def computeAllDayUtility(
@@ -345,9 +302,8 @@ class ModeChoiceLCCM(
         )
       }
       .toMap
-      .mapValues(
-        modeChoiceCalculatorForStyle =>
-          trips.map(trip => modeChoiceCalculatorForStyle.utilityOf(trip, attributesOfIndividual, None, person)).sum
+      .mapValues(modeChoiceCalculatorForStyle =>
+        trips.map(trip => modeChoiceCalculatorForStyle.utilityOf(trip, attributesOfIndividual, None)).sum
       )
       .toArray
       .toMap // to force computation DO NOT TOUCH IT, because here is call-by-name and it's lazy which will hold a lot of memory !!! :)
@@ -401,8 +357,6 @@ object ModeChoiceLCCM {
     walkTime: Double,
     waitTime: Double,
     bikeTime: Double,
-    numTransfers: Double,
-    occupancyLevel: Double,
     cost: Double,
     index: Int = -1
   )
