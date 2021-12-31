@@ -1498,8 +1498,8 @@ trait ChoosesMode {
                 trip.tripClassifier == HOV3_TELEPORTATION || trip.tripClassifier == WALK
               )
           }
-        case Some(mode) =>
-          combinedItinerariesForChoice.filter(_.tripClassifier == mode)
+        case Some(CAR) =>
+          combinedItinerariesForChoice.filter(_.tripClassifier == CAR)
         case _ =>
           combinedItinerariesForChoice
       }).filter(itin => availableModesForTrips.contains(itin.tripClassifier))
