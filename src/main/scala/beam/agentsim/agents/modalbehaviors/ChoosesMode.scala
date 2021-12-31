@@ -728,7 +728,6 @@ trait ChoosesMode {
                 VehicleManager.getReservedFor(veh.vehicleManagerId.get).get,
                 Some(veh),
                 None,
-                Some(this.id),
                 attributes.valueOfTime,
                 getActivityEndTime(nextAct, beamServices) - leg.beamLeg.endTime,
                 reserveStall = false,
@@ -738,8 +737,11 @@ trait ChoosesMode {
           }
       }
 
+    parkingInquiries.foreach { case (_, inquiry) =>
+      if (inquiry.isChargingRequestOrEV) chargingNetworkManager ! inquiry
+      else parkingManager ! inquiry
+    }
     parkingInquiries.map { case (vehicleOnTrip, inquiry) =>
-      park(inquiry)
       inquiry.requestId -> vehicleOnTrip
     }
   }
@@ -1098,6 +1100,11 @@ trait ChoosesMode {
     }
   }
 
+  def getTourPurpose(personData: BasePersonData) = {
+    val tourPurp = currentActivity(personData).getAttributes.getAttribute("primary_purpose").toString.toLowerCase
+    tourPurp
+  }
+
   def completeChoiceIfReady: PartialFunction[State, State] = {
     case FSM.State(
           _,
@@ -1222,11 +1229,17 @@ trait ChoosesMode {
           .asInstanceOf[AttributesOfIndividual]
       val availableAlts = Some(filteredItinerariesForChoice.map(_.tripClassifier).mkString(":"))
 
+      var tourPurpose = "None"
+      if ("ModeChoiceTourPurpose".equals(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
+        tourPurpose = getTourPurpose(choosesModeData.personData)
+        logger.warn("The current tour purpose is " + tourPurpose)
+      }
       modeChoiceCalculator(
         filteredItinerariesForChoice,
         attributesOfIndividual,
         nextActivity(choosesModeData.personData),
-        Some(matsimPlan.getPerson)
+        Some(matsimPlan.getPerson),
+        tourPurpose
       ) match {
         case Some(chosenTrip) =>
           goto(FinishingModeChoice) using choosesModeData.copy(
@@ -1361,24 +1374,34 @@ trait ChoosesMode {
         )
     }
 
-    eventsManager.processEvent(
-      new ModeChoiceEvent(
-        tick,
-        id,
-        chosenTrip.tripClassifier.value,
-        data.personData.currentTourMode.map(_.value).getOrElse(""),
-        data.expectedMaxUtilityOfLatestChoice.getOrElse[Double](Double.NaN),
-        _experiencedBeamPlan
-          .activities(data.personData.currentActivityIndex)
-          .getLinkId
-          .toString,
-        data.availableAlternatives.get,
-        data.availablePersonalStreetVehicles.nonEmpty,
-        chosenTrip.legs.view.map(_.beamLeg.travelPath.distanceInM).sum,
-        _experiencedBeamPlan.tourIndexOfElement(nextActivity(data.personData).get),
-        chosenTrip
+      var (tourPurpose, income, vehOwnership) = ("None", 0.0, "None")
+      if ("ModeChoiceTourPurpose".equals(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.modeChoiceClass)) {
+        tourPurpose = getTourPurpose(data.personData)
+        income = attributes.income.get
+        vehOwnership = matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString
+      }
+
+      eventsManager.processEvent(
+        new ModeChoiceEvent(
+          tick,
+          id,
+          chosenTrip.tripClassifier.value,
+          data.personData.currentTourMode.map(_.value).getOrElse(""),
+          data.expectedMaxUtilityOfLatestChoice.getOrElse[Double](Double.NaN),
+          income,
+          _experiencedBeamPlan
+            .activities(data.personData.currentActivityIndex)
+            .getLinkId
+            .toString,
+          data.availableAlternatives.get,
+          data.availablePersonalStreetVehicles.nonEmpty,
+          vehOwnership,
+          chosenTrip.legs.view.map(_.beamLeg.travelPath.distanceInM).sum,
+          _experiencedBeamPlan.tourIndexOfElement(nextActivity(data.personData).get),
+          tourPurpose,
+          chosenTrip
+        )
       )
-    )
 
     val (vehiclesUsed, vehiclesNotUsed) = data.availablePersonalStreetVehicles
       .partition(vehicle => chosenTrip.vehiclesInTrip.contains(vehicle.id))

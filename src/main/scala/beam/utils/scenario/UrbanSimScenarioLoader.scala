@@ -564,14 +564,9 @@ class UrbanSimScenarioLoader(
         if (planElement.equalsIgnoreCase("leg")) {
           planInfo.legMode match {
             case Some(mode) =>
-              val leg = PopulationUtils.createLeg(mode)
-              leg.getAttributes.putAttribute("trip_id", planInfo.tripId)
-              plan.addLeg(leg)
-              plan.getAttributes.putAttribute("trip_id", planInfo.tripId)
+              PopulationUtils.createAndAddLeg(plan, mode)
             case None =>
-              val leg = PopulationUtils.createLeg("")
-              leg.getAttributes.putAttribute("trip_id", planInfo.tripId)
-              plan.getAttributes.putAttribute("trip_id", planInfo.tripId)
+              PopulationUtils.createAndAddLeg(plan, "")
           }
         } else if (planElement.equalsIgnoreCase("activity")) {
           assert(

@@ -157,8 +157,7 @@ class DefaultRidehailFunctions[GEO: GeoLevel](
   override protected def sampleParkingStallLocation(
     inquiry: ParkingInquiry,
     parkingZone: ParkingZone[GEO],
-    geoArea: GEO,
-    inClosestZone: Boolean = true
+    geoArea: GEO
   ): Coord = {
     import GeoLevel.ops._
     geoArea.centroidLocation

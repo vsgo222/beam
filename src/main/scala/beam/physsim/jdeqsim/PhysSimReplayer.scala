@@ -51,7 +51,7 @@ object PhysSimReplayer extends StrictLogging {
         beamSvc.matsimServices.getControlerIO,
         matsimScenario,
         beamSvc,
-        new BeamConfigChangesObservable(execCfg.beamConfig, Some(pathToBeamConfig)),
+        new BeamConfigChangesObservable(execCfg.beamConfig),
         None
       )
 

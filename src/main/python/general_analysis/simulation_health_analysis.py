@@ -1,7 +1,6 @@
 import os
 import requests
 from glob import glob
-from shutil import copyfile
 
 # detectors is a dictionary that consist key as health metric and
 # value as lambda function that can detect health metric from line.
@@ -45,6 +44,3 @@ for line in file:
 with open('RunHealthAnalysis.txt', 'w') as file:
     for detector in detectors:
         file.write(detector+","+str(len(matric_log.get(detector, [])))+"\n")
-
-beam_output_path = os.path.dirname(log_file_location[0])
-copyfile('RunHealthAnalysis.txt', beam_output_path+"/runHealthAnalysis.txt")

@@ -129,8 +129,7 @@ class ODRequester(
           location = actualLegs.last.beamLeg.travelPath.endPoint.loc,
           mode = WALK,
           vehicleTypeId = dummyBodyVehicleType.id
-        ),
-        trip.router
+        )
       )
     } else {
       trip

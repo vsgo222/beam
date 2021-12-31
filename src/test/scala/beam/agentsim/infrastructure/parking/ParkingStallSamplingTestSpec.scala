@@ -17,8 +17,7 @@ class ParkingStallSamplingTestSpec extends AnyWordSpec with Matchers {
             random,
             agent,
             taz,
-            availabilityRatio,
-            true
+            availabilityRatio
           )
           distance(agent, result) should equal(0.0)
         }
@@ -33,8 +32,7 @@ class ParkingStallSamplingTestSpec extends AnyWordSpec with Matchers {
               random,
               agent,
               taz,
-              availabilityRatio,
-              true
+              availabilityRatio
             )
 
             val dist: Double = distance(agent, result)
@@ -55,8 +53,7 @@ class ParkingStallSamplingTestSpec extends AnyWordSpec with Matchers {
               random,
               agent,
               taz,
-              availabilityRatio,
-              true
+              availabilityRatio
             )
 
             val dist: Double = distance(agent, result)
@@ -77,8 +74,7 @@ class ParkingStallSamplingTestSpec extends AnyWordSpec with Matchers {
               random,
               agent,
               taz,
-              availabilityRatio,
-              true
+              availabilityRatio
             )
 
             val dist: Double = distance(agent, result)
@@ -101,8 +97,7 @@ class ParkingStallSamplingTestSpec extends AnyWordSpec with Matchers {
               random,
               agent,
               taz,
-              availabilityRatio,
-              true
+              availabilityRatio
             )
 
             val dist: Double = distance(taz.coord, result)

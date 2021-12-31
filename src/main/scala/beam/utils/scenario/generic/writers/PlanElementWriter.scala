@@ -12,7 +12,6 @@ trait PlanElementWriter {
 object CsvPlanElementWriter extends PlanElementWriter {
 
   private val headers: Array[String] = Array(
-    "tripId",
     "personId",
     "planIndex",
     "planScore",
@@ -41,7 +40,6 @@ object CsvPlanElementWriter extends PlanElementWriter {
       xs.foreach { planElement =>
         val legRouteLinks = planElement.legRouteLinks.mkString("|")
         csvWriter.write(
-          planElement.tripId,
           planElement.personId.id,
           planElement.planIndex,
           planElement.planScore,
