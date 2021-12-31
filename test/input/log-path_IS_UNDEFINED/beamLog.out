@@ -1,0 +1,19 @@
+18:39:55.930 [main] INFO  b.router.PhyssymXmlToOsmConverter$ - Reading from file [SF_network_from_SFCHAMP_updated.xml]
+18:39:58.235 [main] INFO  hsqldb.db.HSQLDB4AD417742A.ENGINE - dataFileCache open start
+18:39:59.817 [main] INFO  b.router.PhyssymXmlToOsmConverter$ - Network loaded with # nodes: [16003] and # links: [41195]
+18:39:59.933 [main] INFO  b.router.PhyssymXmlToOsmConverter$ - Started converting SF_network_from_SFCHAMP_updated.xml to test_network.pbf
+18:39:59.955 [main] INFO  com.conveyal.osmlib.OSM - OSM will be stored in a temporary file.
+18:40:00.757 [main] INFO  com.conveyal.osmlib.OSM - No OSM tables exist yet, they will be created.
+18:40:01.251 [main] INFO  com.conveyal.osmlib.PBFOutput - Writing PBF format...
+18:40:01.558 [main] INFO  com.conveyal.osmlib.PBFOutput - Finished writing PBF format.
+18:40:01.576 [main] INFO  b.router.PhyssymXmlToOsmConverter$ - Finished converting SF_network_from_SFCHAMP_updated.xml to test_network.pbf
+18:40:46.634 [main] INFO  b.router.PhyssymXmlToOsmConverter$ - Reading from file [SF_network_from_SFCHAMP_updated.xml]
+18:40:48.741 [main] INFO  hsqldb.db.HSQLDB4AD417742A.ENGINE - dataFileCache open start
+18:40:49.988 [main] INFO  b.router.PhyssymXmlToOsmConverter$ - Network loaded with # nodes: [16003] and # links: [41195]
+18:40:50.092 [main] INFO  b.router.PhyssymXmlToOsmConverter$ - Started converting SF_network_from_SFCHAMP_updated.xml to test_network.osm
+18:40:50.092 [main] INFO  b.router.PhyssymXmlToOsmConverter$ - Writing conversion in the file [test_network.osm]
+18:47:51.001 [main] INFO  b.router.PhyssymXmlToOsmConverter$ - Reading from file [SF_network_from_SFCHAMP_updated.xml]
+18:47:53.158 [main] INFO  hsqldb.db.HSQLDB4AD417742A.ENGINE - dataFileCache open start
+18:47:54.411 [main] INFO  b.router.PhyssymXmlToOsmConverter$ - Network loaded with # nodes: [16003] and # links: [41195]
+18:47:54.504 [main] INFO  b.router.PhyssymXmlToOsmConverter$ - Started converting SF_network_from_SFCHAMP_updated.xml to test_network.osm
+18:47:54.504 [main] INFO  b.router.PhyssymXmlToOsmConverter$ - Writing conversion in the file [test_network.osm]
