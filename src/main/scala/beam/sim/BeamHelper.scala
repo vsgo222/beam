@@ -7,7 +7,7 @@ import beam.agentsim.agents.ridehail.{RideHailIterationHistory, RideHailSurgePri
 import beam.agentsim.agents.vehicles.VehicleCategory.MediumDutyPassenger
 import beam.agentsim.agents.vehicles._
 import beam.agentsim.events.handling.BeamEventsHandling
-import beam.agentsim.infrastructure.parking.{LinkLevelOperations, ParkingZone}
+import beam.agentsim.infrastructure.parking.LinkLevelOperations
 import beam.agentsim.infrastructure.taz.{H3TAZ, TAZ, TAZTreeMap}
 import beam.analysis.ActivityLocationPlotter
 import beam.analysis.plots.{GraphSurgePricing, RideHailRevenueAnalysis}
@@ -16,7 +16,7 @@ import beam.replanning._
 import beam.replanning.utilitybased.UtilityBasedModeChoice
 import beam.router.Modes.BeamMode
 import beam.router._
-import beam.router.gtfs.FareCalculator
+import beam.router.gtfs.{FareCalculator, GTFSUtils}
 import beam.router.osm.TollCalculator
 import beam.router.r5._
 import beam.router.skim.core.{DriveTimeSkimmer, ODSkimmer, TAZSkimmer, TransitCrowdingSkimmer}
@@ -77,6 +77,8 @@ import scala.util.{Random, Try}
 
 trait BeamHelper extends LazyLogging {
   //  Kamon.init()
+
+  private val originalConfigLocationPath = "originalConfigLocation"
 
   protected val beamAsciiArt: String =
     """
@@ -175,7 +177,13 @@ trait BeamHelper extends LazyLogging {
           // This code will be executed 3 times due to this https://github.com/LBNL-UCB-STI/matsim/blob/master/matsim/src/main/java/org/matsim/core/controler/Injector.java#L99:L101
           // createMapBindingsForType is called 3 times. Be careful not to do expensive operations here
           bind(classOf[BeamConfigHolder])
-          val beamConfigChangesObservable = new BeamConfigChangesObservable(beamConfig)
+
+          val maybeConfigLocation = if (typesafeConfig.hasPath(originalConfigLocationPath)) {
+            Some(typesafeConfig.getString(originalConfigLocationPath))
+          } else {
+            None
+          }
+          val beamConfigChangesObservable = new BeamConfigChangesObservable(beamConfig, maybeConfigLocation)
 
           bind(classOf[MatsimConfigUpdater]).asEagerSingleton()
 
@@ -205,7 +213,7 @@ trait BeamHelper extends LazyLogging {
             bindPlanSelectorForRemoval().to(classOf[TryToKeepOneOfEachClass])
           }
           addPlanStrategyBinding("SelectExpBeta").to(classOf[BeamExpBeta])
-          //addPlanStrategyBinding("SwitchModalityStyle").to(classOf[SwitchModalityStyle])
+          addPlanStrategyBinding("SwitchModalityStyle").to(classOf[SwitchModalityStyle])
           addPlanStrategyBinding("AddSupplementaryTrips").to(classOf[AddSupplementaryTrips])
           addPlanStrategyBinding("ClearRoutes").to(classOf[ClearRoutes])
           addPlanStrategyBinding("ClearModes").to(classOf[ClearModes])
@@ -278,6 +286,8 @@ trait BeamHelper extends LazyLogging {
     )
 
     val networkCoordinator = buildNetworkCoordinator(beamConfig)
+    val gtfs = GTFSUtils.loadGTFS(beamConfig.beam.routing.r5.directory)
+    val trainStopQuadTree = GTFSUtils.toQuadTree(GTFSUtils.trainStations(gtfs), new GeoUtilsImpl(beamConfig))
     val tazMap = TAZTreeMap.getTazTreeMap(beamConfig.beam.agentsim.taz.filePath)
     val exchangeGeo = beamConfig.beam.exchange.output.geo.filePath.map(TAZTreeMap.getTazTreeMap)
     val linkQuadTree: QuadTree[Link] =
@@ -301,6 +311,13 @@ trait BeamHelper extends LazyLogging {
       IndexedSeq.empty[FreightCarrier]
     }
 
+    val fixedActivitiesDurationsFromConfig = {
+      val maybeFixedDurationsList = beamConfig.beam.agentsim.agents.activities.activityTypeToFixedDurationMap
+      BeamConfigUtils
+        .parseListToMap(maybeFixedDurationsList.getOrElse(List.empty[String]))
+        .map { case (activityType, stringDuration) => activityType -> stringDuration.toDouble }
+    }
+
     BeamScenario(
       readFuelTypeFile(beamConfig.beam.agentsim.agents.vehicles.fuelTypesFilePath).toMap,
       vehicleTypes,
@@ -311,6 +328,7 @@ trait BeamHelper extends LazyLogging {
       PtFares(beamConfig.beam.agentsim.agents.ptFare.filePath),
       networkCoordinator.transportNetwork,
       networkCoordinator.network,
+      trainStopQuadTree,
       tazMap,
       exchangeGeo,
       linkQuadTree,
@@ -318,7 +336,8 @@ trait BeamHelper extends LazyLogging {
       linkToTAZMapping,
       ModeIncentive(beamConfig.beam.agentsim.agents.modeIncentive.filePath),
       H3TAZ(networkCoordinator.network, tazMap, beamConfig),
-      freightCarriers
+      freightCarriers,
+      fixedActivitiesDurations = fixedActivitiesDurationsFromConfig
     )
   }
 
@@ -406,20 +425,28 @@ trait BeamHelper extends LazyLogging {
       "Please provide a valid configuration file."
     )
 
-    ConfigConsistencyComparator.parseBeamTemplateConfFile(parsedArgs.configLocation.get)
+    val originalConfigFileLocation = parsedArgs.configLocation.get
+    ConfigConsistencyComparator.parseBeamTemplateConfFile(originalConfigFileLocation)
 
-    if (parsedArgs.configLocation.get.contains("\\")) {
+    if (originalConfigFileLocation.contains("\\")) {
       throw new RuntimeException("wrong config path, expected:forward slash, found: backward slash")
     }
 
-    val location = ConfigFactory.parseString(s"""config="${parsedArgs.configLocation.get}"""")
-    System.setProperty("configFileLocation", parsedArgs.configLocation.getOrElse(""))
-    val config = embedSelectArgumentsIntoConfig(
-      parsedArgs, {
-        if (parsedArgs.useCluster) updateConfigForClusterUsing(parsedArgs, parsedArgs.config.get)
-        else parsedArgs.config.get
-      }
-    ).withFallback(location).resolve()
+    val location: TypesafeConfig = ConfigFactory.parseString(s"""config="$originalConfigFileLocation"""")
+
+    // need this for BeamConfigChangesObservable.
+    // We can't use 'config' key for that because for many tests it is usually pointing to the beamville config
+    val originalConfigLocation: TypesafeConfig =
+      ConfigFactory.parseString(s"""$originalConfigLocationPath="$originalConfigFileLocation"""")
+
+    val configFromArgs =
+      if (parsedArgs.useCluster) updateConfigForClusterUsing(parsedArgs, parsedArgs.config.get)
+      else parsedArgs.config.get
+
+    val config = embedSelectArgumentsIntoConfig(parsedArgs, configFromArgs)
+      .withFallback(location)
+      .withFallback(originalConfigLocation)
+      .resolve()
 
     checkDockerIsInstalledForCCHPhysSim(config)
 
@@ -545,33 +572,16 @@ trait BeamHelper extends LazyLogging {
     )
     (scenario.getConfig, beamExecutionConfig.outputDirectory, services)
   }
-  def updateScenarioWithRandomModalityStyles(scenario: MutableScenario) = {
-    //add a modality style to each person's selected plan
-    val allStyles = List("class1","class2","class3","class4","class5","class6")
-    val random = new Random
-    scenario.getPopulation.getPersons.values()
-      .forEach(person => {
-        person.getSelectedPlan
-          .getAttributes
-          .putAttribute("modality-style", SwitchModalityStyle.getRandomElement(allStyles, random))
-      })
-    scenario
-  }
+
   def prepareBeamService(
     config: TypesafeConfig,
     abstractModule: Option[AbstractModule]
   ): (BeamExecutionConfig, MutableScenario, BeamScenario, BeamServices, Boolean) = {
     val beamExecutionConfig = updateConfigWithWarmStart(setupBeamWithConfig(config))
-    val (scenario2, beamScenario, plansMerged) = buildBeamServicesAndScenario(
+    val (scenario, beamScenario, plansMerged) = buildBeamServicesAndScenario(
       beamExecutionConfig.beamConfig,
       beamExecutionConfig.matsimConfig
     )
-    var scenario = scenario2
-    val beamConfig = BeamConfig(config)
-    if (beamConfig.beam.agentsim.agents.modalBehaviors.modalityStyle.equals("random")){
-      scenario = updateScenarioWithRandomModalityStyles(scenario2)
-    }
-    //val scenario = updateScenarioWithRandomModalityStyles(scenario2)
     logger.info(s"Java version: ${System.getProperty("java.version")}")
     logger.info(
       "JVM args: " + java.lang.management.ManagementFactory.getRuntimeMXBean.getInputArguments.asScala.toList.toString()
@@ -796,6 +806,7 @@ trait BeamHelper extends LazyLogging {
             }
             val merger = new PreviousRunPlanMerger(
               beamConfig.beam.agentsim.agents.plans.merge.fraction,
+              beamConfig.beam.agentsim.agentSampleSizeAsFractionOfPopulation,
               Paths.get(beamConfig.beam.input.lastBaseOutputDir),
               beamConfig.beam.input.simulationPrefix,
               new Random(),
