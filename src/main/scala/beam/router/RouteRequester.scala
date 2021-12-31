@@ -129,8 +129,7 @@ class GHRouteRequester(workerParams: R5Parameters, travelTime: TravelTime) exten
           workerParams.vehicleTypes,
           workerParams.fuelTypePrices,
           wayId2TravelTime,
-          id2Link,
-          workerParams.beamConfig.beam.routing.gh.useAlternativeRoutes
+          id2Link
         )
       }(executionContext)
     }

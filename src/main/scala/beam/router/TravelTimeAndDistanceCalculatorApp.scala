@@ -141,8 +141,7 @@ class TravelTimeAndDistanceCalculatorApp(parameters: InputParameters) extends Be
       vehicleTypes = workerParams.vehicleTypes,
       fuelTypePrices = workerParams.fuelTypePrices,
       wayId2TravelTime = wayId2TravelTime,
-      id2Link = id2Link,
-      useAlternativeRoutes = workerParams.beamConfig.beam.routing.gh.useAlternativeRoutes
+      id2Link = id2Link
     )
   }
 

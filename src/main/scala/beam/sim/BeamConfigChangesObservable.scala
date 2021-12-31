@@ -1,18 +1,17 @@
 package beam.sim
 
+import beam.analysis.physsim.PhyssimCalcLinkStats
 import beam.sim.config.BeamConfig
 import beam.utils.BeamConfigUtils
 import com.typesafe.scalalogging.LazyLogging
-
 import javax.inject.{Inject, Singleton}
+import org.slf4j.{Logger, LoggerFactory}
+
 import scala.collection.mutable
 import scala.ref.WeakReference
 
 @Singleton
-class BeamConfigChangesObservable @Inject() (
-  beamConfig: BeamConfig,
-  maybeOriginalConfigLocation: Option[String] = None
-) {
+class BeamConfigChangesObservable @Inject() (beamConfig: BeamConfig) {
 
   class WeaklyObservable extends LazyLogging {
     private var changed: Boolean = false
@@ -73,12 +72,14 @@ class BeamConfigChangesObservable @Inject() (
     }
   }
 
-  private val observable = new WeaklyObservable()
+  val observable = new WeaklyObservable()
 
   var lastBeamConfig: BeamConfig = beamConfig
+  BeamConfigChangesObservable.lastBeamConfigValue = beamConfig
 
-  private def updateLastBeamConfigFromOriginalConfigLocation(): Unit = {
-    lastBeamConfig = maybeOriginalConfigLocation match {
+  def getUpdatedBeamConfig: BeamConfig = {
+    val configFileLocation = System.getProperty(BeamConfigChangesObservable.configFileLocationString)
+    Option(configFileLocation) match {
       case Some(location) =>
         val config = BeamConfigUtils.parseFileSubstitutingInputDirectory(location)
         BeamConfig.apply(config.resolve())
@@ -87,11 +88,26 @@ class BeamConfigChangesObservable @Inject() (
     }
   }
 
-  def updateBeamConfigAndNotifyChangeToSubscribers(): Unit = {
+  def notifyChangeToSubscribers() {
     observable.setChanged()
-    updateLastBeamConfigFromOriginalConfigLocation()
-    observable.notifyObservers(this, lastBeamConfig)
+    val updatedBeamConfig = getUpdatedBeamConfig
+    lastBeamConfig = updatedBeamConfig
+    BeamConfigChangesObservable.lastBeamConfigValue = updatedBeamConfig
+    observable.notifyObservers(this, updatedBeamConfig)
   }
 
   def addObserver(observer: BeamConfigChangesObserver): Unit = observable.addObserver(observer)
+}
+
+object BeamConfigChangesObservable {
+
+  private var lastBeamConfigValue: BeamConfig = _
+
+  def lastBeamConfig: BeamConfig = lastBeamConfigValue
+
+  val configFileLocationString = "configFileLocation"
+
+  def clear(): Unit = {
+    System.clearProperty(configFileLocationString)
+  }
 }

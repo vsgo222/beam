@@ -112,8 +112,7 @@ class R5Wrapper(workerParams: R5Parameters, travelTime: TravelTime, travelTimeNo
               totalCost,
               unbecomeDriverOnCompletion = true
             )
-          ),
-          Some("R5")
+          )
         )
       ),
       embodyRequestId,
@@ -817,7 +816,7 @@ class R5Wrapper(workerParams: R5Parameters, travelTime: TravelTime, travelTimeNo
               unbecomeDriverOnCompletion = true
             )
           }
-          EmbodiedBeamTrip(embodiedBeamLegs, Some("R5"))
+          EmbodiedBeamTrip(embodiedBeamLegs)
         }
         .filter { trip: EmbodiedBeamTrip =>
           //TODO make a more sensible window not just 30 minutes
@@ -1098,7 +1097,7 @@ class R5Wrapper(workerParams: R5Parameters, travelTime: TravelTime, travelTimeNo
   ): TravelTimeCalculator = {
     val ttc = travelTimeByLinkCalculator(vehicleType, shouldAddNoise, shouldApplyBicycleScaleFactor = true)
     (edge: EdgeStore#Edge, durationSeconds: Int, streetMode: StreetMode, _) => {
-      ttc(startTime + durationSeconds, edge.getEdgeIndex, streetMode).floatValue().ceil
+      ttc(startTime + durationSeconds, edge.getEdgeIndex, streetMode).floatValue()
     }
   }
 
@@ -1111,7 +1110,7 @@ class R5Wrapper(workerParams: R5Parameters, travelTime: TravelTime, travelTimeNo
     (time: Double, linkId: Int, streetMode: StreetMode) => {
       val edge = transportNetwork.streetLayer.edgeStore.getCursor(linkId)
       val maxSpeed: Double = vehicleType.maxVelocity.getOrElse(profileRequest.getSpeedForMode(streetMode))
-      val minTravelTime = edge.getLengthM / maxSpeed
+      val minTravelTime = (edge.getLengthM / maxSpeed).ceil.toInt
       if (streetMode == StreetMode.CAR) {
         carWeightCalculator.calcTravelTime(linkId, travelTime, Some(vehicleType), time, shouldAddNoise)
       } else if (streetMode == StreetMode.BICYCLE && shouldApplyBicycleScaleFactor) {

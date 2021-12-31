@@ -18,7 +18,7 @@ import beam.router.Modes.BeamMode.{
 import beam.router.model.EmbodiedBeamTrip.determineTripMode
 import org.matsim.api.core.v01.Id
 
-case class EmbodiedBeamTrip(legs: IndexedSeq[EmbodiedBeamLeg], router: Option[String] = None) {
+case class EmbodiedBeamTrip(legs: IndexedSeq[EmbodiedBeamLeg]) {
 
   @transient
   lazy val costEstimate: Double = legs.map(_.cost).sum /// Generalize or remove
@@ -62,7 +62,7 @@ case class EmbodiedBeamTrip(legs: IndexedSeq[EmbodiedBeamLeg], router: Option[St
 }
 
 object EmbodiedBeamTrip {
-  val empty: EmbodiedBeamTrip = EmbodiedBeamTrip(Vector(), None)
+  val empty: EmbodiedBeamTrip = EmbodiedBeamTrip(Vector())
 
   def determineTripMode(legs: IndexedSeq[EmbodiedBeamLeg]): BeamMode = {
     var theMode: BeamMode = WALK
