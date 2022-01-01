@@ -1445,13 +1445,15 @@ trait ChoosesMode {
         } else if (routingResponse.itineraries.map(_.tripClassifier).contains(HOV3_TELEPORTATION)){
           Seq()
         } else if (routingResponse.itineraries.map(_.tripClassifier).contains(WALK)) {
-          // Teleport HOV options for those agents that don't have a car or HOV option already
-          val walkItin = routingResponse.itineraries.filter(_.tripClassifier.value == "walk").head
-          val (teleportItin2, teleportItin3) = (convertFromWalkToTeleportHov(walkItin, HOV2), convertFromWalkToTeleportHov(walkItin, HOV3))
-          val newRoutingResponse = routingResponse.copy(
-            itineraries = routingResponse.itineraries ++ teleportItin2 ++ teleportItin3
-          )
-        correctRoutingResponse(newRoutingResponse).itineraries.filter(_.tripClassifier.value != "walk")
+          if (autoWork == "no_auto") {
+            // Teleport HOV options for those agents that don't have a car or HOV option already
+            val walkItin = routingResponse.itineraries.filter(_.tripClassifier.value == "walk").head
+            val (teleportItin2, teleportItin3) = (convertFromWalkToTeleportHov(walkItin, HOV2), convertFromWalkToTeleportHov(walkItin, HOV3))
+            val newRoutingResponse = routingResponse.copy(
+              itineraries = routingResponse.itineraries ++ teleportItin2 ++ teleportItin3
+            )
+            correctRoutingResponse(newRoutingResponse).itineraries.filter(_.tripClassifier.value != "walk")
+          } else Seq()
         } else Seq()
       } else Seq()
       var combinedItinerariesForChoice = rideHailItinerary ++ addParkingCostToItins(
@@ -1535,7 +1537,7 @@ trait ChoosesMode {
                 case "hov2" => hov2CarCount += 1
                 case "hov3" => hov3CarCount += 1
               }
-            logger.warn("HOV2: C-" + hov2CarCount + " T-" + hov2TeleportCount + "  HOV3: C-" + hov3CarCount + " T-" + hov3TeleportCount)
+            //logger.warn("HOV2: C-" + hov2CarCount + " T-" + hov2TeleportCount + "  HOV3: C-" + hov3CarCount + " T-" + hov3TeleportCount)
             val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct)
               .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
             (
