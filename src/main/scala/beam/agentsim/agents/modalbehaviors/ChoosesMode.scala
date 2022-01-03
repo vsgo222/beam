@@ -417,9 +417,6 @@ trait ChoosesMode {
         }
       }
 
-      val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct)
-        .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
-      val autoWork = matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio")
       val hasRideHail = availableModes.contains(RIDE_HAIL)
 
       var responsePlaceholders = ChoosesModeResponsePlaceholders()
@@ -1424,7 +1421,6 @@ trait ChoosesMode {
         case _ =>
           Vector()
       }
-        //val currentTourMode = choosesModeData.personData.currentTourMode.get
         val autoWork = matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString
         val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct)
           .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
