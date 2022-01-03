@@ -25,7 +25,7 @@ eventsTrip1 <- events2.0 %>% filter(tourIndex == 1)
 eventstest <- events2.0  %>% filter(mode %in% c("hov2","hov3","hov2_teleportation","hov3_teleportation","car")) %>%
   filter(mode != currentTourMode)
 
-hovsplits <- eventsTrip1 %>%
+hovsplits <- events2.0 %>%
   group_by(mode) %>%
   filter(mode %in% c("hov2","hov3","hov2_teleportation","hov3_teleportation")) %>%
   summarise(cnt = n()) %>%

@@ -326,7 +326,7 @@ asim_long <- rbind(asim_asc_complete,path_cf) %>%
     #double path variables to accound for BEAM using trips not tours
     value = ifelse(variable %in% path_variables | variable == "cost",value*2,value), 
     #replace 0s with blank values to make utility function simpler
-    value = ifelse(value == 0, NA, value), 
+    value = ifelse(value == 0, "", value), 
     tourType = case_when(
       variable %in% path_variables ~ "Path",
       variable %in% person_variables ~ "Person",
@@ -346,12 +346,20 @@ paged_table(asim_long)
 ```
 
 ```{r}
+# lets add a hov2_teleportation and hov3_teleportation mode to the final file
+teleport <- asim_long %>% filter(alternative %in% c("hov2","hov3")) %>%
+  mutate(alternative = ifelse(alternative =="hov2","hov2_teleportation","hov3_teleportation"))
+asim_long <- rbind(asim_long,teleport) %>%
+  arrange(factor(variable, levels = asim_vars),alternative,factor(latentClass, levels = purps))
+```
+
+```{r}
 # lets add a blank walkTime variable too
 walkTime <- asim_long %>% filter(variable == "vehicleTime") %>%
   mutate(variable = "walkTime", value = "")
 asim_long_R <- rbind(asim_long,walkTime)
 
-#write_csv(asim_long_R,"asim-long-R-blank.csv")
+write_csv(asim_long_R,"asim-long-R-blank.csv")
 ```
 
 ## Adjusted Complete File
