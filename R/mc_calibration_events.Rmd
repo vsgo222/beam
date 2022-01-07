@@ -10,25 +10,32 @@ library(tidyverse)
 ```
 
 ```{r}
-events2.0 <- read_csv("events/1.events.2.5k.all.csv", col_types = cols(.default = "c")) %>%
+events2.0 <- read_csv("events/0.events.csv", col_types = cols(.default = "c")) %>%
   filter(type == "ModeChoice") %>%
   group_by(mode) %>%
-  select(person, tourIndex, tourPurpose, mode, income, vehicleOwnership, availableAlternatives, personalVehicleAvailable, length, time, type) %>%
+  select(person, tourIndex, tourPurpose, mode,currentTourMode, income, vehicleOwnership, availableAlternatives, personalVehicleAvailable, length, time, type) %>%
   arrange(person)
 
 modalsplits <- events2.0 %>%
-  group_by(tourPurpose, mode) %>% 
-   ##(mode) ##(tourPurpose,mode) ##(vehicleOwnership,mode)
+  group_by(mode) %>% 
   summarise(cnt = n()) %>%
-  mutate(pct = cnt / sum(cnt) * 100)
+  mutate(pct = cnt / sum(cnt) * 100,iter = 1)
 
-ggplot(modalsplits) + 
-    aes(x = tourPurpose, y = pct, color = mode) + 
-    #labs(fill='Mode', y = 'Count', x = 'Tour Purposes') +
-    #ggtitle("Modal Split by Tour Purpose") +
-  geom_point()+  
-  geom_line(aes(group = mode)) + 
-    scale_fill_brewer(palette = "Pastel2")
+eventsTrip1 <- events2.0 %>% filter(tourIndex == 1)
+eventstest <- events2.0  %>% filter(mode %in% c("hov2","hov3","hov2_teleportation","hov3_teleportation","car")) %>%
+  filter(mode != currentTourMode)
+
+hovsplits <- events2.0 %>%
+  group_by(mode) %>%
+  filter(mode %in% c("hov2","hov3","hov2_teleportation","hov3_teleportation")) %>%
+  summarise(cnt = n()) %>%
+  mutate(pct = cnt / sum(cnt) * 100,iter = 1)
+
+ggplot(hovsplits) + 
+  aes(x = iter,y = pct, fill = mode) + 
+  ggtitle("Modal Split by Tour Purpose") +
+  geom_bar(position="dodge", stat="identity") + theme_bw()
+  scale_fill_brewer(palette = "Pastel2")
 
 ```
 

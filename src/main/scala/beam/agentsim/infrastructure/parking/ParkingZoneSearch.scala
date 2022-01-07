@@ -205,7 +205,7 @@ object ParkingZoneSearch {
               params.parkingMNLConfig
             )
 
-          mnl.sampleAlternative(alternativesToSample, params.random).map { result =>
+          mnl.sampleAlternative(alternativesToSample.toVector, params.random).map { result =>
             val ParkingAlternative(taz, parkingType, parkingZone, coordinate, costInDollars) = result.alternativeType
 
             // create a new stall instance. you win!

@@ -79,5 +79,4 @@ object VehicleManager extends LazyLogging {
     }
     reservedForMaybe map { case ReservedFor(mngId, mngType) => createOrGetReservedFor(mngId.toString, mngType) }
   }
-
 }

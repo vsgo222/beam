@@ -765,13 +765,11 @@ trait BeamHelper extends LazyLogging {
                 val pathToHouseholds = s"${beamConfig.beam.exchange.scenario.folder}/households.csv.gz"
                 val pathToPersonFile = s"${beamConfig.beam.exchange.scenario.folder}/persons.csv.gz"
                 val pathToPlans = s"${beamConfig.beam.exchange.scenario.folder}/plans.csv.gz"
-                val pathToTrips = s"${beamConfig.beam.exchange.scenario.folder}/trips.csv.gz"
                 val pathToBlocks = s"${beamConfig.beam.exchange.scenario.folder}/blocks.csv.gz"
                 new UrbansimReaderV2(
                   inputPersonPath = pathToPersonFile,
                   inputPlanPath = pathToPlans,
                   inputHouseholdPath = pathToHouseholds,
-                  inputTripsPath = pathToTrips,
                   inputBlockPath = pathToBlocks,
                   geoUtils,
                   shouldConvertWgs2Utm = beamConfig.beam.exchange.scenario.convertWgs2Utm,
@@ -913,6 +911,7 @@ trait BeamHelper extends LazyLogging {
     val errors = InputConsistencyCheck.checkConsistency(beamConfig)
     if (errors.nonEmpty) {
       logger.error("Input consistency check failed:\n" + errors.mkString("\n"))
+      throw new RuntimeException("Input consistency check failed")
     }
 
     level = beamConfig.beam.metrics.level
