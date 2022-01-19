@@ -762,10 +762,14 @@ trait BeamHelper extends LazyLogging {
             val source = src match {
               case "urbansim" => buildUrbansimScenarioSource(geoUtils, beamConfig)
               case "urbansim_v2" => {
-                val pathToHouseholds = s"${beamConfig.beam.exchange.scenario.folder}/households.csv.gz"
-                val pathToPersonFile = s"${beamConfig.beam.exchange.scenario.folder}/persons.csv.gz"
-                val pathToPlans = s"${beamConfig.beam.exchange.scenario.folder}/plans.csv.gz"
-                val pathToTrips = s"${beamConfig.beam.exchange.scenario.folder}/trips.csv.gz"
+//                val pathToHouseholds = s"${beamConfig.beam.exchange.scenario.folder}/households.csv.gz"
+//                val pathToPersonFile = s"${beamConfig.beam.exchange.scenario.folder}/persons.csv.gz"
+//                val pathToPlans = s"${beamConfig.beam.exchange.scenario.folder}/plans.csv.gz"
+//                val pathToTrips = s"${beamConfig.beam.exchange.scenario.folder}/trips.csv.gz"
+                val pathToHouseholds = s"${beamConfig.beam.exchange.scenario.folder}/final_households.csv"
+                val pathToPersonFile = s"${beamConfig.beam.exchange.scenario.folder}/final_persons.csv"
+                val pathToPlans = s"${beamConfig.beam.exchange.scenario.folder}/final_plans.csv"
+                val pathToTrips = s"${beamConfig.beam.exchange.scenario.folder}/final_trips.csv"
                 val pathToBlocks = s"${beamConfig.beam.exchange.scenario.folder}/blocks.csv.gz"
                 new UrbansimReaderV2(
                   inputPersonPath = pathToPersonFile,

@@ -1,0 +1,508 @@
+19:38:30.521 [main] INFO  beam.sim.RunBeam$ - 
+****************************************************************************************************************************  
+** Config File Consistency Check
+**  
+** Testing your config file against what BEAM is expecting.
+**  
+** Found the following deprecated parameters, you can safely remove them from your config file:
+**  
+**  beam.agentsim.startTime
+**  beam.replanning.cleanNonCarModesInIteration
+**  beam.router.skim.collectFullCarSkimsInterval
+**  beam.router.skim.h3Resolution
+**  beam.router.skim.origin_destination_skimmer.fileBaseName
+**  beam.router.skim.origin_destination_skimmer.name
+**  beam.router.skim.origin_destination_skimmer.writeAllModeSkimsForPeakNonPeakPeriodsInterval
+**  beam.router.skim.origin_destination_skimmer.writeFullSkimsInterval
+**  beam.router.skim.travel-time-skimmer.fileBaseName
+**  beam.router.skim.travel-time-skimmer.name
+**  beam.warmStart.enabled
+**  
+** The following parameters were missing from your config file, this is ok, but FYI these default values will be assigned:
+**  
+**  beam.actorSystemName = [ClusterSystem]
+**  beam.agentsim.agents.bodyType = [BODY-TYPE-DEFAULT]
+**  beam.agentsim.agents.freight.carrierParkingFilePath = [string]
+**  beam.agentsim.agents.freight.carriersFilePath = [/test/input/beamville/freight/freight-carriers.csv]
+**  beam.agentsim.agents.freight.enabled = [false]
+**  beam.agentsim.agents.freight.name = [Freight]
+**  beam.agentsim.agents.freight.plansFilePath = [/test/input/beamville/freight/payload-plans.csv]
+**  beam.agentsim.agents.freight.replanning.departureTime = [28800]
+**  beam.agentsim.agents.freight.replanning.disableAfterIteration = [-1]
+**  beam.agentsim.agents.freight.replanning.strategy = [singleTour]
+**  beam.agentsim.agents.freight.toursFilePath = [/test/input/beamville/freight/freight-tours.csv]
+**  beam.agentsim.agents.households.inputFilePath = [/test/input/beamville/households.xml.gz]
+**  beam.agentsim.agents.households.inputHouseholdAttributesFilePath = [/test/input/beamville/householdAttributes.xml.gz]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.highCongestion.highwayFactor.Level3 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.highCongestion.highwayFactor.Level4 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.highCongestion.highwayFactor.Level5 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.highCongestion.highwayFactor.LevelLE2 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.highCongestion.nonHighwayFactor.Level3 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.highCongestion.nonHighwayFactor.Level4 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.highCongestion.nonHighwayFactor.Level5 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.highCongestion.nonHighwayFactor.LevelLE2 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.lowCongestion.highwayFactor.Level3 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.lowCongestion.highwayFactor.Level4 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.lowCongestion.highwayFactor.Level5 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.lowCongestion.highwayFactor.LevelLE2 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.lowCongestion.nonHighwayFactor.Level3 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.lowCongestion.nonHighwayFactor.Level4 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.lowCongestion.nonHighwayFactor.Level5 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.highTimeSensitivity.lowCongestion.nonHighwayFactor.LevelLE2 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lccm.filePath = [/test/input/beamville/lccm-long.csv]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.highCongestion.highwayFactor.Level3 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.highCongestion.highwayFactor.Level4 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.highCongestion.highwayFactor.Level5 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.highCongestion.highwayFactor.LevelLE2 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.highCongestion.nonHighwayFactor.Level3 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.highCongestion.nonHighwayFactor.Level4 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.highCongestion.nonHighwayFactor.Level5 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.highCongestion.nonHighwayFactor.LevelLE2 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.lowCongestion.highwayFactor.Level3 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.lowCongestion.highwayFactor.Level4 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.lowCongestion.highwayFactor.Level5 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.lowCongestion.highwayFactor.LevelLE2 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.lowCongestion.nonHighwayFactor.Level3 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.lowCongestion.nonHighwayFactor.Level4 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.lowCongestion.nonHighwayFactor.Level5 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.lowTimeSensitivity.lowCongestion.nonHighwayFactor.LevelLE2 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.maximumNumberOfReplanningAttempts = [3]
+**  beam.agentsim.agents.modalBehaviors.minimumValueOfTime = [7.25]
+**  beam.agentsim.agents.modalBehaviors.modeVotMultiplier.CAV = [1.0]
+**  beam.agentsim.agents.modalBehaviors.modeVotMultiplier.bike = [1.0]
+**  beam.agentsim.agents.modalBehaviors.modeVotMultiplier.drive = [1.0]
+**  beam.agentsim.agents.modalBehaviors.modeVotMultiplier.rideHail = [1.0]
+**  beam.agentsim.agents.modalBehaviors.modeVotMultiplier.rideHailPooled = [1.0]
+**  beam.agentsim.agents.modalBehaviors.modeVotMultiplier.rideHailTransit = [1.0]
+**  beam.agentsim.agents.modalBehaviors.modeVotMultiplier.transit = [1.0]
+**  beam.agentsim.agents.modalBehaviors.modeVotMultiplier.waiting = [1.0]
+**  beam.agentsim.agents.modalBehaviors.modeVotMultiplier.walk = [1.0]
+**  beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.bike_transit_intercept = [0.0]
+**  beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.cav_intercept = [0.0]
+**  beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.transit_crowding = [0.0]
+**  beam.agentsim.agents.modalBehaviors.mulitnomialLogit.params.transit_crowding_percentile = [90.0]
+**  beam.agentsim.agents.modalBehaviors.mulitnomialLogit.utility_scale_factor = [1.0]
+**  beam.agentsim.agents.modalBehaviors.poolingMultiplier.Level3 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.poolingMultiplier.Level4 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.poolingMultiplier.Level5 = [1.0]
+**  beam.agentsim.agents.modalBehaviors.poolingMultiplier.LevelLE2 = [1.0]
+**  beam.agentsim.agents.modeIncentive.filePath = []
+**  beam.agentsim.agents.parking.maxSearchRadius = [8046.72]
+**  beam.agentsim.agents.parking.minSearchRadius = [250.00]
+**  beam.agentsim.agents.parking.mulitnomialLogit.params.distanceMultiplier = [-0.086]
+**  beam.agentsim.agents.parking.mulitnomialLogit.params.homeActivityPrefersResidentialParkingMultiplier = [1.0]
+**  beam.agentsim.agents.parking.mulitnomialLogit.params.parkingPriceMultiplier = [-0.005]
+**  beam.agentsim.agents.parking.mulitnomialLogit.params.rangeAnxietyMultiplier = [-0.5]
+**  beam.agentsim.agents.parking.rangeAnxietyBuffer = [20000.0]
+**  beam.agentsim.agents.plans.inputPersonAttributesFilePath = [/test/input/beamville/populationAttributes.xml.gz]
+**  beam.agentsim.agents.plans.inputPlansFilePath = [/test/input/beamville/population.xml.gz]
+**  beam.agentsim.agents.plans.merge.fraction = [0.0]
+**  beam.agentsim.agents.population.useVehicleSampling = [false]
+**  beam.agentsim.agents.ptFare.filePath = []
+**  beam.agentsim.agents.rideHail.allocationManager.pooledRideHailIntervalAsMultipleOfSoloRideHail = [1]
+**  beam.agentsim.agents.rideHail.cav.noRefuelThresholdInMeters = [96540]
+**  beam.agentsim.agents.rideHail.cav.refuelRequiredThresholdInMeters = [16090]
+**  beam.agentsim.agents.rideHail.cav.valueOfTime = [1]
+**  beam.agentsim.agents.rideHail.charging.vehicleChargingManager.defaultVehicleChargingManager.fractionAvailableThresholdToFavorFasterCharging = [1.01]
+**  beam.agentsim.agents.rideHail.charging.vehicleChargingManager.defaultVehicleChargingManager.mulitnomialLogit.params.chargingTimeMultiplier = [-0.01666667]
+**  beam.agentsim.agents.rideHail.charging.vehicleChargingManager.defaultVehicleChargingManager.mulitnomialLogit.params.drivingTimeMultiplier = [-0.01666667]
+**  beam.agentsim.agents.rideHail.charging.vehicleChargingManager.defaultVehicleChargingManager.mulitnomialLogit.params.insufficientRangeMultiplier = [-60.0]
+**  beam.agentsim.agents.rideHail.charging.vehicleChargingManager.defaultVehicleChargingManager.mulitnomialLogit.params.queueingTimeMultiplier = [-0.01666667]
+**  beam.agentsim.agents.rideHail.charging.vehicleChargingManager.defaultVehicleChargingManager.noChargingThresholdExpirationTimeInS = [0]
+**  beam.agentsim.agents.rideHail.charging.vehicleChargingManager.name = [DefaultVehicleChargingManager]
+**  beam.agentsim.agents.rideHail.defaultBaseCost = [1.8]
+**  beam.agentsim.agents.rideHail.defaultCostPerMile = [0.91]
+**  beam.agentsim.agents.rideHail.defaultCostPerMinute = [0.28]
+**  beam.agentsim.agents.rideHail.human.noRefuelThresholdInMeters = [128720]
+**  beam.agentsim.agents.rideHail.human.refuelRequiredThresholdInMeters = [32180]
+**  beam.agentsim.agents.rideHail.human.valueOfTime = [22.9]
+**  beam.agentsim.agents.rideHail.initialization.parking.filePath = []
+**  beam.agentsim.agents.rideHail.initialization.procedural.fractionOfInitialVehicleFleet = [0.1]
+**  beam.agentsim.agents.rideHail.initialization.procedural.initialLocation.home.radiusInMeters = [10000]
+**  beam.agentsim.agents.rideHail.initialization.procedural.initialLocation.name = [HOME]
+**  beam.agentsim.agents.rideHail.initialization.procedural.vehicleTypeId = [Car]
+**  beam.agentsim.agents.rideHail.initialization.procedural.vehicleTypePrefix = [RH]
+**  beam.agentsim.agents.rideHail.iterationStats.timeBinSizeInSec = [3600.0]
+**  beam.agentsim.agents.rideHail.linkFleetStateAcrossIterations = [false]
+**  beam.agentsim.agents.rideHail.name = [GlobalRHM]
+**  beam.agentsim.agents.rideHail.pooledBaseCost = [1.89]
+**  beam.agentsim.agents.rideHail.pooledCostPerMile = [1.11]
+**  beam.agentsim.agents.rideHail.pooledCostPerMinute = [0.07]
+**  beam.agentsim.agents.rideHail.pooledToRegularRideCostRatio = [0.6]
+**  beam.agentsim.agents.rideHail.rangeBufferForDispatchInMeters = [10000]
+**  beam.agentsim.agents.rideHail.refuelLocationType = [AtTAZCenter]
+**  beam.agentsim.agents.rideHail.refuelThresholdInMeters = [5000.0]
+**  beam.agentsim.agents.rideHail.repositioningManager.demandFollowingRepositioningManager.fractionOfClosestClustersToConsider = [0.2]
+**  beam.agentsim.agents.rideHail.repositioningManager.demandFollowingRepositioningManager.horizon = [1200]
+**  beam.agentsim.agents.rideHail.repositioningManager.demandFollowingRepositioningManager.sensitivityOfRepositioningToDemandForCAVs = [1]
+**  beam.agentsim.agents.rideHail.repositioningManager.inverseSquareDistanceRepositioningFactor.predictionHorizon = [3600]
+**  beam.agentsim.agents.rideHail.repositioningManager.inverseSquareDistanceRepositioningFactor.sensitivityOfRepositioningToDemand = [0.4]
+**  beam.agentsim.agents.rideHail.repositioningManager.inverseSquareDistanceRepositioningFactor.sensitivityOfRepositioningToDistance = [0.9]
+**  beam.agentsim.agents.rideHail.rideHailManager.radiusInMeters = [5000]
+**  beam.agentsim.agents.rideHail.surgePricing.numberOfCategories = [6]
+**  beam.agentsim.agents.rideHailTransit.modesToConsider = [MASS]
+**  beam.agentsim.agents.tripBehaviors.mulitnomialLogit.activity_file_path = []
+**  beam.agentsim.agents.tripBehaviors.mulitnomialLogit.additional_trip_utility = [0.0]
+**  beam.agentsim.agents.tripBehaviors.mulitnomialLogit.destination_nest_scale_factor = [1.0]
+**  beam.agentsim.agents.tripBehaviors.mulitnomialLogit.generate_secondary_activities = [false]
+**  beam.agentsim.agents.tripBehaviors.mulitnomialLogit.intercept_file_path = []
+**  beam.agentsim.agents.tripBehaviors.mulitnomialLogit.max_destination_choice_set_size = [20]
+**  beam.agentsim.agents.tripBehaviors.mulitnomialLogit.max_destination_distance_meters = [32000]
+**  beam.agentsim.agents.tripBehaviors.mulitnomialLogit.mode_nest_scale_factor = [1.0]
+**  beam.agentsim.agents.tripBehaviors.mulitnomialLogit.trip_nest_scale_factor = [1.0]
+**  beam.agentsim.agents.vehicles.downsamplingMethod = [SECONDARY_VEHICLES_FIRST]
+**  beam.agentsim.agents.vehicles.dummySharedBike.vehicleTypeId = [sharedVehicle-sharedBike]
+**  beam.agentsim.agents.vehicles.dummySharedCar.vehicleTypeId = [sharedVehicle-sharedCar]
+**  beam.agentsim.agents.vehicles.fractionOfInitialVehicleFleet = [1.0]
+**  beam.agentsim.agents.vehicles.fractionOfPeopleWithBicycle = [1.0]
+**  beam.agentsim.agents.vehicles.linkToGradePercentFilePath = []
+**  beam.agentsim.agents.vehicles.meanPrivateVehicleStartingSOC = [1.0]
+**  beam.agentsim.agents.vehicles.meanRidehailVehicleStartingSOC = [1.0]
+**  beam.agentsim.agents.vehicles.transitVehicleTypesByRouteFile = []
+**  beam.agentsim.agents.vehicles.vehicleAdjustmentMethod = [UNIFORM]
+**  beam.agentsim.chargingNetworkManager.helics.bufferSize = [1000]
+**  beam.agentsim.chargingNetworkManager.helics.connectionEnabled = [false]
+**  beam.agentsim.chargingNetworkManager.helics.coreInitString = [--federates=1 --broker_address=tcp://127.0.0.1]
+**  beam.agentsim.chargingNetworkManager.helics.coreType = [zmq]
+**  beam.agentsim.chargingNetworkManager.helics.dataInStreamPoint = [GridFed/PhysicalBounds]
+**  beam.agentsim.chargingNetworkManager.helics.dataOutStreamPoint = [PowerDemand]
+**  beam.agentsim.chargingNetworkManager.helics.federateName = [CNMFederate]
+**  beam.agentsim.chargingNetworkManager.helics.intLogLevel = [1]
+**  beam.agentsim.chargingNetworkManager.helics.timeDeltaProperty = [1.0]
+**  beam.agentsim.chargingNetworkManager.timeStepInSeconds = [300]
+**  beam.agentsim.fractionOfPlansWithSingleActivity = [0.0]
+**  beam.agentsim.h3taz.lowerBoundResolution = [6]
+**  beam.agentsim.h3taz.upperBoundResolution = [9]
+**  beam.agentsim.scenarios.frequencyAdjustmentFile = [/test/input/beamville/r5/FrequencyAdjustment.csv]
+**  beam.agentsim.scheduleMonitorTask.initialDelay = [1]
+**  beam.agentsim.scheduleMonitorTask.interval = [30]
+**  beam.agentsim.taz.parkingCostScalingFactor = [1.0]
+**  beam.agentsim.taz.parkingFilePath = []
+**  beam.agentsim.taz.parkingManager.displayPerformanceTimings = [false]
+**  beam.agentsim.taz.parkingManager.level = [TAZ]
+**  beam.agentsim.taz.parkingManager.method = [DEFAULT]
+**  beam.agentsim.taz.parkingManager.parallel.numberOfClusters = [8]
+**  beam.agentsim.taz.parkingStallCountScalingFactor = [1.0]
+**  beam.agentsim.toll.filePath = [/test/input/beamville/toll-prices.csv]
+**  beam.agentsim.tuning.fuelCapacityInJoules = [86400000]
+**  beam.calibration.counts.inputCountsFile = []
+**  beam.calibration.google.travelTimes.enable = [false]
+**  beam.calibration.google.travelTimes.iterationInterval = [5]
+**  beam.calibration.google.travelTimes.minDistanceInMeters = [5000]
+**  beam.calibration.google.travelTimes.numDataPointsOver24Hours = [100]
+**  beam.calibration.google.travelTimes.offPeakEnabled = [false]
+**  beam.calibration.google.travelTimes.queryDate = [2020-10-14]
+**  beam.calibration.google.travelTimes.tolls = [true]
+**  beam.calibration.meanToCountsWeightRatio = [0.5]
+**  beam.calibration.roadNetwork.travelTimes.zoneBoundariesFilePath = []
+**  beam.calibration.roadNetwork.travelTimes.zoneODTravelTimesFilePath = []
+**  beam.calibration.studyArea.enabled = [false]
+**  beam.calibration.studyArea.lat = [0]
+**  beam.calibration.studyArea.lon = [0]
+**  beam.calibration.studyArea.radius = [0]
+**  beam.cluster.clusterType = []
+**  beam.cluster.enabled = [false]
+**  beam.debug.agentTripScoresInterval = [0]
+**  beam.debug.clearRoutedOutstandingWorkEnabled = [false]
+**  beam.debug.memoryConsumptionDisplayTimeoutInSec = [0]
+**  beam.debug.messageLogging = [false]
+**  beam.debug.secondsToWaitToClearRoutedOutstandingWork = [60]
+**  beam.debug.triggerMeasurer.enabled = [false]
+**  beam.debug.triggerMeasurer.writeStuckAgentDetectionConfig = [true]
+**  beam.debug.vmInformation.createGCClassHistogram = [false]
+**  beam.debug.writeModeChoiceAlternatives = [false]
+**  beam.debug.writeRealizedModeChoiceFile = [false]
+**  beam.exchange.output.activitySimSkimsEnabled = [false]
+**  beam.exchange.output.geo.filePath = [string]
+**  beam.exchange.scenario.urbansim.activitySimEnabled = [false]
+**  beam.experimental.optimizer.enabled = [false]
+**  beam.input.lastBaseOutputDir = [output]
+**  beam.input.simulationPrefix = [beamville]
+**  beam.logger.keepConsoleAppenderOn = [true]
+**  beam.outputs.collectAndCreateBeamAnalysisAndGraphs = [true]
+**  beam.outputs.displayPerformanceTimings = [false]
+**  beam.outputs.generalizedLinkStats.endTime = [32400]
+**  beam.outputs.generalizedLinkStats.startTime = [25200]
+**  beam.outputs.generalizedLinkStatsInterval = [0]
+**  beam.outputs.matsim.deleteITERSFolderFiles = []
+**  beam.outputs.matsim.deleteRootFolderFiles = []
+**  beam.outputs.writeGraphs = [true]
+**  beam.outputs.writeR5RoutesInterval = [0]
+**  beam.physsim.bprsim.inFlowAggregationTimeWindowInSeconds = [900]
+**  beam.physsim.bprsim.minFlowToUseBPRFunction = [0]
+**  beam.physsim.bprsim.travelTimeFunction = [BPR]
+**  beam.physsim.cchRoutingAssignment.congestionFactor = [1.0]
+**  beam.physsim.duplicatePTE.departureTimeShiftMax = [600]
+**  beam.physsim.duplicatePTE.departureTimeShiftMin = [-600]
+**  beam.physsim.duplicatePTE.fractionOfEventsToDuplicate = [0.0]
+**  beam.physsim.eventManager.numberOfThreads = [1]
+**  beam.physsim.eventManager.type = [Auto]
+**  beam.physsim.initializeRouterWithFreeFlowTimes = [true]
+**  beam.physsim.jdeqsim.cacc.adjustedMinimumRoadSpeedInMetersPerSecond = [1.3]
+**  beam.physsim.jdeqsim.cacc.capacityPlansWriteInterval = [0]
+**  beam.physsim.linkStatsBinSize = [3600]
+**  beam.physsim.name = [JDEQSim]
+**  beam.physsim.network.maxSpeedInference.enabled = [false]
+**  beam.physsim.network.maxSpeedInference.type = [MEAN]
+**  beam.physsim.network.overwriteRoadTypeProperties.enabled = [false]
+**  beam.physsim.network.overwriteRoadTypeProperties.livingStreet.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.livingStreet.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.livingStreet.speed = [double?]
+**  beam.physsim.network.overwriteRoadTypeProperties.minor.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.minor.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.minor.speed = [double?]
+**  beam.physsim.network.overwriteRoadTypeProperties.motorway.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.motorway.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.motorway.speed = [double?]
+**  beam.physsim.network.overwriteRoadTypeProperties.motorwayLink.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.motorwayLink.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.motorwayLink.speed = [double?]
+**  beam.physsim.network.overwriteRoadTypeProperties.primary.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.primary.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.primary.speed = [double?]
+**  beam.physsim.network.overwriteRoadTypeProperties.primaryLink.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.primaryLink.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.primaryLink.speed = [double?]
+**  beam.physsim.network.overwriteRoadTypeProperties.residential.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.residential.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.residential.speed = [double?]
+**  beam.physsim.network.overwriteRoadTypeProperties.secondary.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.secondary.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.secondary.speed = [double?]
+**  beam.physsim.network.overwriteRoadTypeProperties.secondaryLink.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.secondaryLink.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.secondaryLink.speed = [double?]
+**  beam.physsim.network.overwriteRoadTypeProperties.tertiary.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.tertiary.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.tertiary.speed = [double?]
+**  beam.physsim.network.overwriteRoadTypeProperties.tertiaryLink.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.tertiaryLink.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.tertiaryLink.speed = [double?]
+**  beam.physsim.network.overwriteRoadTypeProperties.trunk.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.trunk.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.trunk.speed = [double?]
+**  beam.physsim.network.overwriteRoadTypeProperties.trunkLink.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.trunkLink.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.trunkLink.speed = [double?]
+**  beam.physsim.network.overwriteRoadTypeProperties.unclassified.capacity = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.unclassified.lanes = [int?]
+**  beam.physsim.network.overwriteRoadTypeProperties.unclassified.speed = [double?]
+**  beam.physsim.overwriteLinkParamPath = []
+**  beam.physsim.parbprsim.numberOfClusters = [8]
+**  beam.physsim.parbprsim.syncInterval = [60]
+**  beam.physsim.pickUpDropOffAnalysis.additionalTravelTimeMultiplier = [1.0]
+**  beam.physsim.pickUpDropOffAnalysis.enabled = [false]
+**  beam.physsim.pickUpDropOffAnalysis.secondsFromPickUpPropOffToAffectTravelTime = [600]
+**  beam.physsim.relaxation.experiment2_0.clearModesEveryIteration = [true]
+**  beam.physsim.relaxation.experiment2_0.clearRoutesEveryIteration = [true]
+**  beam.physsim.relaxation.experiment2_0.fractionOfPopulationToReroute = [0.1]
+**  beam.physsim.relaxation.experiment2_0.internalNumberOfIterations = [15]
+**  beam.physsim.relaxation.experiment2_1.clearModesEveryIteration = [true]
+**  beam.physsim.relaxation.experiment2_1.clearRoutesEveryIteration = [true]
+**  beam.physsim.relaxation.experiment2_1.fractionOfPopulationToReroute = [0.1]
+**  beam.physsim.relaxation.experiment2_1.internalNumberOfIterations = [15]
+**  beam.physsim.relaxation.experiment3_0.fractionOfPopulationToReroute = [0.1]
+**  beam.physsim.relaxation.experiment3_0.internalNumberOfIterations = [15]
+**  beam.physsim.relaxation.experiment4_0.percentToSimulate = [[double]]
+**  beam.physsim.relaxation.experiment5_0.percentToSimulate = [[double]]
+**  beam.physsim.relaxation.experiment5_1.percentToSimulate = [[double]]
+**  beam.physsim.relaxation.experiment5_2.percentToSimulate = [[double]]
+**  beam.physsim.relaxation.type = [normal]
+**  beam.physsim.speedScalingFactor = [1.0]
+**  beam.physsim.writeRouteHistoryInterval = [10]
+**  beam.replanning.clearModes.iteration = [0]
+**  beam.replanning.clearModes.modes = [[string]]
+**  beam.replanning.clearModes.strategy = [AtBeginningOfIteration]
+**  beam.router.skim.activity-sim-skimmer.fileBaseName = [activitySimODSkims]
+**  beam.router.skim.activity-sim-skimmer.name = [activity-sim-skimmer]
+**  beam.router.skim.drive-time-skimmer.fileBaseName = [skimsTravelTimeObservedVsSimulated]
+**  beam.router.skim.drive-time-skimmer.name = [drive-time-skimmer]
+**  beam.router.skim.origin-destination-skimmer.fileBaseName = [skimsOD]
+**  beam.router.skim.origin-destination-skimmer.name = [od-skimmer]
+**  beam.router.skim.origin-destination-skimmer.poolingTravelTimeOveheadFactor = [1.21]
+**  beam.router.skim.origin-destination-skimmer.writeAllModeSkimsForPeakNonPeakPeriodsInterval = [0]
+**  beam.router.skim.origin-destination-skimmer.writeFullSkimsInterval = [0]
+**  beam.router.skim.taz-skimmer.geoHierarchy = [TAZ]
+**  beam.router.skim.transit-crowding-skimmer.fileBaseName = [skimsTransitCrowding]
+**  beam.router.skim.transit-crowding-skimmer.name = [transit-crowding-skimmer]
+**  beam.routing.carRouter = [R5]
+**  beam.routing.minimumPossibleSkimBasedTravelTimeInS = [60]
+**  beam.routing.overrideNetworkTravelTimesUsingSkims = [false]
+**  beam.routing.r5.bikeLaneLinkIdsFilePath = []
+**  beam.routing.r5.bikeLaneScaleFactor = [1.0]
+**  beam.routing.r5.maxDistanceLimitByModeInMeters.bike = [40000]
+**  beam.routing.r5.numberOfSamples = [1]
+**  beam.routing.r5.travelTimeNoiseFraction = [0.0]
+**  beam.routing.skimTravelTimesScalingFactor = [0.0]
+**  beam.routing.writeRoutingStatistic = [false]
+**  beam.sim.termination.criterionName = [TerminateAtFixedIterationNumber]
+**  beam.sim.termination.terminateAtRideHailFleetStoredElectricityConvergence.maxLastIteration = [0]
+**  beam.sim.termination.terminateAtRideHailFleetStoredElectricityConvergence.minLastIteration = [0]
+**  beam.sim.termination.terminateAtRideHailFleetStoredElectricityConvergence.relativeTolerance = [0.01]
+**  beam.urbansim.backgroundODSkimsCreator.calculationTimeoutHours = [6]
+**  beam.urbansim.backgroundODSkimsCreator.enabled = [false]
+**  beam.urbansim.backgroundODSkimsCreator.maxTravelDistanceInMeters.bike = [33000]
+**  beam.urbansim.backgroundODSkimsCreator.maxTravelDistanceInMeters.walk = [10000]
+**  beam.urbansim.backgroundODSkimsCreator.modesToBuild.drive = [true]
+**  beam.urbansim.backgroundODSkimsCreator.modesToBuild.transit = [true]
+**  beam.urbansim.backgroundODSkimsCreator.modesToBuild.walk = [true]
+**  beam.urbansim.backgroundODSkimsCreator.numberOfH3Indexes = [1000]
+**  beam.urbansim.backgroundODSkimsCreator.peakHours = [[double]]
+**  beam.urbansim.backgroundODSkimsCreator.routerType = [r5]
+**  beam.urbansim.backgroundODSkimsCreator.skimsGeoType = [h3]
+**  beam.urbansim.backgroundODSkimsCreator.skimsKind = [od]
+**  beam.urbansim.fractionOfModesToClear.allModes = [0.0]
+**  beam.urbansim.fractionOfModesToClear.bike = [0.0]
+**  beam.urbansim.fractionOfModesToClear.car = [0.0]
+**  beam.urbansim.fractionOfModesToClear.drive_transit = [0.0]
+**  beam.urbansim.fractionOfModesToClear.walk = [0.0]
+**  beam.urbansim.fractionOfModesToClear.walk_transit = [0.0]
+**  beam.useLocalWorker = [true]
+**  beam.warmStart.prepareData = [false]
+**  beam.warmStart.samplePopulationIntegerFlag = [0]
+**  beam.warmStart.skimsFilePaths = [[{skimType=String, skimsFilePath=}]]
+**  beam.warmStart.type = [disabled]
+**  matsim.modules.counts.inputCountsFile = []
+**  matsim.modules.households.inputFile = [/test/input/beamville/households.xml]
+**  matsim.modules.households.inputHouseholdAttributesFile = [/test/input/beamville/householdAttributes.xml]
+**  matsim.modules.plans.inputPersonAttributesFile = [/test/input/beamville/populationAttributes.xml]
+**  matsim.modules.plans.inputPlansFile = [/test/input/beamville/population.xml]
+**  matsim.modules.strategy.planSelectorForRemoval = [WorstPlanForRemovalSelector]
+**  matsim.modules.transit.vehiclesFile = []
+**  matsim.modules.vehicles.vehiclesFile = []
+**************************************************************************************************************************
+
+19:38:30.601 [main] ERROR beam.sim.RunBeam$ - Input consistency check failed:
+beam.agentsim.agents.vehicles.dummySharedCar.vehicleTypeId 'sharedVehicle-sharedCar' is not in vehicleTypes [BUS-VTA,TRAIN-CE,BUS-WC,FERRY-DEFAULT,BUS-DE,BODY-TYPE-DEFAULT,BUS-CM,BUS-FS,WAV,CAR,TRAM-DEFAULT,BUS-MA,CAV,BUS-VN,BUS-DEFAULT,BUS-GG,Car-rh-only,BUS-SO,BUS-CT,BUS-CC,PHEV,BUS-MS,BUS-ST,TRAIN-CT,BEV,BUS-AC,CABLE_CAR-DEFAULT,micro,BUS-SM,CABLE_CAR-SF,FAST-BIKE,BUS-WH,BIKE-DEFAULT,BUS-SF,SUBWAY-DEFAULT,slc_testCar,BUS-RV,RAIL-DEFAULT,BUS-AY,FERRY-HF,BUS-VC,BUS-SR,TRAM-SF,BUS-PE,SUBWAY-BA,Car,RAIL-AM]
+19:38:30.718 [main] INFO  beam.sim.RunBeam$ - Starting beam on branch csv_input at commit 2d28401753e1e3e6b9dd6a756ac7a1a9afef5209.
+19:38:30.720 [main] INFO  beam.sim.RunBeam$ - Maximum Memory (-Xmx): 3.8 (GB)
+19:38:30.759 [main] INFO  beam.sim.RunBeam$ - Processing configs for [csv_test] simulation.
+19:38:30.761 [main] INFO  beam.sim.RunBeam$ - Config 'test\input\csv_test\csv_test.conf' copied to 'X:\RA_Microtransit\MERGE\test\input\csv_test\..\..\output\slc_5\csv_test__2022-01-18_19-38-30_kti\beam.conf'.
+19:38:30.773 [main] INFO  beam.sim.RunBeam$ - Config 'test\input\common\metrics.conf' copied to 'X:\RA_Microtransit\MERGE\test\input\csv_test\..\..\output\slc_5\csv_test__2022-01-18_19-38-30_kti\metrics.conf'.
+19:38:30.774 [main] INFO  beam.sim.RunBeam$ - Config 'test\input\common\akka.conf' copied to 'X:\RA_Microtransit\MERGE\test\input\csv_test\..\..\output\slc_5\csv_test__2022-01-18_19-38-30_kti\akka.conf'.
+19:38:30.774 [main] INFO  beam.sim.RunBeam$ - Config 'test\input\common\matsim.conf' copied to 'X:\RA_Microtransit\MERGE\test\input\csv_test\..\..\output\slc_5\csv_test__2022-01-18_19-38-30_kti\matsim.conf'.
+19:38:32.504 [main] INFO  b.r.r5.DefaultNetworkCoordinator - Initializing router by reading network from: X:\RA_Microtransit\MERGE\test\input\csv_test\r5\network.dat
+19:38:42.602 [main] INFO  hsqldb.db.HSQLDB4AD417742A.ENGINE - dataFileCache open start
+19:38:45.274 [main] INFO  b.agentsim.infrastructure.taz.H3TAZ - fillBox for boundingBox QuadTreeBounds(-112.36469770000065,39.77329009999992,-111.48579299999999,41.5921450999999) with resolution 6 executed in 19 ms
+19:38:45.274 [main] INFO  b.agentsim.infrastructure.taz.H3TAZ - fillBox for boundingBox QuadTreeBounds(-112.36469770000065,39.77329009999992,-111.48579299999999,41.5921450999999) with resolution 6 gives 389 elemets
+19:38:45.414 [main] INFO  b.agentsim.infrastructure.taz.H3TAZ - Constructed tazToH3TAZMapping executed in 138 ms
+19:38:45.624 [main] INFO  b.u.s.u.censusblock.UrbansimReaderV2 - Start reading of households info...
+19:38:45.700 [main] INFO  b.u.s.u.censusblock.UrbansimReaderV2 - Households info has been read successfully.
+19:38:46.111 [scala-execution-context-global-14] INFO  b.u.s.u.censusblock.UrbansimReaderV2 - Merging modes into plan...
+19:38:46.166 [scala-execution-context-global-17] INFO  b.u.s.u.censusblock.UrbansimReaderV2 - Merging incomes into person...
+19:38:46.409 [scala-execution-context-global-14] WARN  beam.sim.common.GeoUtilsImpl - [1] Coordinate does not appear to be in WGS. No conversion will happen: [x=-1.2469558977917675E7][y=5089818.139751775]
+19:38:46.418 [scala-execution-context-global-14] WARN  beam.sim.common.GeoUtilsImpl - [2] Coordinate does not appear to be in WGS. No conversion will happen: [x=-1.2471716074153095E7][y=5088605.389904291]
+19:38:46.419 [scala-execution-context-global-14] WARN  beam.sim.common.GeoUtilsImpl - [4] Coordinate does not appear to be in WGS. No conversion will happen: [x=-1.2468953011878535E7][y=5087426.148033411]
+19:38:46.419 [scala-execution-context-global-14] WARN  beam.sim.common.GeoUtilsImpl - [8] Coordinate does not appear to be in WGS. No conversion will happen: [x=-1.2470049303260438E7][y=5086434.811707607]
+19:38:46.420 [scala-execution-context-global-14] WARN  beam.sim.common.GeoUtilsImpl - [16] Coordinate does not appear to be in WGS. No conversion will happen: [x=-1.2468493670777513E7][y=5086246.469525619]
+19:38:46.421 [scala-execution-context-global-14] WARN  beam.sim.common.GeoUtilsImpl - [32] Coordinate does not appear to be in WGS. No conversion will happen: [x=-1.2468399172614804E7][y=5086362.313888361]
+19:38:46.422 [scala-execution-context-global-14] WARN  beam.sim.common.GeoUtilsImpl - [64] Coordinate does not appear to be in WGS. No conversion will happen: [x=-1.2454801917118646E7][y=4980155.365433472]
+19:38:46.426 [scala-execution-context-global-14] WARN  beam.sim.common.GeoUtilsImpl - [128] Coordinate does not appear to be in WGS. No conversion will happen: [x=-1.245648784154383E7][y=4976251.466596761]
+19:38:46.431 [scala-execution-context-global-14] WARN  beam.sim.common.GeoUtilsImpl - [256] Coordinate does not appear to be in WGS. No conversion will happen: [x=-1.246493690193343E7][y=4963753.900724517]
+19:38:46.449 [scala-execution-context-global-14] WARN  beam.sim.common.GeoUtilsImpl - [512] Coordinate does not appear to be in WGS. No conversion will happen: [x=-1.245721008616551E7][y=4967161.516690575]
+19:38:46.454 [scala-execution-context-global-17] INFO  b.u.s.u.censusblock.UrbansimReaderV2 - Incomes merged successfully.
+19:38:46.455 [scala-execution-context-global-17] INFO  b.u.scenario.UrbanSimScenarioLoader - Read 784 persons
+19:38:46.458 [scala-execution-context-global-14] WARN  beam.sim.common.GeoUtilsImpl - [1024] Coordinate does not appear to be in WGS. No conversion will happen: [x=-1.2478157032018654E7][y=5050097.914883402]
+19:38:46.472 [scala-execution-context-global-14] WARN  beam.sim.common.GeoUtilsImpl - [2048] Coordinate does not appear to be in WGS. No conversion will happen: [x=-1.2437204955906907E7][y=4912584.12971254]
+19:38:46.497 [scala-execution-context-global-14] INFO  b.u.s.u.censusblock.UrbansimReaderV2 - Modes merged successfully into plan.
+19:38:46.498 [scala-execution-context-global-14] INFO  b.u.scenario.UrbanSimScenarioLoader - Read 5901 plans
+19:38:46.599 [scala-execution-context-global-23] INFO  b.u.scenario.UrbanSimScenarioLoader - Read 250 households
+19:38:46.605 [scala-execution-context-global-23] INFO  b.u.scenario.UrbanSimScenarioLoader - Filtered out 250 households. Total number of households: 0
+19:38:46.647 [scala-execution-context-global-14] INFO  b.u.scenario.UrbanSimScenarioLoader - Filtered out 5901 plans. Total number of plans: 0
+19:38:46.661 [main] INFO  b.u.scenario.UrbanSimScenarioLoader - There are 0 persons with plans
+19:38:46.661 [main] INFO  b.u.scenario.UrbanSimScenarioLoader - There are 0 non-empty households
+19:38:46.661 [main] INFO  b.u.scenario.UrbanSimScenarioLoader - Applying households...
+19:38:47.056 [main] INFO  b.u.scenario.UrbanSimScenarioLoader - Originally had 0 work vehicles and now have 0 of them, with a goal of making 0
+19:38:47.077 [main] INFO  b.u.scenario.UrbanSimScenarioLoader - Ended up with 0 vehicles
+19:38:47.084 [main] INFO  b.u.scenario.UrbanSimScenarioLoader - Created 0 vehicles, scaling initial value of 0 by a factor of 1.0
+19:38:47.084 [main] INFO  b.u.scenario.UrbanSimScenarioLoader - Applying persons...
+19:38:47.085 [main] INFO  b.u.scenario.UrbanSimScenarioLoader - Applying plans...
+19:38:47.085 [main] INFO  b.u.scenario.UrbanSimScenarioLoader - The scenario loading is completed..
+19:38:47.123 [main] INFO  beam.sim.RunBeam$ - Load scenario using urbansim_v2/csv executed in 14663 ms
+19:38:47.130 [main] INFO  beam.sim.RunBeam$ - Java version: 1.8.0_282
+19:38:47.130 [main] INFO  beam.sim.RunBeam$ - JVM args: List(-Dfile.encoding=windows-1252, -Duser.country=US, -Duser.language=en, -Duser.variant)
+19:38:47.130 [main] INFO  beam.sim.RunBeam$ - Heap size: 1.5 GB
+19:38:47.131 [main] INFO  beam.sim.RunBeam$ - Heap max memory: 3.5 GB
+19:38:47.131 [main] INFO  beam.sim.RunBeam$ - Heap free memory: 714.5 MB
+19:38:47.131 [main] WARN  beam.sim.RunBeam$ - 
+Scenario population size: 0
+Scenario vehicles size: 0
+Scenario lanes size: 0
+BeamScenario households size: 0
+BeamScenario privateVehicles size: 0
+BeamScenario vehicleTypes size: 48
+BeamScenario modIncentives size 0
+
+19:38:52.123 [main] INFO  beam.utils.NetworkHelperImpl - Total number of links is 515982 and MaxLinkId is 515981.
+19:38:52.141 [main] INFO  beam.utils.NetworkHelperImpl - NetworkHelperImpl init executed in 147 ms
+19:38:52.142 [main] INFO  beam.sim.LoggingEventsManager - Created sequential class org.matsim.core.events.EventsManagerImpl with hashcode: 101720760
+19:38:52.142 [main] INFO  beam.sim.LoggingEventsManager - Created default class org.matsim.core.events.ParallelEventsManagerImpl with hashcode: 876504206
+19:38:52.172 [main] INFO  b.s.m.InfluxDbSimulationMetricCollector - Enabled metrics: beam-run,beam-iteration,beam-map-envelope,beam-run-households,beam-run-population-size,beam-run-private-fleet-size,beam-run-charging-depots-cnt,beam-run-charging-depots-stalls-cnt,beam-run-public-fast-charge-cnt,beam-run-public-fast-charge-stalls-cnt,beam-run-RH-ev-cav,beam-run-RH-non-ev-cav,beam-run-RH-ev-non-cav,beam-run-RH-non-ev-non-cav,parking,chargingPower,mode-choices,average-travel-time,ride-hail-waiting-time,ride-hail-waiting-time-map,ride-hail-trip-distance
+19:38:52.172 [main] INFO  b.s.m.InfluxDbSimulationMetricCollector - Today is 2022-01-18T00:00, toEpochMilli: 1642489200000 ms or 1642489200000000000 ns
+19:38:56.492 [main] WARN  b.s.m.InfluxDbSimulationMetricCollector - There are enabled metrics, but InfluxDB is unavailable at http://localhost:8086, database: 'beam'. Error: java.net.ConnectException: Failed to connect to localhost/0:0:0:0:0:0:0:1:8086
+19:38:56.977 [ClusterSystem-akka.actor.default-dispatcher-5] INFO  akka.event.slf4j.Slf4jLogger - Slf4jLogger started
+19:38:59.121 [main] INFO  beam.router.osm.TollCalculator - tollsByLinkId size: 0
+19:38:59.122 [main] INFO  beam.router.osm.TollCalculator - tollsByWayId size: 0
+19:38:59.123 [main] INFO  b.a.ModeChoiceAlternativesCollector - Created ModeChoiceAlternativesCollector with hashcode: 701666818
+19:38:59.143 [main] INFO  b.a.RideHailUtilizationCollector - Created RideHailUtilizationCollector with hashcode: 1713651696
+19:38:59.259 [main] WARN  b.a.e.h.TravelTimeGoogleStatistic - Date in the past: 2020-10-14, using a future one
+19:39:08.977 [main] INFO  beam.sim.RunBeam$ - Vehicles assigned to households : 
+19:39:09.247 [ClusterSystem-akka.actor.default-dispatcher-7] INFO  beam.router.RoutingWorker - RoutingWorker[108091774] `akka://ClusterSystem/user/router/router-worker` is ready
+19:39:09.247 [ClusterSystem-akka.actor.default-dispatcher-7] INFO  beam.router.RoutingWorker - Num of available processors: 12. Will use: 10
+19:39:26.583 [main] INFO  beam.sim.BeamSim - dumpMatsimStuffAtTheBeginningOfSimulation in the beginning of simulation executed in 4835 ms
+19:39:26.992 [main] INFO  b.a.RideHailUtilizationCollector - There were 0 ride-hail rides for iteration 0
+19:39:27.212 [main] INFO  b.a.RideHailUtilizationCollector - There were 0 ride-hail rides for iteration 0
+19:39:27.239 [main] INFO  beam.matsim.CustomPlansDumpingImpl - dumping plans...
+19:39:27.247 [main] INFO  beam.matsim.CustomPlansDumpingImpl - finished plans dump.
+19:39:27.250 [main] INFO  beam.sim.BeamMobsim - Starting Iteration
+19:39:27.260 [main] INFO  beam.sim.BeamMobsim - Preparing new Iteration (Start)
+19:39:27.261 [main] INFO  beam.sim.BeamMobsim - run.start (after GC): 1.84 (GB)
+19:39:27.271 [main] INFO  beam.sim.LoggingEventsManager - Running dedicated blocking handler...
+19:39:27.357 [ClusterSystem-akka.actor.default-dispatcher-5] INFO  beam.utils.StuckFinder - StuckFinder is ** ENABLED **
+19:39:39.310 [ClusterSystem-akka.actor.default-dispatcher-5] WARN  beam.utils.StuckFinder - There is no configuration for 'class beam.agentsim.agents.ridehail.RideHailManager$RideHailRepositioningTrigger'
+19:39:39.311 [ClusterSystem-akka.actor.default-dispatcher-5] WARN  beam.utils.StuckFinder - There is no configuration for 'class beam.agentsim.agents.ridehail.RideHailManager$BufferedRideHailRequestsTrigger'
+19:39:39.311 [ClusterSystem-akka.actor.default-dispatcher-5] WARN  beam.utils.StuckFinder - There is no configuration for 'class beam.agentsim.agents.ridehail.RideHailAgent$EndShiftTrigger'
+19:39:39.311 [ClusterSystem-akka.actor.default-dispatcher-5] WARN  beam.utils.StuckFinder - There is no configuration for 'class beam.sim.vehiclesharing.REPVehicleTeleportTrigger'
+19:39:39.311 [ClusterSystem-akka.actor.default-dispatcher-5] WARN  beam.utils.StuckFinder - There is no configuration for 'class beam.agentsim.agents.ridehail.RideHailResponseTrigger'
+19:39:39.311 [ClusterSystem-akka.actor.default-dispatcher-5] WARN  beam.utils.StuckFinder - There is no configuration for 'class beam.router.skim.TAZSkimsCollector$TAZSkimsCollectionTrigger'
+19:39:39.311 [ClusterSystem-akka.actor.default-dispatcher-5] WARN  beam.utils.StuckFinder - There is no configuration for 'class beam.agentsim.infrastructure.ChargingNetworkManager$PlanEnergyDispatchTrigger'
+19:39:39.311 [ClusterSystem-akka.actor.default-dispatcher-5] WARN  beam.utils.StuckFinder - There is no configuration for 'class beam.cosim.helics.BeamHelicsInterface$BeamFederateTrigger'
+19:39:39.311 [ClusterSystem-akka.actor.default-dispatcher-5] WARN  beam.utils.StuckFinder - There is no configuration for 'class beam.agentsim.agents.ridehail.RideHailAgent$StartShiftTrigger'
+19:39:39.311 [ClusterSystem-akka.actor.default-dispatcher-5] WARN  beam.utils.StuckFinder - There is no configuration for 'class beam.agentsim.infrastructure.ChargingNetworkManager$ChargingTimeOutTrigger'
+19:39:39.311 [ClusterSystem-akka.actor.default-dispatcher-5] WARN  beam.utils.StuckFinder - There is no configuration for 'class beam.sim.vehiclesharing.REPVehicleRepositionTrigger'
+19:39:39.314 [ClusterSystem-akka.actor.default-dispatcher-5] INFO  beam.utils.StuckFinder - class beam.agentsim.agents.InitializeTrigger => 20000 ms
+19:39:39.315 [ClusterSystem-akka.actor.default-dispatcher-5] INFO  beam.utils.StuckFinder - class beam.agentsim.agents.PersonAgent$ActivityEndTrigger => 20000 ms
+19:39:39.315 [ClusterSystem-akka.actor.default-dispatcher-5] INFO  beam.utils.StuckFinder - class beam.agentsim.agents.PersonAgent$ActivityStartTrigger => 20000 ms
+19:39:39.315 [ClusterSystem-akka.actor.default-dispatcher-5] INFO  beam.utils.StuckFinder - class beam.agentsim.agents.PersonAgent$PersonDepartureTrigger => 20000 ms
+19:39:39.315 [ClusterSystem-akka.actor.default-dispatcher-5] INFO  beam.utils.StuckFinder - class beam.agentsim.agents.modalbehaviors.DrivesVehicle$AlightVehicleTrigger => 20000 ms
+19:39:39.315 [ClusterSystem-akka.actor.default-dispatcher-5] INFO  beam.utils.StuckFinder - class beam.agentsim.agents.modalbehaviors.DrivesVehicle$BoardVehicleTrigger => 20000 ms
+19:39:39.315 [ClusterSystem-akka.actor.default-dispatcher-5] INFO  beam.utils.StuckFinder - class beam.agentsim.agents.modalbehaviors.DrivesVehicle$EndLegTrigger => 20000 ms
+19:39:39.315 [ClusterSystem-akka.actor.default-dispatcher-5] INFO  beam.utils.StuckFinder - class beam.agentsim.agents.modalbehaviors.DrivesVehicle$StartLegTrigger => 20000 ms
+19:39:39.315 [ClusterSystem-akka.actor.default-dispatcher-5] INFO  beam.utils.StuckFinder - class beam.agentsim.scheduler.BeamAgentScheduler$KillTrigger => 20000 ms
+19:39:39.371 [ClusterSystem-akka.actor.default-dispatcher-7] ERROR akka.actor.OneForOneStrategy - empty.min
+akka.actor.ActorInitializationException: akka://ClusterSystem/user/BeamMobsim.iteration: exception during creation
+	at akka.actor.ActorInitializationException$.apply(Actor.scala:196)
+	at akka.actor.ActorCell.create(ActorCell.scala:661)
+	at akka.actor.ActorCell.invokeAll$1(ActorCell.scala:513)
+	at akka.actor.ActorCell.systemInvoke(ActorCell.scala:535)
+	at akka.dispatch.Mailbox.processAllSystemMessages(Mailbox.scala:295)
+	at akka.dispatch.Mailbox.run(Mailbox.scala:230)
+	at akka.dispatch.Mailbox.exec(Mailbox.scala:243)
+	at java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:289)
+	at java.util.concurrent.ForkJoinPool$WorkQueue.runTask(ForkJoinPool.java:1056)
+	at java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1692)
+	at java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:175)
+Caused by: java.lang.UnsupportedOperationException: empty.min
+	at scala.collection.TraversableOnce.min(TraversableOnce.scala:268)
+	at scala.collection.TraversableOnce.min$(TraversableOnce.scala:266)
+	at scala.collection.mutable.ArrayOps$ofDouble.min(ArrayOps.scala:282)
+	at beam.sim.BeamMobsimIteration.buildActivityQuadTreeBounds(BeamMobsim.scala:610)
+	at beam.sim.BeamMobsimIteration.<init>(BeamMobsim.scala:374)
+	at beam.sim.BeamMobsim.$anonfun$run$5(BeamMobsim.scala:154)
+	at akka.actor.TypedCreatorFunctionConsumer.produce(IndirectActorProducer.scala:91)
+	at akka.actor.Props.newActor(Props.scala:226)
+	at akka.actor.ActorCell.newActor(ActorCell.scala:613)
+	at akka.actor.ActorCell.create(ActorCell.scala:640)
+	... 9 common frames omitted
+19:39:39.376 [ClusterSystem-akka.actor.default-dispatcher-7] INFO  b.a.scheduler.BeamAgentScheduler - aroundPostStop. Stopping all scheduled tasks...
+19:39:39.394 [ClusterSystem-akka.actor.default-dispatcher-5] INFO  akka.actor.RepointableActorRef - Message [java.lang.String] from Actor[akka://ClusterSystem/temp/$a] to Actor[akka://ClusterSystem/user/BeamMobsim.iteration#1905707950] was not delivered. [1] dead letters encountered, no more dead letters will be logged in next [5.000 min]. If this is not an expected behavior then Actor[akka://ClusterSystem/user/BeamMobsim.iteration#1905707950] may have terminated unexpectedly. This logging can be turned off or adjusted with configuration settings 'akka.log-dead-letters' and 'akka.log-dead-letters-during-shutdown'.
