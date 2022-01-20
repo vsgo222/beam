@@ -8,5 +8,6 @@
 *.Rhistory
 *.Rdata
 
+/test/output/**
 /output/**
 .Rproj.user
