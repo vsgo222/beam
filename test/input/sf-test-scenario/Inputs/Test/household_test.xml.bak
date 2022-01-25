@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<households xsi:schemaLocation="dtd ../dtd/households_v1.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="dtd">
+  <household id="131">
+    <members>
+      <personId refId="131-2"/>
+    </members>
+    <vehicles>
+      <vehicleDefinitionId refId="auto-131-0"/>
+      <vehicleDefinitionId refId="auto-131-1"/>
+      <vehicleDefinitionId refId="bike-131-0"/>
+      <vehicleDefinitionId refId="bike-131-1"/>
+      <vehicleDefinitionId refId="bike-131-2"/>
+    </vehicles>
+    <income period="year" currency="usd">29512</income>
+  </household>
+  <household id="320">
+    <members>
+      <personId refId="320-1"/>
+      <personId refId="ix-320-2"/>
+    </members>
+    <vehicles>
+      <vehicleDefinitionId refId="auto-320-0"/>
+      <vehicleDefinitionId refId="auto-320-1"/>
+    </vehicles>
+    <income period="year" currency="usd">108069</income>
+  </household>
+  <household id="63">
+    <members>
+      <personId refId="63-3"/>
+      <personId refId="63-7"/>
+    </members>
+    <vehicles>
+      <vehicleDefinitionId refId="auto-63-0"/>
+      <vehicleDefinitionId refId="auto-63-1"/>
+      <vehicleDefinitionId refId="auto-63-2"/>
+    </vehicles>
+    <income period="year" currency="usd">38016</income>
+  </household>
+</households>
