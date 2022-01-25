@@ -182,6 +182,9 @@ public class BeamEventsLogger implements BeamEventsLoggingSettings {
                     case "TeleportationEvent":
                         eventClass = TeleportationEvent.class;
                         break;
+                    case "TripArrivalEvent":
+                        eventClass = TripArrivalEvent.class;
+                        break;
                     default:
                         Option<Class<Event>> classEventOption=beamServices.beamCustomizationAPI().customEventsLogging(className);
 

@@ -1092,7 +1092,7 @@ class PersonAgent(
           StateTimeout,
           data @ BasePersonData(
             currentActivityIndex,
-            _,
+            Some(currentTrip),
             _,
             _,
             currentTourMode @ Some(HOV2_TELEPORTATION | HOV3_TELEPORTATION),
@@ -1127,6 +1127,20 @@ class PersonAgent(
           assert(activity.getLinkId != null)
           eventsManager.processEvent(
             new PersonArrivalEvent(tick, id, activity.getLinkId, CAR.value)
+          )
+          eventsManager.processEvent(
+            new TripArrivalEvent(
+              tick,
+              id,
+              currentTrip.tripClassifier.value,
+              currentTourMode.value.toString,
+              matsimPlan.getPerson.getAttributes.getAttribute("income").asInstanceOf[Double],
+              matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString,
+              currentTrip.legs.view.map(_.beamLeg.travelPath.distanceInM).sum,
+              _experiencedBeamPlan.tourIndexOfElement(nextActivity(data).get),
+              data.currentActivityIndex,
+              activity.getAttributes.getAttribute("primary_purpose").toString.toLowerCase,
+              currentTrip)
           )
 
           eventsManager.processEvent(
@@ -1209,6 +1223,20 @@ class PersonAgent(
           assert(activity.getLinkId != null)
           eventsManager.processEvent(
             new PersonArrivalEvent(tick, id, activity.getLinkId, currentTrip.tripClassifier.value)
+          )
+          eventsManager.processEvent(
+            new TripArrivalEvent(
+              tick,
+              id,
+              currentTrip.tripClassifier.value,
+              currentTourMode.get.value,
+              matsimPlan.getPerson.getAttributes.getAttribute("income").asInstanceOf[Double],
+              matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString,
+              currentTrip.legs.view.map(_.beamLeg.travelPath.distanceInM).sum,
+              _experiencedBeamPlan.tourIndexOfElement(nextActivity(data).get),
+              data.currentActivityIndex,
+              activity.getAttributes.getAttribute("primary_purpose").toString.toLowerCase,
+              currentTrip)
           )
           val incentive = beamScenario.modeIncentives.computeIncentive(attributes, currentTrip.tripClassifier)
           if (incentive > 0.0)
