@@ -20,6 +20,7 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
     //    public final static String VERBOSE_ATTRIBUTE_EXP_MAX_UTILITY = "expectedMaximumUtility";
 //    public final static String VERBOSE_ATTRIBUTE_LOCATION = "location";
     public final static String ATTRIBUTE_EXP_MAX_UTILITY = "expectedMaximumUtility";
+    public final static String ATTRIBUTE_CALC_UTILITY = "calculatedUtility";
     public final static String ATTRIBUTE_AVAILABLE_ALTERNATIVES = "availableAlternatives";
     public final static String ATTRIBUTE_LOCATION = "location";
     public final static String ATTRIBUTE_PERSONAL_VEH_AVAILABLE = "personalVehicleAvailable";
@@ -33,6 +34,7 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
     public final String currentTourMode;
     public final Double income;
     public final String expectedMaxUtility;
+    public final String calculatedUtility;
     public final String location;
     public final String availableAlternatives;
     public final String vehAvailable;
@@ -42,14 +44,15 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
     public final String tourPurpose;
 
     public ModeChoiceEvent(double time, Id<Person> personId, String chosenMode, String currentTourMode, Double expectedMaxUtility,
-                           Double income, String linkId, String availableAlternatives, Boolean vehAvailable, String vehOwnership,
-                           Double length, Integer tourIndex, String tourPurpose, EmbodiedBeamTrip chosenTrip) {
+                           Double calculatedUtility, Double income, String linkId, String availableAlternatives, Boolean vehAvailable,
+                           String vehOwnership, Double length, Integer tourIndex, String tourPurpose, EmbodiedBeamTrip chosenTrip) {
         super(time);
 
         this.personId = personId;
         this.mode = chosenMode;
         this.currentTourMode = currentTourMode;
         this.expectedMaxUtility = expectedMaxUtility.toString();
+        this.calculatedUtility = calculatedUtility.toString();
         this.income = income;
         this.location = linkId;
         this.availableAlternatives = availableAlternatives;
@@ -69,6 +72,7 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
                     attr.get(ATTRIBUTE_MODE),
                     attr.get(ATTRIBUTE_CURRENT_TOUR_MODE),
                     Double.parseDouble(attr.get(ATTRIBUTE_EXP_MAX_UTILITY)),
+                    Double.parseDouble(attr.get(ATTRIBUTE_CALC_UTILITY)),
                     Double.parseDouble(attr.get(ATTRIBUTE_INCOME)),
                     attr.get(ATTRIBUTE_LOCATION),
                     attr.get(ATTRIBUTE_AVAILABLE_ALTERNATIVES),
@@ -91,6 +95,7 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
         attr.put(ATTRIBUTE_MODE, mode);
         attr.put(ATTRIBUTE_CURRENT_TOUR_MODE, currentTourMode);
         attr.put(ATTRIBUTE_EXP_MAX_UTILITY, expectedMaxUtility);
+        attr.put(ATTRIBUTE_CALC_UTILITY, calculatedUtility);
         attr.put(ATTRIBUTE_INCOME, income.toString());
         attr.put(ATTRIBUTE_LOCATION, location);
         attr.put(ATTRIBUTE_AVAILABLE_ALTERNATIVES, availableAlternatives);
