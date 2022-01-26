@@ -129,6 +129,7 @@ class ModeChoiceTPCM(
           if (chosenAlt.isEmpty) {
             None
           } else {
+            alternatives(chosenAlt.head.index).calculatedUtiilty = chosenModeOpt.get.utility
             Some(alternatives(chosenAlt.head.index))
           }
         case None =>
