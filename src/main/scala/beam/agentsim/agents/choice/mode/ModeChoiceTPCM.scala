@@ -130,6 +130,7 @@ class ModeChoiceTPCM(
             None
           } else {
             alternatives(chosenAlt.head.index).calculatedUtiilty = chosenModeOpt.get.utility
+            alternatives(chosenAlt.head.index).attributeValues = TPCMCalculator.getListOfAttrValues(modeChoiceInputData,chosenModeOpt)
             Some(alternatives(chosenAlt.head.index))
           }
         case None =>

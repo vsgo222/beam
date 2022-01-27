@@ -1689,6 +1689,7 @@ trait ChoosesMode {
       chosenMode,
       data.personData.currentTourMode.map(_.value).getOrElse(""),
       data.expectedMaxUtilityOfLatestChoice.getOrElse[Double](Double.NaN),
+      chosenTrip.attributeValues,
       chosenTrip.calculatedUtiilty,
       income,
       _experiencedBeamPlan

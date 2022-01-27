@@ -1,5 +1,6 @@
 package beam.agentsim.agents.choice.mode
 
+import beam.agentsim.agents.choice.logit.MultinomialLogit.MNLSample
 import beam.agentsim.agents.choice.mode.ModeChoiceTPCMCalculator.locationData
 import beam.agentsim.agents.vehicles.BeamVehicle
 import beam.agentsim.infrastructure.taz
@@ -283,6 +284,17 @@ class ModeChoiceTPCMCalculator(
   private def computeZDI(hh: Double, res: Double, com: Double, emp: Double) = {
     if (res == 0 | com == 0 | (hh + emp) == 0 ){ 0.0 }
     else{ (hh / res * emp / com) / (hh / res + emp / com) }
+  }
+
+  def getListOfAttrValues(
+    modeChoiceInputData: Vector[(BeamMode, Map[String, Double])],
+    chosenModeOpt: Option[MNLSample[BeamMode]]
+  ): String = {
+    val altParamValues = modeChoiceInputData.filter(_._1.value == chosenModeOpt.get.alternativeType.value).head._2
+    val altparamvalues = new ListBuffer[Any]
+    altParamValues.foreach{ variable => altparamvalues += variable }
+    val availableAlts3 = Some(altparamvalues.mkString(":"))
+    availableAlts3.get
   }
 
   // used to determine the transit mode
