@@ -22,6 +22,7 @@ import org.matsim.core.utils.geometry.transformations.TransformationFactory
 
 import scala.beans.BeanProperty
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.util.control.Breaks.{break, breakable}
 
 class ModeChoiceTPCMCalculator(
@@ -143,6 +144,24 @@ class ModeChoiceTPCMCalculator(
         distance * 0.000621371 //convert from meters to miles
       case _ =>
         0
+    }
+  }
+
+  def getWalkToTransitDistance(
+    mode: BeamMode,
+    altAndIdx: (EmbodiedBeamTrip, Int)
+  ): ListBuffer[Double] = {
+    mode match {
+      case WALK_TRANSIT =>
+        val distance = new ListBuffer[Double]
+        val walkLegs = altAndIdx._1.legs.filter(_.beamLeg.mode == WALK)
+        walkLegs.foreach{ leg =>
+          val dis = leg.beamLeg.travelPath.distanceInM
+          distance += dis
+        }
+        distance
+      case _ =>
+        ListBuffer(0.0)
     }
   }
 

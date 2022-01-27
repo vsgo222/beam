@@ -222,6 +222,7 @@ class ModeChoiceTPCM(
           assert(numTransfers >= 0)
         //determine distance for walk or bike modes; also drive transit distance value
           val walkDistance = TPCMCalculator.getWalkDistance(mode, altAndIdx)
+          val walkToTransitDistance = TPCMCalculator.getWalkToTransitDistance(mode,altAndIdx).mkString(":")
           val bikeDistance = TPCMCalculator.getBikeDistance(mode, altAndIdx)
           val dtDistance = TPCMCalculator.getDriveTransitDistance(mode, altAndIdx)
         //determine proximity to transit
