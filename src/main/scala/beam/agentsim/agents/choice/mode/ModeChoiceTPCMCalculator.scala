@@ -1,5 +1,6 @@
 package beam.agentsim.agents.choice.mode
 
+import beam.agentsim.agents.choice.logit.MultinomialLogit.MNLSample
 import beam.agentsim.agents.choice.mode.ModeChoiceTPCMCalculator.locationData
 import beam.agentsim.agents.vehicles.BeamVehicle
 import beam.agentsim.infrastructure.taz
@@ -22,6 +23,7 @@ import org.matsim.core.utils.geometry.transformations.TransformationFactory
 
 import scala.beans.BeanProperty
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.util.control.Breaks.{break, breakable}
 
 class ModeChoiceTPCMCalculator(
@@ -146,6 +148,25 @@ class ModeChoiceTPCMCalculator(
     }
   }
 
+  def getWalkToTransitDistance(
+    mode: BeamMode,
+    altAndIdx: (EmbodiedBeamTrip, Int)
+  ): ListBuffer[Double] = {
+    mode match {
+      case WALK_TRANSIT =>
+        val distance = new ListBuffer[Double]
+        val walkLegs = altAndIdx._1.legs.filter(_.beamLeg.mode == WALK)
+        walkLegs.foreach{ leg =>
+          val dis = leg.beamLeg.travelPath.distanceInM
+          val disfloor = (math floor dis * 1000) / 1000
+          distance += disfloor
+        }
+        distance
+      case _ =>
+        ListBuffer(0.0)
+    }
+  }
+
   def getBikeDistance(
     mode: BeamMode,
     altAndIdx: (EmbodiedBeamTrip, Int)
@@ -264,6 +285,17 @@ class ModeChoiceTPCMCalculator(
   private def computeZDI(hh: Double, res: Double, com: Double, emp: Double) = {
     if (res == 0 | com == 0 | (hh + emp) == 0 ){ 0.0 }
     else{ (hh / res * emp / com) / (hh / res + emp / com) }
+  }
+
+  def getListOfAttrValues(
+    modeChoiceInputData: Vector[(BeamMode, Map[String, Double])],
+    chosenModeOpt: Option[MNLSample[BeamMode]]
+  ): String = {
+    val altParamValues = modeChoiceInputData.filter(_._1.value == chosenModeOpt.get.alternativeType.value).head._2
+    val altparamvalues = new ListBuffer[Any]
+    altParamValues.foreach{ variable => altparamvalues += variable }
+    val availableAlts3 = Some(altparamvalues.mkString(":"))
+    availableAlts3.get
   }
 
   // used to determine the transit mode

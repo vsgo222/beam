@@ -10,3 +10,9 @@
 /output/**
 .Rproj.user
 scenarios/slc_100-100/conversion-input/plans_100-100.xml
+
+test/input/slc-light/sample/125k
+test/input/slc-light/sample/250k
+test/input/slc-light/sample/375k
+test/input/slc-light/sample/500k
+R/events/slc-light-2.5k-hovtest-all__2022-01-01_12-26-56_khe
