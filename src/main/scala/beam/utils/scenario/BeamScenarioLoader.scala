@@ -86,7 +86,7 @@ class BeamScenarioLoader(
 
     val scenarioPopulation: Population = buildPopulation(personsWithPlans)
     scenario.setPopulation(scenarioPopulation)
-//    updateAvailableModesForPopulation(scenario)
+    updateAvailableModesForPopulation(scenario)
 
     replacePlansFromPopulation(scenarioPopulation, plans)
 
