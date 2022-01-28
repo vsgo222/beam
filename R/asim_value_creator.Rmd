@@ -24,6 +24,8 @@ The modal alternatives in BEAM include the following:
   - Walk
   - Bike
   - Car
+  - HOV2
+  - HOV3P
   - Ride Hail
   - Ride Hail Pooled
   - Ride Hail Transit
@@ -90,7 +92,7 @@ asim_asc <- tail(as_asc,-33) %>%
     latentClass = case_when(
       latentClass == "all" ~ list(purps),
       TRUE ~ as.list(strsplit(latentClass, '\\s+')))) %>% unnest() %>%
-  filter(alternative %in% c("bike","drive_transit","tnc_single","tnc_shared","walk","walk_transit")) %>%
+  filter(alternative %in% c("bike","drive_transit","tnc_single","tnc_shared","walk","walk_transit","sr2","sr3p")) %>%
   arrange(variable,alternative)
 ```
 
@@ -99,6 +101,8 @@ Next, we replace the tnc_single and tnc_shared alternatives with ride_hail and r
 
 asim_asc[asim_asc == "tnc_single"] <- "ride_hail"
 asim_asc[asim_asc == "tnc_shared"] <- "ride_hail_pooled"
+asim_asc[asim_asc == "sr2"] <- "hov2"
+asim_asc[asim_asc == "sr3p"] <- "hov3"
 ```
 
 Unfortunately, there are no "bike_transit" and "ride_hail_transit" values in this dataset. As a result, we are going to make them up. First, we steal all the walk_transit values and adopt them to the bike_transit values. For ride_hail_transit, we adopt the drive_transit values except for when there is no auto. We don't want there to be a penalty for ride_hail_transit users when they don't own a car. For this reason, we just copy over the drive_transit auto deficient values. In addition, the for the atwork purpose, drive_transit is -999 (because they don't have a car at work). For ride_hail, this isn't the case, so we just substitute that value with 0. In addition, we add in all the car values (they are all 0).
@@ -154,18 +158,20 @@ In order to make data table manipulation a little bit easier, we are going to as
 
 ```{r, echo =FALSE}
 #create a table of the alternatives, and assign an integer to each one of the values for easier data table manipulation
-alts <- c("bike","bike_transit","car","drive_transit","ride_hail","ride_hail_pooled","ride_hail_transit","walk","walk_transit")
-vals <- c(1:9)
+alts <- c("bike","bike_transit","car","drive_transit","ride_hail","ride_hail_pooled","ride_hail_transit","walk","walk_transit","hov2","hov3")
+vals <- c(1:11)
 alt_vals <- data.frame(vals,alts) %>% as_tibble()
-  # bike              1
-  # bike_transit      2
-  # car               3
-  # drive_transit     4
-  # ride_hail         5
-  # ride_hail_pooled  6
-  # ride_hail_transit 7
-  # walk              8
-  # walk_transit      9
+  # bike                1
+  # bike_transit        2
+  # car                 3
+  # drive_transit       4
+  # ride_hail           5
+  # ride_hail_pooled    6
+  # ride_hail_transit   7
+  # walk                8
+  # walk_transit        9
+  # hov2                10
+  # hov3                11
 alt_vals
 ```
 
@@ -174,10 +180,10 @@ Now that we have read in the data, and given an integer to each alternative, we 
 
 ```{r}
 #determine which path variables correspond to which alternatives
-costAlts <- c(2,3,4,5,6,7,9)
-vehicleTimeAlts <- c(2,3,4,5,6,7,9)
+costAlts <- c(2,3,4,5,6,7,9,10,11)
+vehicleTimeAlts <- c(2,3,4,5,6,7,9,10,11)
 waitTimeAlts <- c(2,4,5,6,7,9)
-egressTimeAlts <- c(2,3,4,5,6,7,9)
+egressTimeAlts <- c(2,3,4,5,6,7,9,10,11)
 transferAlts <- c(2,4,7,9)
 walkDistAlts <- c(8,9)
 bikeDistAlts <- c(1,2)
@@ -185,6 +191,9 @@ originTransitAlts <- c(2,9)
 destTransitAlts <- c(2,4,7,9)
 age1619Alts <- c(3)
 age010Alts <- c(2,4,7,9)
+age16PAlts <- c(10,11)
+hh1Alts <- c(10,11)
+hh2Alts <- c(10,11)
 ztiAlts <- c(1,2,4,7,8,9)
 destZdiAlts <- c(1,2,4,7,8,9)
 originZdiAlts <- c(1,2,8,9)
@@ -214,6 +223,9 @@ renamed_mtc <- mtc_cost %>%
     Variable == "destination_far_from_transit_transit" ~ "destFarFromTransit", 
     Variable == "age1619" ~ Variable,
     Variable == "age010" ~ Variable,
+    Variable == "age16P" ~ Variable,
+    Variable == "hhsize1" ~ "hhSize1",
+    Variable == "hhsize2" ~ "hhSize2",
     Variable == "zti_walk" ~ "ZTI",
     Variable == "zdi_dest" ~ "destZDI",
     Variable == "zdi_origin" ~ "originZDI",
@@ -222,7 +234,7 @@ renamed_mtc <- mtc_cost %>%
     )
   ) %>%
   filter(is.na(variable)==FALSE) %>%
-  mutate(alternative = list(c(1:9))) %>%
+  mutate(alternative = list(c(1:11))) %>%
   unnest(alternative) 
 
 #update the previous datatable so that alternatives with variable numbers that don't apply update to have the value of 0 instead
@@ -239,6 +251,9 @@ path_coeff <- renamed_mtc %>% pivot_longer(!c(variable,Variable, alternative), n
     variable %in% c("destCloseToTransit","destFarFromTransit") & alternative %!in% destTransitAlts ~ 0,
     variable == "age1619" & alternative %!in% age1619Alts ~ 0,
     variable == "age010" & alternative %!in% age010Alts ~ 0,
+    variable == "age16P" & alternative %!in% age16PAlts ~ 0,
+    variable == "hhSize1" & alternative %!in% hh1Alts ~0 ,
+    variable == "hhSize2" & alternative %!in% hh2Alts ~ 0,
     variable == "ZTI" & alternative %!in% ztiAlts ~ 0,
     variable == "destZDI" & alternative %!in% destZdiAlts ~ 0,
     variable == "originZDI" & alternative %!in% originZdiAlts ~ 0,
@@ -295,11 +310,11 @@ paged_table(path_cf)
 ## Complete File
 First, lets create a few vectors that specify the variable types.
 ```{r}
-path_variables <- c("vehicleTime","waitTime","egressTime","transfer","shortWalkDist","longWalkDist","shortBikeDist","longBikeDist","originCloseToTransit","originFarFromTransit","destCloseToTransit","destFarFromTransit","shortDrive")
-person_variables <- c("ascAutoDeficient","ascAutoSufficient","ascNoAuto","cost","age1619","age010")
+path_variables <- c("vehicleTime","waitTime","egressTime","transfer","shortWalkDist","longWalkDist","shortBikeDist","longBikeDist","originCloseToTransit","originFarFromTransit","destCloseToTransit","destFarFromTransit","shortDrive","walkTime")
+person_variables <- c("ascAutoDeficient","ascAutoSufficient","ascNoAuto","cost","age1619","age010","age16P","hhSize1","hhSize2")
 location_variables <- c("ZTI","destZDI","originZDI","CBD")
 
-asim_vars <- c("vehicleTime","waitTime","egressTime","originCloseToTransit","originFarFromTransit","destCloseToTransit","destFarFromTransit","transfer","shortWalkDist","longWalkDist","shortBikeDist","longBikeDist","cost","ZTI","destZDI","originZDI","age1619","age010","shortDrive","CBD","ascNoAuto","ascAutoDeficient","ascAutoSufficient")
+asim_vars <- c("vehicleTime","waitTime","egressTime","originCloseToTransit","originFarFromTransit","destCloseToTransit","destFarFromTransit","transfer","shortWalkDist","longWalkDist","shortBikeDist","longBikeDist","cost","ZTI","destZDI","originZDI","age1619","age010","age16P","hhSize1","hhSize2","shortDrive","CBD","ascNoAuto","ascAutoDeficient","ascAutoSufficient","walkTime")
 ```
 
 Lets combine all the file parts into one file, and print it to a csv!
@@ -308,7 +323,10 @@ asim_long <- rbind(asim_asc_complete,path_cf) %>%
   arrange(factor(variable, levels = asim_vars),alternative,factor(latentClass, levels = purps)) %>%
   mutate(
     model = "modeChoice", 
-    value = ifelse(variable %in% path_variables | variable == "cost",value*2,value),
+    #double path variables to accound for BEAM using trips not tours
+    value = ifelse(variable %in% path_variables | variable == "cost",value*2,value), 
+    #replace 0s with blank values to make utility function simpler
+    value = ifelse(value == 0, "", value), 
     tourType = case_when(
       variable %in% path_variables ~ "Path",
       variable %in% person_variables ~ "Person",
@@ -325,7 +343,59 @@ asim_long <- rbind(asim_asc_complete,path_cf) %>%
   select(model,tourType,variable,alternative,units,latentClass,value) %>%
   filter(variable != "ZTI")
 paged_table(asim_long)
+```
 
-write_csv(asim_long,"asim-long-R.csv")
+```{r}
+# lets add a hov2_teleportation and hov3_teleportation mode to the final file
+teleport <- asim_long %>% filter(alternative %in% c("hov2","hov3")) %>%
+  mutate(alternative = ifelse(alternative =="hov2","hov2_teleportation","hov3_teleportation"))
+asim_long <- rbind(asim_long,teleport) %>%
+  arrange(factor(variable, levels = asim_vars),alternative,factor(latentClass, levels = purps))
+```
+
+```{r}
+# lets add a blank walkTime variable too
+walkTime <- asim_long %>% filter(variable == "vehicleTime") %>%
+  mutate(variable = "walkTime", value = "")
+asim_long_R <- rbind(asim_long,walkTime)
+
+write_csv(asim_long_R,"asim-long-R-blank.csv")
+```
+
+## Adjusted Complete File
+Dr. Erhardt wants to adjust the some of the values in the current version of the asim-long file to ensure uniformity in the equation for vehicle time, wait time, walk time, and number of transfers. The equation he wants is shown below.
+
+\begin{equation}
+  WeightedTravelTime = InVehicleTime + 2(WaitTime) + 2(WalkTime) + 10(NumTransfers)
+\end{equation}
+
+Below, we tweek the values in the current version to ensure that these variables have constant coefficients. In addition, we delete the longWalk variable. Actually, we leave all other variables blank.
+
+
+```{r}
+vehicleVals <- asim_long %>%
+  filter(variable == "vehicleTime") %>%
+  mutate(comName = paste(alternative,latentClass, sep = "_"), vehicleValue = value) %>%
+  select(8,9)
+
+adj_asim <- asim_long %>%
+  filter(variable %in% c("vehicleTime","waitTime","shortWalkDist","transfer")) %>%
+  mutate(variable = ifelse(variable == "shortWalkDist","walkTime",variable)) %>%
+  mutate(value = ifelse(variable == "walkTime",value*.05,value)) %>%
+  mutate(comName = paste(alternative,latentClass, sep = "_")) %>%
+  left_join(vehicleVals, by = "comName") %>% select(-comName) %>%
+  mutate(vehicleValue = ifelse(is.na(value),NA,vehicleValue)) %>%
+  mutate(ratio = value/vehicleValue) %>%
+  mutate(adjValue = case_when(
+    variable == "waitTime" ~ 2 * vehicleValue,
+    variable == "shortWalkDist" ~ 2 * vehicleValue,
+    variable == "transfer" ~ 10 * vehicleValue
+  )) %>%
+  mutate(newRatio = adjValue/vehicleValue)
+```
+
+
+```{r}
+write_csv(asim_long_adj,"asim-long-R-adj.csv")
 ```
 

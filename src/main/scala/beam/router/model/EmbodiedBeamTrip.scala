@@ -6,8 +6,12 @@ import beam.router.Modes.BeamMode.{
   BIKE,
   BIKE_TRANSIT,
   CAR,
+  HOV2,
+  HOV3,
   CAV,
   DRIVE_TRANSIT,
+  HOV2_TELEPORTATION,
+  HOV3_TELEPORTATION,
   RIDE_HAIL,
   RIDE_HAIL_POOLED,
   RIDE_HAIL_TRANSIT,
@@ -38,6 +42,9 @@ case class EmbodiedBeamTrip(legs: IndexedSeq[EmbodiedBeamLeg]) {
   lazy val replanningPenalty: Double = legs.map(_.replanningPenalty).sum
 
   val totalTravelTimeInSecs: Int = legs.lastOption.map(_.beamLeg.endTime - legs.head.beamLeg.startTime).getOrElse(0)
+
+  var calculatedUtiilty: Double = 0.0
+  var attributeValues: String = ""
 
   def beamLegs: IndexedSeq[BeamLeg] = legs.map(embodiedLeg => embodiedLeg.beamLeg)
 
@@ -79,12 +86,24 @@ object EmbodiedBeamTrip {
         } else {
           theMode = RIDE_HAIL
         }
+      } else if (theMode == WALK && BeamVehicle.isSharedTeleportationVehicle(leg.beamVehicleId)) {
+        if (leg.beamLeg.mode.value == HOV3.value) {
+          theMode = HOV3_TELEPORTATION
+        } else {
+          theMode = HOV2_TELEPORTATION
+        }
       } else if (theMode == WALK && leg.beamLeg.mode == CAR) {
-        theMode = CAR
+        theMode = leg.beamLeg.mode
+      } else if (theMode == WALK && leg.beamLeg.mode == HOV2) {
+        theMode = leg.beamLeg.mode
+      } else if (theMode == WALK && leg.beamLeg.mode == HOV3) {
+        theMode = leg.beamLeg.mode
+      } else if (theMode == WALK && leg.beamLeg.mode.isRideHail) {
+        theMode = leg.beamLeg.mode
       } else if (theMode == WALK && leg.beamLeg.mode == CAV) {
-        theMode = CAV
+        theMode = leg.beamLeg.mode
       } else if (theMode == WALK && leg.beamLeg.mode == BIKE) {
-        theMode = BIKE
+        theMode = leg.beamLeg.mode
       }
       if (leg.beamLeg.mode == BIKE) hasUsedBike = true
       if (leg.beamLeg.mode == CAR) hasUsedCar = true

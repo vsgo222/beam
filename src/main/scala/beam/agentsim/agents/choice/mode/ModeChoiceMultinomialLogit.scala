@@ -70,10 +70,10 @@ class ModeChoiceMultinomialLogit(
         (mct.embodiedBeamTrip, theParams ++ transferParam)
       }.toMap
 
-      val alternativesWithUtility = model.calcAlternativesWithUtility(inputData)
+      val alternativesWithUtility = model.calcAlternativesWithUtility(inputData.toVector)
       val chosenModeOpt = model.sampleAlternative(alternativesWithUtility, random)
 
-      expectedMaximumUtility = model.getExpectedMaximumUtility(inputData).getOrElse(0)
+      expectedMaximumUtility = model.getExpectedMaximumUtility(inputData.toVector).getOrElse(0)
 
       if (shouldLogDetails) {
         val personId = person.map(_.getId)
@@ -123,7 +123,7 @@ class ModeChoiceMultinomialLogit(
       val inputData = group
         .map(mct => mct.embodiedBeamTrip -> attributes(timeAndCost(mct), mct.transitOccupancyLevel, mct.numTransfers))
         .toMap
-      val alternativesWithUtility = model.calcAlternativesWithUtility(inputData)
+      val alternativesWithUtility = model.calcAlternativesWithUtility(inputData.toVector)
       val chosenModeOpt = model.sampleAlternative(alternativesWithUtility, random)
       chosenModeOpt
         .flatMap(sample => group.find(_.embodiedBeamTrip == sample.alternativeType))
@@ -307,16 +307,16 @@ class ModeChoiceMultinomialLogit(
 
   lazy val modeMultipliers: mutable.Map[Option[BeamMode], Double] =
     mutable.Map[Option[BeamMode], Double](
+      // Some(WAITING)        -> modalBehaviors.modeVotMultiplier.waiting, TODO think of alternative for waiting. For now assume "NONE" is waiting
       Some(TRANSIT)           -> modalBehaviors.modeVotMultiplier.transit,
       Some(RIDE_HAIL)         -> modalBehaviors.modeVotMultiplier.rideHail,
       Some(RIDE_HAIL_POOLED)  -> modalBehaviors.modeVotMultiplier.rideHailPooled,
       Some(RIDE_HAIL_TRANSIT) -> modalBehaviors.modeVotMultiplier.rideHailTransit,
       Some(CAV)               -> modalBehaviors.modeVotMultiplier.CAV,
-//      Some(WAITING)          -> modalBehaviors.modeVotMultiplier.waiting, TODO think of alternative for waiting. For now assume "NONE" is waiting
-      Some(BIKE) -> modalBehaviors.modeVotMultiplier.bike,
-      Some(WALK) -> modalBehaviors.modeVotMultiplier.walk,
-      Some(CAR)  -> modalBehaviors.modeVotMultiplier.drive,
-      None       -> modalBehaviors.modeVotMultiplier.waiting
+      Some(BIKE)              -> modalBehaviors.modeVotMultiplier.bike,
+      Some(WALK)              -> modalBehaviors.modeVotMultiplier.walk,
+      Some(CAR)               -> modalBehaviors.modeVotMultiplier.drive,
+      None                    -> modalBehaviors.modeVotMultiplier.waiting
     )
 
   lazy val poolingMultipliers: mutable.Map[automationLevel, Double] =
@@ -587,7 +587,15 @@ object ModeChoiceMultinomialLogit {
     val scale_factor: Double =
       configHolder.beamConfig.beam.agentsim.agents.modalBehaviors.mulitnomialLogit.utility_scale_factor
     val mnlUtilityFunctions: Map[String, Map[String, UtilityFunctionOperation]] = Map(
-      "car" -> Map(
+      BeamMode.CAR.value -> Map(
+        "intercept" ->
+        UtilityFunctionOperation("intercept", params.car_intercept)
+      ),
+      BeamMode.HOV2.value -> Map(
+        "intercept" ->
+        UtilityFunctionOperation("intercept", params.car_intercept)
+      ),
+      BeamMode.HOV3.value -> Map(
         "intercept" ->
         UtilityFunctionOperation("intercept", params.car_intercept)
       ),

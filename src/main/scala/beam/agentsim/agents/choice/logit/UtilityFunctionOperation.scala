@@ -51,11 +51,15 @@ object UtilityFunctionOperation {
       case ("originZDI", _)            => Multiplier(value)
       case ("age1619", _)              => Multiplier(value)
       case ("age010", _)               => Multiplier(value)
+      case ("age16P", _)               => Multiplier(value)
+      case ("hhSize1", _)              => Multiplier(value)
+      case ("hhSize2", _)              => Multiplier(value)
       case ("shortDrive", _)           => Multiplier(value)
-      case ("CBD", _)                  => Intercept(value)
-      case ("ascNoAuto", _)            => Intercept(value)
-      case ("ascAutoDeficient", _)     => Intercept(value)
-      case ("ascAutoSufficient", _)    => Intercept(value)
+      case ("CBD", _)                  => Multiplier(value)//because of the way ModeChoiceTPCM was programed, intercepts act as multipliers
+      case ("ascNoAuto", _)            => Multiplier(value)//because of the way ModeChoiceTPCM was programed, intercepts act as multipliers
+      case ("ascAutoDeficient", _)     => Multiplier(value)//because of the way ModeChoiceTPCM was programed, intercepts act as multipliers
+      case ("ascAutoSufficient", _)    => Multiplier(value)//because of the way ModeChoiceTPCM was programed, intercepts act as multipliers
+      case("walkTime", _)              => Multiplier(value) // only used for TSCORE version
 
       case _                           => throw new RuntimeException(s"Unknown Utility Parameter Type $s")
     }

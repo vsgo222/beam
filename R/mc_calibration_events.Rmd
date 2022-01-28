@@ -1,34 +1,240 @@
 ---
-title: "ModeChoice Calibration Using Events File"
+title: "ModeChoice Calibration Using Events Files"
 author: "Chris Day"
-date: "11/4/2021"
+date: "1/19/2021"
 output: html_document
 ---
 
-```{r}
+```{r, message = FALSE, warning=FALSE}
 library(tidyverse)
 ```
 
-```{r}
-events2.0 <- read_csv("events/1.events.2.5k.all.csv", col_types = cols(.default = "c")) %>%
+# Introduction
+
+It is time to calibrate the mode choice constants. To do this, we will calibrate modal shares based on trips of each tour purpose for differing auto deficiency classes. The target shares will be those that were calculated from ActivitySim. These targets are similarly shown in BEAM's 0th iteration of a run that was completed with mode selection turned off.
+
+To do this calibration, we will compare the 0.events.csv file of a run done with mode innovation turned off, with the ith.events.csv file of a run done with mode innovation turned on (where ith is the last iteration.) We will use the formula below to the calibration:
+
+$NewASC = OldASC + ln(Trips_{BEAM}/Trips_{ASIM})$
+
+where each formula is dependent on purpose, mode, and auto deficiency.
+
+# Data Manipulation
+From what I understand, Vedant is using the ith.plans.xml.gz file or the ith.experienced_plans.xml.gz. I think the plans.xml file includes all possible plans (even those that are not selected by the MNL model). The experienced_plans, however, only shows the selected plans. Therefore, the analysis should be done with the experienced_plans.
+
+Instead though, I want to be able to use the events file. So, we are going to check to see if the events file has the same trip information. If not, we may need to use the experienced_plans file some way.
+
+So, lets read in the o.events and see what we get.
+```{r,warning=FALSE,message=FALSE}
+asim <- read_csv("events/slc-light-2.5k-hovtest-all__2022-01-01_12-26-56_khe/ITERS/it.0/0.events.csv", col_types = cols(.default = "c")) %>%
   filter(type == "ModeChoice") %>%
   group_by(mode) %>%
-  select(person, tourIndex, tourPurpose, mode, income, vehicleOwnership, availableAlternatives, personalVehicleAvailable, length, time, type) %>%
+  select(person, tourIndex, tourPurpose, mode,currentTourMode, income, vehicleOwnership, availableAlternatives, personalVehicleAvailable, length, time, type) %>%
+  arrange(person)
+```
+
+```{r, warning=FALSE, message=FALSE}
+asimSum <- asim %>% group_by(mode,vehicleOwnership,tourPurpose) %>% summarize(trips = n())
+
+asimSumm <- asim %>% summarize(sum = n())
+```
+
+The total number of trips for the 0th iteration is 8003 according to the experienced_plans file, and according to the mode choice events, we get 8019. I wonder why they are not the same... The events has 2 extra car, 12 extra walk, and 2 extra walk_transit. That is where the extra 16 comes from.
+
+Now we read in the 15th iteration.
+```{r,warning=FALSE,message=FALSE}
+beam <- read_csv("events/slc-light-2.5k-hovtest-all__2022-01-01_12-26-56_khe/ITERS/it.15/15.events.csv", col_types = cols(.default = "c")) %>%
+  filter(type == "ModeChoice") %>%
+  group_by(mode) %>%
+  select(person, tourIndex, tourPurpose, mode,currentTourMode, income, vehicleOwnership, availableAlternatives, personalVehicleAvailable, length, time, type) %>%
+  arrange(person)
+```
+
+```{r, warning=FALSE, message=FALSE}
+beamSum <- beam %>% group_by(mode,vehicleOwnership,tourPurpose) %>% summarize(trips = n())
+
+beamSumm <- beam %>% summarize(sum = n())
+```
+
+The total number of trips for the 15th iteration is 7988 according to the experienced_plans file, and according to the mode choice events, we get 8002. I wonder why they are not the same... The events has 1 extra car, 12 extra walk, and 1 extra walk_transit. That is where the extra 14 comes from.
+
+## figureing out why there are extra mc events
+First, we figure out what agent has an extra car, walk_transit, and walk modes from iteration 15 events file.Then we compare his experienced plan with the mode choice event. We also analyze the component of the events.csv file to see if we figure out why these extra modes exist
+
+### Extra car
+The extra car is this guy: *812340*
+  Output_experienced_plans: Ride_hail, car, car, car, car, car
+  15: Experienced_plans:    Ride_hail, car, car, car, car, car
+  15: Mode Choice Events:   Ride_hail, *car*, car, car, car, car, car
+  15.events.csv
+    Type:      legMode:
+    departure  Ridehail
+    departure  car
+    departure  car
+    departure  car
+    departure  car
+    departure  car
+    arrival    car
+    arrival    car
+    arrival    car
+    arrival    car
+    arrival    car
+    arrival    car
+  ResourceUnavailable RIDE_HAIL
+
+### Extra Walk_Transit
+
+The extra walk_transit is this guy: *2480060**
+  Output_experienced_plans: Drive_transit, walk, hov2, hov2
+  15: Experienced_plans:    Drive_transit, walk, hov2, hov2
+  15: Mode Choice Events:   Drive_transit, *walk_transit*, walk, hov2, hov2
+  15.events.csv
+    Type:      legMode:
+    departure  drive_transit
+    departure  walk
+    departure  hov2
+    departure  hov2
+    arrival    walk_transit
+    arrival    walk
+    arrival    hov2
+    arrival    hov2
+  Reason for Replanning: MissedTransitPickup DRIVE_TRANSIT 
+
+### Replanning doesn't register in experienced_plans, but does in mode choice event
+
+Looking closer at the events file itself, it looks like the person departed with the mode drive_transit, but then arrived with the mode walk_transit. This is because there was an error with the drive_transit mode, causing *REPLANNING* to occur. It replanned, and selected walk_transit as the mode. A mode choice event was documented for both drive_transit and walk_transit though! That's where the extra mode comes from. 
+
+This similarly occured with the extra car mode, but instead of a replanning error, there was a *ResourceUnavailable* error, where the ride_hail wasn't available so it defaulted to car.
+
+Also, it looks like the experienced_plans only matches with the *departed* modes, not the arrivals! Or, the experienced_plans does not get updated for within day replanning or resourceunavailable errors! Maybe I can turn that off/on somewhere? AKA, maybe I can fix the experienced plans to use the UPDATED mode.
+
+## Extra 12 walks
+
+Lets try and see where the extra walks are coming from!
+  
+```{r}
+beamwalk <- beam %>% filter(mode =="walk")
+```
+
+I found one guy that has an extra walk mode in the mode choice events compared to the 15.experienced_plans.xml file. Agent *1507898*. Interestingly enough, in the experienced_plans his last activity is othmaint and not Home! So I think the mode choice event registers the agent going home but the experienced plan does not. 
+
+Other agents that don't end at home:
+  - 1748707
+  - 1780993
+  - 1920415
+  - 1920974
+  - 2047655
+  - 2378291
+  - 718540
+  - 831611
+  - 881739
+  - 891443
+
+I didn't check all of them, but I think it is safe to say more walk trips exist in the mode choice events than in the output_events because some agents don't make their last trip before the day ends! I beleive this is because the walk trips are too long and they don't have sufficient time to make it back!
+
+  
+## Important notes
+
+Above we see that the outpuT_experienced_plans matches the last iteration experienced plans. 
+
+Another thing to help us learn some stuff is to compare the plans file with the experienced plans file. it looks like the plans file are the values fed into an iteration and the experienced plans come out of an iteration. In other words, the plans file corresponds to the experienced plans from one iteration before.  
+  
+15.plans.xml.gz  
+  plans_no_1_24.564  : Drive_transit, walk, hov3, hov3
+  plans_no_2_24.714  : drive_transit, walk, hov3_teleportation, hov3_teleportation
+  plans_no_3_27.47   : drive_transit, walk, car, hov3 *--highest score*
+  plans_yes_1_24.564 : drive_transit, walk, hov3, hov3
+15.plans.csv.gz
+  plans_no_1_24.564  : Drive_transit, walk, hov3, hov3
+  plans_no_2_24.714  : drive_transit, walk, hov3_teleportation, hov3_teleportation
+  plans_no_3_27.47   : drive_transit, walk, car, hov3
+  plans_yes_1_27.528 : drive_transit, walk, hov3, hov3 *--highest score*
+14.experienced_plans.xml.gz
+  drive_transit, walk, car, hov3 *--chosen somehow?*
+14.events.csv
+  Type:      legMode:
+  departure  drive_transit
+  departure  walk
+  departure  car
+  departure  hov3
+  arrival    walk_transit
+  arrival    walk
+  arrival    hov2
+  arrival    hov2
+  
+10.plans.xml.gz
+  plans_no_1_24.564  : Drive_transit, walk, hov3, hov3
+  plans_no_2_30.376  : drive_transit, walk, car, car
+  plans_yes_2_30.376 : drive_transit, walk, car, car
+9.experienced_plans.xml.gz
+  drive_transit, walk, car, car
+  
+  
+Comparing these though something interesting exists. Just because a plan is "yes" selected in the plans file, doesn't mean it is the one used in the experienced plans! This is super weird. For example, plan 1 was "yes" selected in the 15.plans file, but in the end, plan 3 was chosen. I suspect it has to do with it being the highest score.
+
+I also noticed that the plans.csv and plans.xml aren't compeltely the same. In one of them the selected plan did have the highest score, whereas in the xml it did not! This causes even more confusion with how these plans files work.
+
+
+## Stuff I need to understand
+- Why are there extra modes in the mode choice events when compared to the experienced_plans file? 
+*Answer:* 
+- RideHail and DriveTransit can cause replanning, or a default mode to be chosen instead, thus throwing a new mode choice event that isn't updated with the experienced_plans.
+- Some agents pick walk as their last trip of the day, but because they are too far away from home, they don't make it by the time the day ends. Thus, this last trip isn't registered in the experienced_plans. 
+
+
+- Why is it that sometimes the "selected" plan in the plans file does not match that of the experienced_plans from the previous iteration? 
+  - does it just take the largest score instead?
+  - If it takes the largest score, whats the point of marking a plan as "yes" for 
+    selected?
+  - Also, why does the largest score differ between the plans.xml and the plans.csv   
+    files?
+
+Ideas on how to understand it
+- search in beam code and understand how mode choice events, plan, and experienced plans are created
+- continue to compare output files and continue to clarify the picture of whats happening
+  - check plans.csv file
+  - dive into events file
+  
+# Arrival Events
+What if I instead calibrate based on arrival events? I think every arrival represents a trip that was completed. This will make sure not to count the extra walk modes as trips that actually don't occur because the person didn't make it home. It will also account for replanning modes and unavailable ride hail vehicles, because the mode that is registered is the arrival mode. I would just have to add some attributes to the arrival events, which shouldn't be too hard!
+
+```{r}
+beamarrival <- beam %>% filter(type == "arrival") %>% 
+  group_by(legMode) %>%
+  summarize(modeNum = n())
+```
+
+  
+  
+
+# Extra Stuff
+```{r}
+events2.0 <- read_csv("events/0.events.csv", col_types = cols(.default = "c")) %>%
+  filter(type == "ModeChoice") %>%
+  group_by(mode) %>%
+  select(person, tourIndex, tourPurpose, mode,currentTourMode, income, vehicleOwnership, availableAlternatives, personalVehicleAvailable, length, time, type) %>%
   arrange(person)
 
 modalsplits <- events2.0 %>%
-  group_by(tourPurpose, mode) %>% 
-   ##(mode) ##(tourPurpose,mode) ##(vehicleOwnership,mode)
+  group_by(mode) %>% 
   summarise(cnt = n()) %>%
-  mutate(pct = cnt / sum(cnt) * 100)
+  mutate(pct = cnt / sum(cnt) * 100,iter = 1)
 
-ggplot(modalsplits) + 
-    aes(x = tourPurpose, y = pct, color = mode) + 
-    #labs(fill='Mode', y = 'Count', x = 'Tour Purposes') +
-    #ggtitle("Modal Split by Tour Purpose") +
-  geom_point()+  
-  geom_line(aes(group = mode)) + 
-    scale_fill_brewer(palette = "Pastel2")
+eventsTrip1 <- events2.0 %>% filter(tourIndex == 1)
+eventstest <- events2.0  %>% filter(mode %in% c("hov2","hov3","hov2_teleportation","hov3_teleportation","car")) %>%
+  filter(mode != currentTourMode)
+
+hovsplits <- events2.0 %>%
+  group_by(mode) %>%
+  filter(mode %in% c("hov2","hov3","hov2_teleportation","hov3_teleportation")) %>%
+  summarise(cnt = n()) %>%
+  mutate(pct = cnt / sum(cnt) * 100,iter = 1)
+
+ggplot(hovsplits) + 
+  aes(x = iter,y = pct, fill = mode) + 
+  ggtitle("Modal Split by Tour Purpose") +
+  geom_bar(position="dodge", stat="identity") + theme_bw()
+  scale_fill_brewer(palette = "Pastel2")
 
 ```
 

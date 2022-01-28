@@ -8,8 +8,9 @@ import beam.agentsim.agents.modalbehaviors.ModeChoiceCalculator
 import beam.agentsim.agents.vehicles.BeamVehicle
 import beam.agentsim.infrastructure.taz
 import beam.agentsim.infrastructure.taz.TAZTreeMap
+import beam.router.Modes
 import beam.router.Modes.BeamMode
-import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, DRIVE_TRANSIT, RIDE_HAIL, RIDE_HAIL_TRANSIT, TRANSIT, WALK, WALK_TRANSIT}
+import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, CAR, DRIVE_TRANSIT, HOV2, HOV3, RIDE_HAIL, RIDE_HAIL_TRANSIT, TRANSIT, WALK, WALK_TRANSIT}
 import beam.router.model.EmbodiedBeamTrip
 import beam.router.skim.readonly.TransitCrowdingSkims
 import beam.sim.config.BeamConfig
@@ -33,7 +34,8 @@ import scala.collection.mutable.ListBuffer
       *  shortWalkDist, longWalkDist, shortBikeDist, longBikeDist, shortDrive
   *  Person Variables:
       *  cost
-      *  age1619, age010
+      *  age1619, age010, age16P
+      *  hhSize1, hhSize2
       *  ascNoAuto, ascAutoDeficient, ascAutoSufficient
   *  Location Variables:
       *  destZDI, originZDI
@@ -64,10 +66,11 @@ class ModeChoiceTPCM(
   ): Option[EmbodiedBeamTrip] = {
     // get person attributes from the person object to determine utility coefficients later on
       val age = attributesOfIndividual.age.get.asInstanceOf[Double]
+      val hhSize = person.get.getAttributes.getAttribute("hhSize").asInstanceOf[Double]
       val vot = person.get.getAttributes.getAttribute("vot").asInstanceOf[Double]
       val autoWork = person.get.getAttributes.getAttribute("autoWorkRatio").toString
     // pass tour alternatives, tour purpose, and person attributes to choice model
-    choose(alternatives, tourPurpose, autoWork, age, vot)
+    choose(alternatives, tourPurpose, autoWork, age, hhSize, vot)
   }
 
   private def choose(
@@ -75,6 +78,7 @@ class ModeChoiceTPCM(
     purpose: String,
     autoWork: String,
     age: Double,
+    hhSize: Double,
     vot: Double
   ): Option[EmbodiedBeamTrip] = {
     if (alternatives.isEmpty) {
@@ -99,16 +103,20 @@ class ModeChoiceTPCM(
           alt.cost * 60 / vot, // the cost utility values in the csv are actually vehicleTime values, and this conversion creates the cost coefficient
           alt.destZDI,
           alt.originZDI,
-          if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
+          if (age >= 16.0 & age <= 19.0)  {age} else {0.0}, // TODO: is it age, or 1.0? (is this value a coeff or const?)
           if (age <= 10.0)                {age} else {0.0},
+          if (age >= 16.0)                {age} else {0.0},
+          if (hhSize == 1.0)              {hhSize} else {0.0}, // TODO: is it hhSize, or 1.0? (is this value a coeff or const?)
+          if (hhSize == 2.0)              {hhSize} else {0.0},
           alt.dtDistance,
           alt.destCBD,
           if (autoWork.equals("no_auto"))         {1.0} else {0.0},
           if (autoWork.equals("auto_deficient"))  {1.0} else {0.0},
-          if (autoWork.equals("auto_sufficient")) {1.0} else {0.0}
+          if (autoWork.equals("auto_sufficient")) {1.0} else {0.0},
+          alt.walkTime
         )
         (alt.mode, theParams)
-      }.toMap
+      }// TODO: instead of .toMap, we keep it in a Vector to prevent HOV2 and HOV3 options from grouping together into CAR
 
       // Evaluate and sample from mode choice model
       val (model, modeModel) = lccm.modeChoiceTourModels(varType)(purpose)
@@ -121,6 +129,8 @@ class ModeChoiceTPCM(
           if (chosenAlt.isEmpty) {
             None
           } else {
+            alternatives(chosenAlt.head.index).calculatedUtiilty = chosenModeOpt.get.utility
+            alternatives(chosenAlt.head.index).attributeValues = TPCMCalculator.getListOfAttrValues(modeChoiceInputData,chosenModeOpt)
             Some(alternatives(chosenAlt.head.index))
           }
         case None =>
@@ -148,11 +158,15 @@ class ModeChoiceTPCM(
     originZDI: Double,
     age1619: Double,
     age010: Double,
+    age16P: Double,
+    hhSize1: Double,
+    hhSize2: Double,
     shortDrive: Double,
     CBD: Double,
     ascNoAuto: Double,
     ascAutoDeficient: Double,
-    ascAutoSufficient: Double
+    ascAutoSufficient: Double,
+    walkTime: Double
   ) = {
     Map(
       "vehicleTime"           -> vehicleTime,
@@ -172,11 +186,15 @@ class ModeChoiceTPCM(
       "originZDI"             -> originZDI,
       "age1619"               -> age1619,
       "age010"                -> age010,
+      "age16P"                -> age16P,
+      "hhSize1"               -> hhSize1,
+      "hhSize2"               -> hhSize2,
       "shortDrive"            -> shortDrive,
       "CBD"                   -> CBD,
       "ascNoAuto"             -> ascNoAuto,
       "ascAutoDeficient"      -> ascAutoDeficient,
-      "ascAutoSufficient"     -> ascAutoSufficient
+      "ascAutoSufficient"     -> ascAutoSufficient,
+      "walkTime"              -> walkTime
     )
   }
 
@@ -205,6 +223,7 @@ class ModeChoiceTPCM(
           assert(numTransfers >= 0)
         //determine distance for walk or bike modes; also drive transit distance value
           val walkDistance = TPCMCalculator.getWalkDistance(mode, altAndIdx)
+          val walkToTransitDistance = TPCMCalculator.getWalkToTransitDistance(mode,altAndIdx).mkString(":")
           val bikeDistance = TPCMCalculator.getBikeDistance(mode, altAndIdx)
           val dtDistance = TPCMCalculator.getDriveTransitDistance(mode, altAndIdx)
         //determine proximity to transit
@@ -240,22 +259,7 @@ class ModeChoiceTPCM(
           altAndIdx._2
         )
       }
-    val groupedByMode: Map[BeamMode, Seq[ModeChoiceData]] =
-      modeChoiceAlternatives.groupBy(_.mode)
-    val bestInGroup = groupedByMode.map {
-      case (_, alts) =>
-        // Which dominates at $18/hr for total time
-        alts
-          .map { alt =>
-            (
-              (alt.vehicleTime + alt.walkTime + alt.waitTime + alt.bikeTime) / 3600 * 18 + alt.cost,
-              alt
-            )
-          }
-          .minBy(_._1)
-          ._2
-    }
-    bestInGroup.toVector
+    modeChoiceAlternatives.toVector
   }
 
   override def utilityOf(
@@ -286,6 +290,7 @@ class ModeChoiceTPCM(
     val autoWork = person.getAttributes.getAttribute("autoWorkRatio").toString
     val vot = person.getAttributes.getAttribute("vot").asInstanceOf[Double]
     val age = person.getAttributes.getAttribute("age").asInstanceOf[Int].asInstanceOf[Double]
+    val hhSize = person.getAttributes.getAttribute("hhSize").asInstanceOf[Double]
     val theParams = attributes(
       mcd.vehicleTime,
       mcd.waitTime,
@@ -304,11 +309,15 @@ class ModeChoiceTPCM(
       mcd.originZDI,
       if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
       if (age <= 10.0)                {age} else {0.0},
+      if (age >= 16.0)                {age} else {0.0},
+      if (hhSize == 1.0)              {hhSize} else {0.0},
+      if (hhSize == 2.0)              {hhSize} else {0.0},
       mcd.dtDistance,
       mcd.destCBD,
       if (autoWork.equals("no_auto"))         {1.0} else {0.0},
       if (autoWork.equals("auto_deficient"))  {1.0} else {0.0},
-      if (autoWork.equals("auto_sufficient")) {1.0} else {0.0}
+      if (autoWork.equals("auto_sufficient")) {1.0} else {0.0},
+      mcd.walkTime
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(varType)(tourPurpose)
     model.getUtilityOfAlternative(beamTrip, theParams).getOrElse(0)
@@ -332,11 +341,11 @@ class ModeChoiceTPCM(
       0,0,0,0, //fix walk-bike-dist
       cost,
       0,0, // fix ZTI & ZDI
-      0,0, // fix age
+      0,0,0, // fix age
+      0,0, // fix hhSize
       0,0, // fix drive-dist and CBD
-      0,0,0//fix ascAuto
-
-
+      0,0,0,//fix ascAuto
+      time //fix walk time
     )
     val (model, modeModel) = lccm.modeChoiceTourModels(varType)(tourPurpose)
     modeModel.getUtilityOfAlternative(mode, theParams).getOrElse(0)

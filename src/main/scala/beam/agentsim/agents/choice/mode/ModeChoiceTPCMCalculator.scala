@@ -1,11 +1,12 @@
 package beam.agentsim.agents.choice.mode
 
+import beam.agentsim.agents.choice.logit.MultinomialLogit.MNLSample
 import beam.agentsim.agents.choice.mode.ModeChoiceTPCMCalculator.locationData
 import beam.agentsim.agents.vehicles.BeamVehicle
 import beam.agentsim.infrastructure.taz
 import beam.agentsim.infrastructure.taz.{TAZ, TAZTreeMap}
 import beam.router.Modes.BeamMode
-import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, BUS, CABLE_CAR, CAR, CAV, DRIVE_TRANSIT, FERRY, FUNICULAR, GONDOLA, RAIL, RIDE_HAIL, RIDE_HAIL_POOLED, RIDE_HAIL_TRANSIT, SUBWAY, TRAM, TRANSIT, WALK, WALK_TRANSIT}
+import beam.router.Modes.BeamMode.{BIKE, BIKE_TRANSIT, BUS, CABLE_CAR, CAR, CAV, DRIVE_TRANSIT, FERRY, FUNICULAR, GONDOLA, HOV2_TELEPORTATION, HOV3_TELEPORTATION, RAIL, RIDE_HAIL, RIDE_HAIL_POOLED, RIDE_HAIL_TRANSIT, SUBWAY, TRAM, TRANSIT, WALK, WALK_TRANSIT}
 import beam.router.model.EmbodiedBeamTrip
 import beam.sim.BeamServices
 import beam.sim.config.BeamConfig
@@ -22,6 +23,7 @@ import org.matsim.core.utils.geometry.transformations.TransformationFactory
 
 import scala.beans.BeanProperty
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.util.control.Breaks.{break, breakable}
 
 class ModeChoiceTPCMCalculator(
@@ -45,6 +47,8 @@ class ModeChoiceTPCMCalculator(
         (altAndIdx._1.costEstimate + transitFareDefaults(altAndIdx._2)) * beamServices.beamConfig.beam.agentsim.tuning.transitPrice
       case RIDE_HAIL | RIDE_HAIL_TRANSIT | RIDE_HAIL_POOLED =>
         altAndIdx._1.costEstimate * beamServices.beamConfig.beam.agentsim.tuning.rideHailPrice
+      case HOV2_TELEPORTATION | HOV3_TELEPORTATION =>
+        1.50 // TODO fix so doesn't use default
       case _ =>
         altAndIdx._1.costEstimate
     }
@@ -141,6 +145,25 @@ class ModeChoiceTPCMCalculator(
         distance * 0.000621371 //convert from meters to miles
       case _ =>
         0
+    }
+  }
+
+  def getWalkToTransitDistance(
+    mode: BeamMode,
+    altAndIdx: (EmbodiedBeamTrip, Int)
+  ): ListBuffer[Double] = {
+    mode match {
+      case WALK_TRANSIT =>
+        val distance = new ListBuffer[Double]
+        val walkLegs = altAndIdx._1.legs.filter(_.beamLeg.mode == WALK)
+        walkLegs.foreach{ leg =>
+          val dis = leg.beamLeg.travelPath.distanceInM
+          val disfloor = (math floor dis * 1000) / 1000
+          distance += disfloor
+        }
+        distance
+      case _ =>
+        ListBuffer(0.0)
     }
   }
 
@@ -262,6 +285,17 @@ class ModeChoiceTPCMCalculator(
   private def computeZDI(hh: Double, res: Double, com: Double, emp: Double) = {
     if (res == 0 | com == 0 | (hh + emp) == 0 ){ 0.0 }
     else{ (hh / res * emp / com) / (hh / res + emp / com) }
+  }
+
+  def getListOfAttrValues(
+    modeChoiceInputData: Vector[(BeamMode, Map[String, Double])],
+    chosenModeOpt: Option[MNLSample[BeamMode]]
+  ): String = {
+    val altParamValues = modeChoiceInputData.filter(_._1.value == chosenModeOpt.get.alternativeType.value).head._2
+    val altparamvalues = new ListBuffer[Any]
+    altParamValues.foreach{ variable => altparamvalues += variable }
+    val availableAlts3 = Some(altparamvalues.mkString(":"))
+    availableAlts3.get
   }
 
   // used to determine the transit mode

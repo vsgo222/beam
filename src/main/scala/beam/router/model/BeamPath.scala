@@ -1,7 +1,9 @@
 package beam.router.model
 
 import beam.agentsim.events.SpaceTime
+import beam.analysis.AnalysisProcessor.logger
 import beam.router.model.RoutingModel.TransitStopsInfo
+import beam.utils.logging.pattern.ask
 
 /**
   * @param linkIds      either matsim linkId or R5 edgeIds that describes whole path
@@ -38,7 +40,8 @@ case class BeamPath(
       math.round(linkTravelTime.tail.sum).toInt - (endPoint.time - startPoint.time)
     ) > 2
   ) {
-    throw new IllegalStateException("Total travel time and total sum by edges are not same")
+    logger.warn("Total travel time and total sum by edges are not same")
+    //throw new IllegalStateException("Total travel time and total sum by edges are not same")
   }
 
   def toShortString: String = {
