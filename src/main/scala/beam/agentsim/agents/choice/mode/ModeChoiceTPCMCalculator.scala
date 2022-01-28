@@ -158,7 +158,8 @@ class ModeChoiceTPCMCalculator(
         val walkLegs = altAndIdx._1.legs.filter(_.beamLeg.mode == WALK)
         walkLegs.foreach{ leg =>
           val dis = leg.beamLeg.travelPath.distanceInM
-          distance += dis
+          val disfloor = (math floor dis * 1000) / 1000
+          distance += disfloor
         }
         distance
       case _ =>
