@@ -7,7 +7,7 @@ include "../common/matsim.conf"
 ##################################################################
 # Agentsim
 ##################################################################
-beam.agentsim.simulationName = "sf-tscore-all-trips-mc-calibration-trial-with-null-modes"
+beam.agentsim.simulationName = "sf-tscore-all-trips-mc-calibration-trial-with-null-modes_only"
 beam.agentsim.agentSampleSizeAsFractionOfPopulation = 1.0
 beam.agentsim.firstIteration = 0
 beam.agentsim.lastIteration = 10
@@ -41,19 +41,19 @@ beam.agentsim.agents.modeIncentive.filePath = ${beam.inputDirectory}"/Inputs/inc
 beam.agentsim.agents.ptFare.filePath = ${beam.inputDirectory}"/Inputs/ptFares.csv"
 
 beam.agentsim.agents.plans {
-  inputPlansFilePath = ${beam.inputDirectory}"/Inputs/IX-Trips-Updated/sf-trips-null_modes.xml.gz"
-  inputPersonAttributesFilePath = ${beam.inputDirectory}"/Inputs/IX-Trips-Updated/persons_attribute.xml.gz"
+  inputPlansFilePath = ${beam.inputDirectory}"/Inputs/Test/sf-trips-null_modes.xml.gz"
+  inputPersonAttributesFilePath = ${beam.inputDirectory}"/Inputs/Test/persons_attribute_update_test.xml.gz"
 }
 beam.agentsim.agents.households {
-  inputFilePath = ${beam.inputDirectory}"/Inputs/IX-Trips-Updated/household.xml.gz"
-  inputHouseholdAttributesFilePath = ${beam.inputDirectory}"/Inputs/IX-Trips-Updated/household_attributes.xml.gz"
+  inputFilePath = ${beam.inputDirectory}"/Inputs/Test/household_test.xml.gz"
+  inputHouseholdAttributesFilePath = ${beam.inputDirectory}"/Inputs/Test/household_attributes_test.xml.gz"
 }
 
 #BeamVehicles Params
 beam.agentsim.agents.vehicles.linkToGradePercentFilePath = ${beam.inputDirectory}"/r5/linkToGradePercent.csv"
 beam.agentsim.agents.vehicles.fuelTypesFilePath = ${beam.inputDirectory}"/Inputs/beamFuelTypes.csv"
 beam.agentsim.agents.vehicles.vehicleTypesFilePath = ${beam.inputDirectory}"/Inputs/vehicleTypes.csv"
-beam.agentsim.agents.vehicles.vehiclesFilePath = ${beam.inputDirectory}"/Inputs/IX-Trips-Updated/vehicles.csv.gz"
+beam.agentsim.agents.vehicles.vehiclesFilePath = ${beam.inputDirectory}"/Inputs/Test/vehicles_test.csv.gz"
 beam.agentsim.agents.vehicles.sharedFleets = []
 #TAZ params
 beam.agentsim.taz.filePath = ${beam.inputDirectory}"/Inputs/IX-Trips-Updated/sfchamp-taz-centers-updated.csv"
