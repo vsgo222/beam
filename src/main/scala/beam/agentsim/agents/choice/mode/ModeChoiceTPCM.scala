@@ -118,6 +118,17 @@ class ModeChoiceTPCM(
         (alt.mode, theParams)
       }// TODO: instead of .toMap, we keep it in a Vector to prevent HOV2 and HOV3 options from grouping together into CAR
 
+
+      // create a vector of extra data that can be outputted for tracing and calibration
+      val extraData = bestInGroup.map{alt =>
+        val theParams = List(
+          "(walkTransitDistances," + alt.walkToTransitDistance + ")", // in meters
+          "(cost," + alt.cost.toString + ")", // in dollars
+          "(numberOfTransfers," + alt.numTransfers + ")"
+        )
+        (alt.mode, theParams.mkString(":"))
+      }
+
       // Evaluate and sample from mode choice model
       val (model, modeModel) = lccm.modeChoiceTourModels(varType)(purpose)
       val chosenModeOpt = modeModel.sampleAlternative(modeChoiceInputData, new Random())
@@ -131,6 +142,7 @@ class ModeChoiceTPCM(
           } else {
             alternatives(chosenAlt.head.index).calculatedUtiilty = chosenModeOpt.get.utility
             alternatives(chosenAlt.head.index).attributeValues = TPCMCalculator.getListOfAttrValues(modeChoiceInputData,chosenModeOpt)
+            alternatives(chosenAlt.head.index).extraData = extraData.filter(alt => alt._1.value == chosenAlt.head.mode.value).head._2
             Some(alternatives(chosenAlt.head.index))
           }
         case None =>
@@ -256,7 +268,8 @@ class ModeChoiceTPCM(
           originZDI,
           destCBD,
           totalCost,
-          altAndIdx._2
+          altAndIdx._2,
+          walkToTransitDistance
         )
       }
     modeChoiceAlternatives.toVector
@@ -393,6 +406,7 @@ class ModeChoiceTPCM(
     originZDI: Double,
     destCBD: Double,
     cost: Double,
-    index: Int = -1
+    index: Int = -1,
+    walkToTransitDistance: String
   )
 }
