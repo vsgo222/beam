@@ -45,6 +45,7 @@ case class EmbodiedBeamTrip(legs: IndexedSeq[EmbodiedBeamLeg]) {
 
   var calculatedUtiilty: Double = 0.0
   var attributeValues: String = ""
+  var extraData: String = ""
 
   def beamLegs: IndexedSeq[BeamLeg] = legs.map(embodiedLeg => embodiedLeg.beamLeg)
 

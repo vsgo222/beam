@@ -22,6 +22,7 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
     public final static String ATTRIBUTE_EXP_MAX_UTILITY = "expectedMaximumUtility";
     public final static String ATTRIBUTE_ATTR_VALUES = "attributeValues";
     public final static String ATTRIBUTE_CALC_UTILITY = "calculatedUtility";
+    public final static String ATTRIBUTE_TRACING_DATA = "tracingData";
     public final static String ATTRIBUTE_AVAILABLE_ALTERNATIVES = "availableAlternatives";
     public final static String ATTRIBUTE_LOCATION = "location";
     public final static String ATTRIBUTE_PERSONAL_VEH_AVAILABLE = "personalVehicleAvailable";
@@ -37,6 +38,7 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
     public final String expectedMaxUtility;
     public final String attributeValues;
     public final String calculatedUtility;
+    public final String tracingData;
     public final String location;
     public final String availableAlternatives;
     public final String vehAvailable;
@@ -46,9 +48,9 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
     public final String tourPurpose;
 
     public ModeChoiceEvent(double time, Id<Person> personId, String chosenMode, String currentTourMode, Double expectedMaxUtility,
-                           String attributeValues, Double calculatedUtility, Double income, String linkId, String availableAlternatives,
-                           Boolean vehAvailable, String vehOwnership, Double length, Integer tourIndex, String tourPurpose,
-                           EmbodiedBeamTrip chosenTrip) {
+                           String attributeValues, Double calculatedUtility, String tracingData,Double income, String linkId,
+                           String availableAlternatives, Boolean vehAvailable, String vehOwnership, Double length, Integer tourIndex,
+                           String tourPurpose, EmbodiedBeamTrip chosenTrip) {
         super(time);
 
         this.personId = personId;
@@ -57,6 +59,7 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
         this.expectedMaxUtility = expectedMaxUtility.toString();
         this.attributeValues = attributeValues;
         this.calculatedUtility = calculatedUtility.toString();
+        this.tracingData = tracingData;
         this.income = income;
         this.location = linkId;
         this.availableAlternatives = availableAlternatives;
@@ -78,6 +81,7 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
                     Double.parseDouble(attr.get(ATTRIBUTE_EXP_MAX_UTILITY)),
                     attr.get(ATTRIBUTE_ATTR_VALUES),
                     Double.parseDouble(attr.get(ATTRIBUTE_CALC_UTILITY)),
+                    attr.get(ATTRIBUTE_TRACING_DATA),
                     Double.parseDouble(attr.get(ATTRIBUTE_INCOME)),
                     attr.get(ATTRIBUTE_LOCATION),
                     attr.get(ATTRIBUTE_AVAILABLE_ALTERNATIVES),
@@ -102,6 +106,7 @@ public class ModeChoiceEvent extends Event implements HasPersonId {
         attr.put(ATTRIBUTE_EXP_MAX_UTILITY, expectedMaxUtility);
         attr.put(ATTRIBUTE_ATTR_VALUES, attributeValues);
         attr.put(ATTRIBUTE_CALC_UTILITY, calculatedUtility);
+        attr.put(ATTRIBUTE_TRACING_DATA, tracingData);
         attr.put(ATTRIBUTE_INCOME, income.toString());
         attr.put(ATTRIBUTE_LOCATION, location);
         attr.put(ATTRIBUTE_AVAILABLE_ALTERNATIVES, availableAlternatives);
