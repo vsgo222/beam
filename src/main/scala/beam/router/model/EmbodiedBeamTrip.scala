@@ -25,7 +25,7 @@ import org.matsim.api.core.v01.Id
 case class EmbodiedBeamTrip(legs: IndexedSeq[EmbodiedBeamLeg]) {
 
   @transient
-  lazy val costEstimate: Double = legs.map(_.cost).sum /// Generalize or remove
+  var costEstimate: Double = legs.map(_.cost).sum /// Generalize or remove
 
   @transient
   lazy val tripClassifier: BeamMode = determineTripMode(legs)

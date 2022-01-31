@@ -1259,7 +1259,12 @@ trait ChoosesMode {
       chosenTrip.legs(1).cost + chosenTrip.legs(2).cost,
       true
     )
-    Some(EmbodiedBeamTrip(IndexedSeq(firstTrip,teleportationTrip,lastTrip)))
+    val teleportationEmbodiedTrip = EmbodiedBeamTrip(IndexedSeq(firstTrip,teleportationTrip,lastTrip))
+      teleportationEmbodiedTrip.costEstimate = chosenTrip.legs(1).cost + chosenTrip.legs(2).cost
+      teleportationEmbodiedTrip.calculatedUtiilty = chosenTrip.calculatedUtiilty
+      teleportationEmbodiedTrip.attributeValues = chosenTrip.attributeValues
+      teleportationEmbodiedTrip.extraData = chosenTrip.extraData
+    Some(teleportationEmbodiedTrip)
   }
 
   def convertFromWalkToTeleportHov(
@@ -1527,7 +1532,7 @@ trait ChoosesMode {
             availableAlternatives = availableAlts
           )
           if (Vector("hov2","hov3","hov2_teleportation","hov3_teleportation").contains(chosenTrip.tripClassifier.value)) {
-              chosenTrip.tripClassifier.value match { // TODO fix counts so they reset to 0 after each iteration
+              chosenTrip.tripClassifier.value match { // TODO fix counts so they reset to 0 after each iteration?
                 case "hov2_teleportation" => hov2TeleportCount += 1
                 case "hov3_teleportation" => hov3TeleportCount += 1
                 case "hov2" => hov2CarCount += 1
