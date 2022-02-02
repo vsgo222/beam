@@ -183,6 +183,7 @@ trait ChoosesMode {
             _,
             _,
             _,
+            _,
             _
           ) =>
         self ! MobilityStatusResponse(Vector(beamVehicles(vehicle)), getCurrentTriggerIdOrGenerate)
@@ -203,6 +204,7 @@ trait ChoosesMode {
               _
             ),
             currentLocation,
+            _,
             _,
             _,
             _,
@@ -243,6 +245,7 @@ trait ChoosesMode {
               _
             ),
             currentLocation,
+            _,
             _,
             _,
             _,
@@ -1300,6 +1303,7 @@ trait ChoosesMode {
     chosenTrip: EmbodiedBeamTrip,
     choosesModeData: ChoosesModeData,
     availableAlts: Some[String],
+    routerAlts: Some[String],
     teleportCount2: Int,
     teleportCount3: Int,
     hovCarCount2: Int,
@@ -1320,7 +1324,8 @@ trait ChoosesMode {
         personData = choosesModeData.personData.copy(currentTourMode = Some(HOV2_TELEPORTATION)),
         parkingResponses = Map(),
         parkingRequestIds = Map(),
-        availableAlternatives = Some("HOV2_TELEPORTATION")
+        availableAlternatives = Some("HOV2_TELEPORTATION"),
+        routerAvailableAlternatives = routerAlts
       )
       hov2CarCount -= 1
       hov2TeleportCount += 1
@@ -1331,7 +1336,8 @@ trait ChoosesMode {
         personData = choosesModeData.personData.copy(currentTourMode = Some(HOV3_TELEPORTATION)),
         parkingResponses = Map(),
         parkingRequestIds = Map(),
-        availableAlternatives = Some("HOV3_TELEPORTATION")
+        availableAlternatives = Some("HOV3_TELEPORTATION"),
+        routerAvailableAlternatives = routerAlts
       )
       hov3CarCount -= 1
       hov3TeleportCount += 1
@@ -1339,7 +1345,8 @@ trait ChoosesMode {
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(chosenTrip),
         personData = choosesModeData.personData.copy(currentTourMode = Some(modeType)),
-        availableAlternatives = Some(modeType.toString)
+        availableAlternatives = Some(modeType.toString),
+        routerAvailableAlternatives = routerAlts
       )
     }
     dataForNextStep
@@ -1366,6 +1373,7 @@ trait ChoosesMode {
             _,
             _,
             Some(cavTripLegs),
+            _,
             _,
             _,
             true,
@@ -1465,6 +1473,10 @@ trait ChoosesMode {
         combinedItinerariesForChoice.filter(_.tripClassifier.value != "car")
       else combinedItinerariesForChoice
 
+      val routerModesList = combinedItinerariesForChoice.
+        flatMap(trip => Option(trip.tripClassifier).map(_.toString))
+      val routerAlternatives = Some(routerModesList.mkString(":"))
+
       val availableModesForTrips: Seq[BeamMode] = availableModesForPerson(matsimPlan.getPerson)
         .filterNot(mode => choosesModeData.excludeModes.contains(mode))
 
@@ -1529,7 +1541,8 @@ trait ChoosesMode {
         case Some(chosenTrip) =>
           var dataForNextStep = choosesModeData.copy(
             pendingChosenTrip = Some(chosenTrip),
-            availableAlternatives = availableAlts
+            availableAlternatives = availableAlts,
+            routerAvailableAlternatives = routerAlternatives
           )
           if (Vector("hov2","hov3","hov2_teleportation","hov3_teleportation").contains(chosenTrip.tripClassifier.value)) {
               chosenTrip.tripClassifier.value match { // TODO fix counts so they reset to 0 after each iteration?
@@ -1547,7 +1560,7 @@ trait ChoosesMode {
             ) match {
               case (0, false) =>
                 dataForNextStep = createHovDataForNextStep(
-                  chosenTrip, choosesModeData, availableAlts,
+                  chosenTrip, choosesModeData, availableAlts, routerAlternatives,
                   hov2TeleportCount, hov3TeleportCount, hov2CarCount, hov3CarCount
                 )
               case _ =>
@@ -1580,7 +1593,9 @@ trait ChoosesMode {
                 val cavTrip = EmbodiedBeamTrip(walk1 +: cavTripLegs.legs.toVector :+ walk2)
                 goto(FinishingModeChoice) using choosesModeData.copy(
                   pendingChosenTrip = Some(cavTrip),
-                  availableAlternatives = availableAlts
+                  availableAlternatives = availableAlts,
+                  routerAvailableAlternatives = routerAlternatives
+
                 )
               } else {
                 val bushwhackingTrip = RoutingWorker.createBushwackingTrip(
@@ -1592,7 +1607,9 @@ trait ChoosesMode {
                 )
                 goto(FinishingModeChoice) using choosesModeData.copy(
                   pendingChosenTrip = Some(bushwhackingTrip),
-                  availableAlternatives = availableAlts
+                  availableAlternatives = availableAlts,
+                  routerAvailableAlternatives = routerAlternatives
+
                 )
               }
             case _ =>
@@ -1619,7 +1636,8 @@ trait ChoosesMode {
 
               goto(FinishingModeChoice) using choosesModeData.copy(
                 pendingChosenTrip = Some(expensiveWalkTrip),
-                availableAlternatives = availableAlts
+                availableAlternatives = availableAlts,
+                routerAvailableAlternatives = routerAlternatives
               )
           }
       }
@@ -1703,6 +1721,7 @@ trait ChoosesMode {
         .getLinkId
         .toString,
       data.availableAlternatives.get,
+      data.routerAvailableAlternatives.get,
       data.availablePersonalStreetVehicles.nonEmpty,
       vehOwnership,
       chosenTrip.legs.view.map(_.beamLeg.travelPath.distanceInM).sum,
@@ -1825,6 +1844,7 @@ object ChoosesMode {
     cavTripLegs: Option[CavTripLegsResponse] = None,
     excludeModes: Vector[BeamMode] = Vector(),
     availableAlternatives: Option[String] = None,
+    routerAvailableAlternatives: Option[String] = None,
     routingFinished: Boolean = false,
     routingRequestToLegMap: Map[Int, TripIdentifier] = Map.empty
   ) extends PersonData {
