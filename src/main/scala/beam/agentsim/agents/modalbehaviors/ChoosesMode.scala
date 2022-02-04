@@ -1321,10 +1321,9 @@ trait ChoosesMode {
       newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(newTrip),
-        personData = choosesModeData.personData.copy(currentTourMode = Some(HOV2_TELEPORTATION)),
         parkingResponses = Map(),
         parkingRequestIds = Map(),
-        availableAlternatives = Some("HOV2_TELEPORTATION"),
+        availableAlternatives = Some(availableAlts.get + ":HOV2_TELEPORTATION"),
         routerAvailableAlternatives = routerAlts
       )
       hov2CarCount -= 1
@@ -1333,10 +1332,9 @@ trait ChoosesMode {
       newTrip = convertFromCarHOVToTeleportHOV(chosenTrip, modeType).get
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(newTrip),
-        personData = choosesModeData.personData.copy(currentTourMode = Some(HOV3_TELEPORTATION)),
         parkingResponses = Map(),
         parkingRequestIds = Map(),
-        availableAlternatives = Some("HOV3_TELEPORTATION"),
+        availableAlternatives = Some(availableAlts.get + ":HOV3_TELEPORTATION"),
         routerAvailableAlternatives = routerAlts
       )
       hov3CarCount -= 1
@@ -1344,8 +1342,7 @@ trait ChoosesMode {
     } else {
       dataForNextStep = choosesModeData.copy(
         pendingChosenTrip = Some(chosenTrip),
-        personData = choosesModeData.personData.copy(currentTourMode = Some(modeType)),
-        availableAlternatives = Some(modeType.toString),
+        availableAlternatives = availableAlts,
         routerAvailableAlternatives = routerAlts
       )
     }
