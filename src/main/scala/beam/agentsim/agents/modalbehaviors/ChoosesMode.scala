@@ -1729,10 +1729,29 @@ trait ChoosesMode {
 
         goto(Teleporting) using data.personData.copy(
           currentTrip = Some(chosenTrip),
-          restOfCurrentTrip = List()
+          restOfCurrentTrip = List(),
+          passengerSchedule = null,
+          currentLegPassengerScheduleIndex = 0
         )
 
       case _ =>
+        if (Vector("hov2_teleportation","hov3_teleportation").contains(chosenTrip.tripClassifier.value)){
+          scheduler ! CompletionNotice(
+            triggerId,
+            Vector(
+              ScheduleTrigger(
+                PersonDepartureTrigger(math.max(chosenTrip.legs.head.beamLeg.startTime, tick)),
+                self
+              )
+            )
+          )
+
+          goto(Teleporting) using data.personData.copy(
+            currentTrip = Some(chosenTrip),
+            currentTourMode = data.personData.currentTourMode
+              .orElse(Some(chosenTrip.tripClassifier))
+          )
+        } else{
         val (vehiclesUsed, vehiclesNotUsed) = data.availablePersonalStreetVehicles
           .partition(vehicle => chosenTrip.vehiclesInTrip.contains(vehicle.id))
 
@@ -1770,6 +1789,7 @@ trait ChoosesMode {
               data.personData.currentTourPersonalVehicle
                 .orElse(vehiclesUsed.headOption.filter(mustBeDrivenHome).map(_.id))
         )
+      }
     }
 
   }
