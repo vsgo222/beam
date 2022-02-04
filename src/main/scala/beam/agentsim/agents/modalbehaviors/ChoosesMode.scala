@@ -1437,7 +1437,7 @@ trait ChoosesMode {
         val autoWork = matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString
         val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct)
           .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
-      val hovItinerary = if (tripIndexOfElement == 0) {
+      val hovItinerary = if (choosesModeData.personData.currentTourMode == None) {
         if (routingResponse.itineraries.map(_.tripClassifier.value).contains("car")) {
           val carItin = routingResponse.itineraries.filter(_.tripClassifier.value == "car").head
           convertBetweenCarAndHOV(carItin, HOV2, HOV3, "auto_sufficient") // Fix beamVehicleId for HOVs?
@@ -1449,13 +1449,10 @@ trait ChoosesMode {
         else if (routingResponse.itineraries.map(_.tripClassifier.value).contains("hov3")) {
           val hov3Itin = routingResponse.itineraries.filter(_.tripClassifier.value == "hov3").head
           convertBetweenCarAndHOV(hov3Itin, CAR, HOV2, autoWork)
-        } else if (routingResponse.itineraries.map(_.tripClassifier).contains(HOV2_TELEPORTATION)){
-          Seq()
-        } else if (routingResponse.itineraries.map(_.tripClassifier).contains(HOV3_TELEPORTATION)){
-          Seq()
         } else if (routingResponse.itineraries.map(_.tripClassifier).contains(WALK)) {
           if (autoWork == "no_auto") {
             // Teleport HOV options for those agents that don't have a car or HOV option already
+            // might be causing dublicated hov teleport options if teleport is already an option that exists
             val walkItin = routingResponse.itineraries.filter(_.tripClassifier.value == "walk").head
             val (teleportItin2, teleportItin3) = (convertFromWalkToTeleportHov(walkItin, HOV2), convertFromWalkToTeleportHov(walkItin, HOV3))
             val newRoutingResponse = routingResponse.copy(
@@ -1496,25 +1493,15 @@ trait ChoosesMode {
             trip.tripClassifier == WALK_TRANSIT || trip.tripClassifier == RIDE_HAIL_TRANSIT
           )
         case Some(HOV2_TELEPORTATION) =>
-          (tripIndexOfElement, personData.hasDeparted) match {
-            case (0, false) =>
-              combinedItinerariesForChoice
-            case _ =>
-              combinedItinerariesForChoice.filter(trip =>
-                trip.tripClassifier == HOV2_TELEPORTATION || trip.tripClassifier == WALK
-              )
-          }
+          combinedItinerariesForChoice.filter(trip =>
+            trip.tripClassifier == HOV2_TELEPORTATION //|| trip.tripClassifier == WALK
+          )
         case Some(HOV3_TELEPORTATION) =>
-          (tripIndexOfElement, personData.hasDeparted) match {
-            case (0, false) =>
-              combinedItinerariesForChoice
-            case _ =>
-              combinedItinerariesForChoice.filter(trip =>
-                trip.tripClassifier == HOV3_TELEPORTATION || trip.tripClassifier == WALK
-              )
-          }
+          combinedItinerariesForChoice.filter(trip =>
+            trip.tripClassifier == HOV3_TELEPORTATION //|| trip.tripClassifier == WALK
+          )
         case Some(CAR) =>
-          combinedItinerariesForChoice.filter(_.tripClassifier == CAR)
+          combinedItinerariesForChoice.filter(_.tripClassifier == CAR) // doesn't filter out hovs, so that's good.
         case _ =>
           combinedItinerariesForChoice
       }).filter(itin => availableModesForTrips.contains(itin.tripClassifier))
