@@ -1536,20 +1536,23 @@ trait ChoosesMode {
                 case "hov3" => hov3CarCount += 1
               }
             //logger.warn("HOV2: C-" + hov2CarCount + " T-" + hov2TeleportCount + "  HOV3: C-" + hov3CarCount + " T-" + hov3TeleportCount)
+            val personMode = choosesModeData.personData.currentTrip.getOrElse(CAR)
+            val isRideHail = if (Vector(RIDE_HAIL, RIDE_HAIL_POOLED, RIDE_HAIL_TRANSIT).contains(personMode)){ true } else{ false }
             val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct)
               .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
             (
               tripIndexOfElement,
-              personData.hasDeparted
+              choosesModeData.personData.currentTourMode,
+              isRideHail
             ) match {
-              case (0, false) =>
-                dataForNextStep = createHovDataForNextStep(
-                  chosenTrip, choosesModeData, availableAlts, routerAlternatives,
-                  hov2TeleportCount, hov3TeleportCount, hov2CarCount, hov3CarCount
-                )
-              case _ =>
-                dataForNextStep = dataForNextStep
-            }
+                case (0, None, false)=> // TODO teleportation trips can only be created on trip 0, otherwise it interferes with failed ride hail trips where the currentTourPurpose is set to None, but the statistics of the trip mess up the teleportation event
+                  dataForNextStep = createHovDataForNextStep(
+                    chosenTrip, choosesModeData, availableAlts, routerAlternatives,
+                    hov2TeleportCount, hov3TeleportCount, hov2CarCount, hov3CarCount
+                  )
+                case _ =>
+                  dataForNextStep = dataForNextStep
+              }
           }
           goto(FinishingModeChoice) using dataForNextStep
         case None =>
