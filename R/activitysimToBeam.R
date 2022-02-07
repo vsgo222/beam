@@ -10,6 +10,13 @@ persons <- read_csv(paste0(wd,"/final_persons.csv"))
 hh <- read_csv(paste0(wd,"/final_households.csv"))
 plans <- read_csv(paste0(wd,"/final_plans.csv"))
 
+parcel <- read_csv(paste0(wd,"/parcels.csv"))
+address <- read_csv(paste0(wd,"/address_coordinates.csv"))
+taz <- read_csv(paste0(wd,"/taz_centroids.csv"))
+
+#add function
+source("R/create_hh_coords_function.R")
+
 ###############################################################
 
 ####rewrite plans
@@ -30,7 +37,7 @@ for(i in 1:length(plans$trip_mode)){
     } else if(plans$trip_mode[i] %in% c("DRIVEALONEFREE","DRIVEALONEPAY")){
       plans$trip_mode[i] = "car"
     } else if(plans$trip_mode[i] %in% c("SHARED2FREE","SHARED2PAY")){
-      plans$trip_mode[i] = ifelse(runif(1) < 0.5, "hov2", "hov2_teleportation")
+      plans$trip_mode[i] = ifelse(runif(1) < 1/2, "hov2", "hov2_teleportation")
     } else if(plans$trip_mode[i] %in% c("SHARED3FREE","SHARED3PAY")){
       plans$trip_mode[i] = ifelse(runif(1) < 1/3, "hov3", "hov3_teleportation")
     } else if(plans$trip_mode[i] %in% c("DRIVE_COM","DRIVE_EXP","DRIVE_LOC",
@@ -59,21 +66,13 @@ write_csv(plans, paste0(wd,"/final_plans.csv"), na = "")
 #remove x,y if they exist
 if("x" %in% colnames(hh)) hh %<>% select(-x)
 if("y" %in% colnames(hh)) hh %<>% select(-y)
-#get person home x,y
-person_home <- plans %>% 
-  filter(ActivityType == "Home", PlanElementIndex == 1) %>% 
-  select(person_id, x, y)
 
-#get hh x,y
-hh_home <- persons %>%
-  left_join(person_home, by = "person_id") %>% 
-  filter(PNUM == 1) %>% 
-  select(household_id, x, y)
+hh_coords <- create_hh_coords(hh, parcel, address, taz, crs = 26912)
 
 #add x,y to hh file and write
 hh %>%
-  left_join(hh_home, by = "household_id") %>% 
-  write_csv(paste0(wd,"/final_households.csv"), na = "0")
+  left_join(hh_coords, by = "household_id") %>% 
+  write_csv(paste0(wd,"/final_households.csv"))
 
 ###############################################################
 
