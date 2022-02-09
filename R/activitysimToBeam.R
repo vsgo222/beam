@@ -1,18 +1,20 @@
 library(tidyverse)
 library(magrittr)
+library(sf)
 
 #############################################################
 # set wd
-wd <- "test/input/csv_test/data"
+wd <- "S:/Documents/data/wfrc_100k/data"
+dd <- "S:/Documents/data"
 
 # Read in csvs
 persons <- read_csv(paste0(wd,"/final_persons.csv"))
 hh <- read_csv(paste0(wd,"/final_households.csv"))
 plans <- read_csv(paste0(wd,"/final_plans.csv"))
 
-parcel <- read_csv(paste0(wd,"/parcels.csv"))
-address <- read_csv(paste0(wd,"/address_coordinates.csv"))
-taz <- read_csv(paste0(wd,"/taz_centroids.csv"))
+parcel <- read_csv(paste0(dd,"/parcels.csv"))
+address <- read_csv(paste0(dd,"/address_coordinates.csv"))
+taz <- read_csv(paste0(dd,"/taz_centroids.csv"))
 
 #add function
 source("R/create_hh_coords_function.R")
