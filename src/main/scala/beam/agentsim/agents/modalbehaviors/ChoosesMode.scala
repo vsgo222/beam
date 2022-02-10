@@ -7,7 +7,8 @@ import beam.agentsim.agents.PersonAgent._
 import beam.agentsim.agents._
 import beam.agentsim.agents.household.HouseholdActor.{MobilityStatusInquiry, MobilityStatusResponse, ReleaseVehicle}
 import beam.agentsim.agents.modalbehaviors.ChoosesMode._
-import beam.agentsim.agents.modalbehaviors.DrivesVehicle.{ActualVehicle, Token, VehicleOrToken}
+import beam.agentsim.agents.modalbehaviors.DrivesVehicle.{ActualVehicle, EndLegTrigger, Token, VehicleOrToken, stripLiterallyDrivingData}
+import beam.agentsim.agents.ridehail.RideHailAgent.IdleInterrupted
 import beam.agentsim.agents.ridehail.{RideHailInquiry, RideHailRequest, RideHailResponse}
 import beam.agentsim.agents.vehicles.AccessErrorCodes.RideHailNotRequestedError
 import beam.agentsim.agents.vehicles.EnergyEconomyAttributes.Powertrain
@@ -17,6 +18,7 @@ import beam.agentsim.events.{ModeChoiceEvent, SpaceTime}
 import beam.agentsim.infrastructure.parking.GeoLevel
 import beam.agentsim.infrastructure.{ParkingInquiry, ParkingInquiryResponse, ZonalParkingManager}
 import beam.agentsim.scheduler.BeamAgentScheduler.{CompletionNotice, ScheduleTrigger}
+import beam.agentsim.scheduler.Trigger.TriggerWithId
 import beam.router.BeamRouter._
 import beam.router.Modes.BeamMode
 import beam.router.Modes.BeamMode.{WALK, _}
@@ -34,6 +36,7 @@ import org.matsim.core.utils.misc.Time
 
 import java.util.Random
 import java.util.concurrent.atomic.AtomicReference
+import scala.collection.immutable.TreeMap
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -1538,14 +1541,16 @@ trait ChoosesMode {
             //logger.warn("HOV2: C-" + hov2CarCount + " T-" + hov2TeleportCount + "  HOV3: C-" + hov3CarCount + " T-" + hov3TeleportCount)
             val personMode = choosesModeData.personData.currentTrip.getOrElse(CAR)
             val isRideHail = if (Vector(RIDE_HAIL, RIDE_HAIL_POOLED, RIDE_HAIL_TRANSIT).contains(personMode)){ true } else{ false }
+            val currentTrip = choosesModeData.personData.currentTrip.getOrElse(EmbodiedBeamTrip.empty)
+            val hasRHVehicle = currentTrip.vehiclesInTrip.mkString(":").contains("rideHailVehicle")
             val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct)
               .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
             (
               tripIndexOfElement,
               choosesModeData.personData.currentTourMode,
-              isRideHail
+              hasRHVehicle
             ) match {
-                case (0, None, false)=> // TODO teleportation trips can only be created on trip 0, otherwise it interferes with failed ride hail trips where the currentTourPurpose is set to None, but the statistics of the trip mess up the teleportation event
+                case (_, None, false)=> // TODO teleportation trips can only be created on trip 0, otherwise it interferes with failed ride hail trips where the currentTourPurpose is set to None, but the statistics of the trip mess up the teleportation event
                   dataForNextStep = createHovDataForNextStep(
                     chosenTrip, choosesModeData, availableAlts, routerAlternatives,
                     hov2TeleportCount, hov3TeleportCount, hov2CarCount, hov3CarCount
@@ -1732,9 +1737,7 @@ trait ChoosesMode {
 
         goto(Teleporting) using data.personData.copy(
           currentTrip = Some(chosenTrip),
-          restOfCurrentTrip = List(),
-          passengerSchedule = null,
-          currentLegPassengerScheduleIndex = 0
+          restOfCurrentTrip = List()
         )
 
       case _ =>
@@ -1748,12 +1751,36 @@ trait ChoosesMode {
               )
             )
           )
+          val currentTrip = data.personData.currentTrip.getOrElse(EmbodiedBeamTrip.empty)
+          val isRideHail = if(Vector("ride_hail", "ride_hail_pooled", "ride_hail_transit").contains(currentTrip.tripClassifier.value)){true} else{false}
+          val hasRHVehicle = currentTrip.vehiclesInTrip.mkString(":").contains("rideHailVehicle")
+          val emptyPersonData = BasePersonData(0,None,List(),Vector(),None,None,PassengerSchedule(),0,false,0.0,0,None)
+          if (hasRHVehicle == false) {
+            goto(Teleporting) using data.personData.copy(
+              currentTrip = Some(chosenTrip),
+              currentTourMode = data.personData.currentTourMode
+                .orElse(Some(chosenTrip.tripClassifier))
+            )
+          } else {
+            logger.warn("we are going to teleport using empty person data")
+            val newEmptyTrip = emptyPersonData.copy(
+              currentActivityIndex = data.personData.currentActivityIndex,
+              currentTrip = Some(chosenTrip),
+              currentTourMode = data.personData.currentTourMode
+                .orElse(Some(chosenTrip.tripClassifier)),
+              passengerSchedule = data.personData.passengerSchedule
+            )
+            logger.warn(newEmptyTrip.toString())
 
-          goto(Teleporting) using data.personData.copy(
-            currentTrip = Some(chosenTrip),
-            currentTourMode = data.personData.currentTourMode
-              .orElse(Some(chosenTrip.tripClassifier))
-          )
+            goto(Teleporting) using newEmptyTrip
+//              data.personData.copy(
+//              currentTrip = Some(chosenTrip),
+//              currentTourMode = data.personData.currentTourMode
+//                .orElse(Some(chosenTrip.tripClassifier)),
+//              restOfCurrentTrip = List(),
+//              passengerSchedule = PassengerSchedule()
+//            )
+          }
         } else{
         val (vehiclesUsed, vehiclesNotUsed) = data.availablePersonalStreetVehicles
           .partition(vehicle => chosenTrip.vehiclesInTrip.contains(vehicle.id))
