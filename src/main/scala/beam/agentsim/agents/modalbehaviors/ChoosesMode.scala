@@ -1532,32 +1532,33 @@ trait ChoosesMode {
             routerAvailableAlternatives = routerAlternatives
           )
           if (Vector("hov2","hov3","hov2_teleportation","hov3_teleportation").contains(chosenTrip.tripClassifier.value)) {
-              chosenTrip.tripClassifier.value match { // TODO fix counts so they reset to 0 after each iteration?
-                case "hov2_teleportation" => hov2TeleportCount += 1
-                case "hov3_teleportation" => hov3TeleportCount += 1
-                case "hov2" => hov2CarCount += 1
-                case "hov3" => hov3CarCount += 1
-              }
+            chosenTrip.tripClassifier.value match { // TODO fix counts so they reset to 0 after each iteration?
+              case "hov2_teleportation" => hov2TeleportCount += 1
+              case "hov3_teleportation" => hov3TeleportCount += 1
+              case "hov2" => hov2CarCount += 1
+              case "hov3" => hov3CarCount += 1
+            }
             //logger.warn("HOV2: C-" + hov2CarCount + " T-" + hov2TeleportCount + "  HOV3: C-" + hov3CarCount + " T-" + hov3TeleportCount)
-            val personMode = choosesModeData.personData.currentTrip.getOrElse(CAR)
-            val isRideHail = if (Vector(RIDE_HAIL, RIDE_HAIL_POOLED, RIDE_HAIL_TRANSIT).contains(personMode)){ true } else{ false }
             val currentTrip = choosesModeData.personData.currentTrip.getOrElse(EmbodiedBeamTrip.empty)
             val hasRHVehicle = currentTrip.vehiclesInTrip.mkString(":").contains("rideHailVehicle")
-            val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct)
-              .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
             (
-              tripIndexOfElement,
               choosesModeData.personData.currentTourMode,
               hasRHVehicle
             ) match {
-                case (_, None, false)=> // TODO teleportation trips can only be created on trip 0, otherwise it interferes with failed ride hail trips where the currentTourPurpose is set to None, but the statistics of the trip mess up the teleportation event
-                  dataForNextStep = createHovDataForNextStep(
-                    chosenTrip, choosesModeData, availableAlts, routerAlternatives,
-                    hov2TeleportCount, hov3TeleportCount, hov2CarCount, hov3CarCount
-                  )
-                case _ =>
-                  dataForNextStep = dataForNextStep
-              }
+              // only allow conversion to teleportation to occur during mode choice (when currentTourMode is None)
+              // TODO Converting to a Teleportation trip here will cause a Trigger Error with some Ride Hail type Trips, so this is a weird work around
+              case (None, false) =>
+                dataForNextStep = createHovDataForNextStep(
+                  chosenTrip, choosesModeData, availableAlts, routerAlternatives,
+                  hov2TeleportCount, hov3TeleportCount, hov2CarCount, hov3CarCount
+                )
+              case (None, true) =>
+                logger.warn("To prevent trigger error, not allowing RideHail Trip to convert to Teleportation during mode choice")
+                logger.warn("The chosen trip will remain: " + chosenTrip.toString())
+                dataForNextStep = dataForNextStep
+              case _ =>
+                dataForNextStep = dataForNextStep
+            }
           }
           goto(FinishingModeChoice) using dataForNextStep
         case None =>
@@ -1751,36 +1752,13 @@ trait ChoosesMode {
               )
             )
           )
-          val currentTrip = data.personData.currentTrip.getOrElse(EmbodiedBeamTrip.empty)
-          val isRideHail = if(Vector("ride_hail", "ride_hail_pooled", "ride_hail_transit").contains(currentTrip.tripClassifier.value)){true} else{false}
-          val hasRHVehicle = currentTrip.vehiclesInTrip.mkString(":").contains("rideHailVehicle")
-          val emptyPersonData = BasePersonData(0,None,List(),Vector(),None,None,PassengerSchedule(),0,false,0.0,0,None)
-          if (hasRHVehicle == false) {
+
             goto(Teleporting) using data.personData.copy(
               currentTrip = Some(chosenTrip),
               currentTourMode = data.personData.currentTourMode
                 .orElse(Some(chosenTrip.tripClassifier))
             )
-          } else {
-            logger.warn("we are going to teleport using empty person data")
-            val newEmptyTrip = emptyPersonData.copy(
-              currentActivityIndex = data.personData.currentActivityIndex,
-              currentTrip = Some(chosenTrip),
-              currentTourMode = data.personData.currentTourMode
-                .orElse(Some(chosenTrip.tripClassifier)),
-              passengerSchedule = data.personData.passengerSchedule
-            )
-            logger.warn(newEmptyTrip.toString())
 
-            goto(Teleporting) using newEmptyTrip
-//              data.personData.copy(
-//              currentTrip = Some(chosenTrip),
-//              currentTourMode = data.personData.currentTourMode
-//                .orElse(Some(chosenTrip.tripClassifier)),
-//              restOfCurrentTrip = List(),
-//              passengerSchedule = PassengerSchedule()
-//            )
-          }
         } else{
         val (vehiclesUsed, vehiclesNotUsed) = data.availablePersonalStreetVehicles
           .partition(vehicle => chosenTrip.vehiclesInTrip.contains(vehicle.id))
