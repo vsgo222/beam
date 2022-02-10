@@ -4,8 +4,8 @@ library(sf)
 
 #############################################################
 # set wd
-wd <- "S:/Documents/data/wfrc_100k/data"
-dd <- "S:/Documents/data"
+wd <- "/Users/haydenatchley/Documents/beam/data/wfrc_100k"
+dd <- "/Users/haydenatchley/Documents/beam/data"
 
 # Read in csvs
 persons <- read_csv(paste0(wd,"/final_persons.csv"))
@@ -24,6 +24,15 @@ source("R/create_hh_coords_function.R")
 ####rewrite plans
 #fix person ids
 plans$person_id %<>% as.integer()
+
+#misc massaging of plans
+# if("trip_id" %in% colnames(plans)){
+#   plans %<>%
+#     select(-number_of_participants, -trip_id) %>% 
+#     mutate(trip_mode = lead(trip_mode)) %>% 
+#     filter(ActivityElement == "activity") %>% 
+#     mutate(PlanElementIndex = ceiling(PlanElementIndex/2)-1)
+# }
 
 #fix modes
 avail_modes <- c("bike", "walk", "car", "hov2", "hov2_teleportation",
