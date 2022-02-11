@@ -261,14 +261,14 @@ object PopulationAdjustment extends LazyLogging {
     //tour purpose stuff
       //all activity attributes are used; if only one activity exists in the plan, it means no trips
       //are taken, so a default value is given so the code doesn't break
-//    val activities: List[Activity] = person.getSelectedPlan.getPlanElements.asScala
-//      .collect{ case activity: Activity => activity }
-//      .toList
-//    if (activities.length < 2){ activities.map(_.getAttributes.putAttribute("primary_purpose","none")) }
-//    val purposes : Array[String] = activities
-//      .flatMap(act => Option(act.getAttributes.getAttribute("primary_purpose")).map(_.toString.toLowerCase))
-//      .toSet.toArray
-//    purps += (person.getId.toString -> purposes)
+    val activities: List[Activity] = person.getSelectedPlan.getPlanElements.asScala
+      .collect{ case activity: Activity => activity }
+      .toList
+    if (activities.length < 2){ activities.map(_.getAttributes.putAttribute("primary_purpose","none")) }
+    val purposes : Array[String] = activities
+      .flatMap(act => Option(act.getAttributes.getAttribute("primary_purpose")).map(_.toString.toLowerCase))
+      .toSet.toArray
+    purps += (person.getId.toString -> purposes)
     //modality style stuff
     val modalityStyle =
       Option(person.getSelectedPlan)
