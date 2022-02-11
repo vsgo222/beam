@@ -68,7 +68,7 @@ object BeamCsvScenarioReader extends BeamScenarioReader with ExponentialLazyLogg
 
   private[readers] def toPlanInfo(rec: java.util.Map[String, String]): PlanElement = {
     val personId = getIfNotNull(rec, "person_id")
-    val planIndex = getIfNotNull(rec, "planIndex", default = "1").toInt
+    val planIndex = getIfNotNull(rec, "planIndex", default = "0").toInt
     val planElementType = getIfNotNull(rec, "ActivityElement")
     val planElementIndex = getIfNotNull(rec, "PlanElementIndex").toInt
     val activityType = Option(rec.get("ActivityType"))
@@ -78,7 +78,7 @@ object BeamCsvScenarioReader extends BeamScenarioReader with ExponentialLazyLogg
       personId = PersonId(personId),
       planIndex = planIndex,
       planScore = getIfNotNull(rec, "planScore", "0").toDouble,
-      planSelected = getIfNotNull(rec, "planSelected", "false").toBoolean,
+      planSelected = getIfNotNull(rec, "planSelected", "true").toBoolean,
       planElementType = PlanElement.PlanElementType(planElementType),
       planElementIndex = planElementIndex,
       activityType = activityType,
