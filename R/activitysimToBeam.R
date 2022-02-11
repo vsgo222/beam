@@ -19,6 +19,9 @@ taz <- read_csv(paste0(dd,"/taz_centroids.csv"))
 #add function
 source("R/create_hh_coords_function.R")
 
+#housing type
+hType <- "House"
+
 ###############################################################
 
 ####rewrite plans
@@ -84,6 +87,12 @@ hh_coords <- create_hh_coords(hh, parcel, address, taz, crs = 26912)
 hh %>%
   left_join(hh_coords, by = "household_id") %>% 
   write_csv(paste0(wd,"/final_households.csv"))
+
+#write hhattr file
+hhattr <- hh %>% 
+  select(household_id, x, y) %>% 
+  mutate(housingType = hType)
+write_csv(hhattr, paste0(wd,"/household_attributes.csv"))
 
 ###############################################################
 
