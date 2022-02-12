@@ -91,12 +91,12 @@ create_hh_coords <- function(house, parcel, adderss, taz, crs){
   
   #join the address point and house tables by the indexing of the TAZ, thus assigning coordinates to the households
   hhcoord <- left_join(house2, address2, by = "tazcom") %>%
-    arrange(household_id)
+    arrange(householdId)
   colnames(hhcoord)[2] <- "TAZ"
   
   #the coordinate table
   hhcoord %<>%
-    select(household_id,TAZ,longitude,latitude) %>% 
+    select(householdId,TAZ,longitude,latitude) %>% 
     st_as_sf(coords = c("longitude", "latitude")) %>% 
     `st_crs<-`(4326) %>% #WGS84
     st_transform(crs) %>% #specified crs

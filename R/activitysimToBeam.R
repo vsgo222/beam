@@ -7,6 +7,9 @@ library(sf)
 wd <- "/Users/haydenatchley/Documents/beam/data/wfrc_100k"
 dd <- "/Users/haydenatchley/Documents/beam/data"
 
+wd <- "X:/RA_Microtransit/BEAM/data/wfrc_100k"
+dd <- "X:/RA_Microtransit/BEAM/data"
+
 # Read in csvs
 persons <- read_csv(paste0(wd,"/final_persons.csv"))
 hh <- read_csv(paste0(wd,"/final_households.csv"))
@@ -22,53 +25,73 @@ source("R/create_hh_coords_function.R")
 #housing type
 hType <- "House"
 
+#plan index
+planIndex = 0
+
 ###############################################################
+
+###fix colnames
+persons %<>% 
+  rename(personId = person_id,
+         householdId = household_id,
+         isFemale = female,
+         valueOfTime = value_of_time)
+hh %<>% 
+  rename(householdId = household_id,
+         incomeValue = income,
+         locationX = x,
+         locationY = y)
+plans %<>% 
+  rename(personId = person_id,
+         planElementType = ActivityElement,
+         planElementIndex = PlanElementIndex,
+         activityType = ActivityType,
+         activityLocationX = x,
+         activityLocationY = y,
+         activityEndTime = departure_time,
+         legMode = trip_mode)
+
 
 ####rewrite plans
 #fix person ids
-plans$person_id %<>% as.integer()
+plans$personId %<>% as.integer()
 
-#misc massaging of plans
-# if("trip_id" %in% colnames(plans)){
-#   plans %<>%
-#     select(-number_of_participants, -trip_id) %>% 
-#     mutate(trip_mode = lead(trip_mode)) %>% 
-#     filter(ActivityElement == "activity") %>% 
-#     mutate(PlanElementIndex = ceiling(PlanElementIndex/2)-1)
-# }
+plans %<>% mutate(planIndex = 0)
 
 #fix modes
 avail_modes <- c("bike", "walk", "car", "hov2", "hov2_teleportation",
                  "hov3", "hov3_teleportation", "drive_transit",
                  "walk_transit", "ride_hail", "ride_hail_pooled")
 
-for(i in 1:length(plans$trip_mode)){
-  if(!is.na(plans$trip_mode[i])){
-    if(plans$trip_mode[i] == "BIKE"){
-      plans$trip_mode[i] = "bike"
-    } else if(plans$trip_mode[i] == "WALK"){
-      plans$trip_mode[i] = "walk"
-    } else if(plans$trip_mode[i] %in% c("DRIVEALONEFREE","DRIVEALONEPAY")){
-      plans$trip_mode[i] = "car"
-    } else if(plans$trip_mode[i] %in% c("SHARED2FREE","SHARED2PAY")){
-      plans$trip_mode[i] = ifelse(runif(1) < 1/2, "hov2", "hov2_teleportation")
-    } else if(plans$trip_mode[i] %in% c("SHARED3FREE","SHARED3PAY")){
-      plans$trip_mode[i] = ifelse(runif(1) < 1/3, "hov3", "hov3_teleportation")
-    } else if(plans$trip_mode[i] %in% c("DRIVE_COM","DRIVE_EXP","DRIVE_LOC",
-                                        "DRIVE_LRF","DRIVE_HVY")){
-      plans$trip_mode[i] = "drive_transit"
-    } else if(plans$trip_mode[i] %in% c("WALK_COM","WALK_EXP","WALK_LOC",
-                                        "WALK_LRF","WALK_HVY")){
-      plans$trip_mode[i] = "walk_transit"
-    } else if(plans$trip_mode[i] %in% c("TNC_SINGLE","TAXI")){
-      plans$trip_mode[i] = "ride_hail"
-    } else if(plans$trip_mode[i] == "TNC_SHARED"){
-      plans$trip_mode[i] = "ride_hail_pooled"
-    } else if(plans$trip_mode[i] %in% avail_modes){
-      plans$trip_mode[i] = plans$trip_mode[i]
-    } else{
-      plans$trip_mode[i] =
-        "we messed up mode conversion (check activitysim to BEAM R script)"
+if(!all(plans$legMode[!is.na(plans$legMode)] %in% avail_modes)){
+  for(i in 1:length(plans$legMode)){
+    if(!is.na(plans$legMode[i])){
+      if(plans$legMode[i] == "BIKE"){
+        plans$legMode[i] = "bike"
+      } else if(plans$legMode[i] == "WALK"){
+        plans$legMode[i] = "walk"
+      } else if(plans$legMode[i] %in% c("DRIVEALONEFREE","DRIVEALONEPAY")){
+        plans$legMode[i] = "car"
+      } else if(plans$legMode[i] %in% c("SHARED2FREE","SHARED2PAY")){
+        plans$legMode[i] = ifelse(runif(1) < 1/2, "hov2", "hov2_teleportation")
+      } else if(plans$legMode[i] %in% c("SHARED3FREE","SHARED3PAY")){
+        plans$legMode[i] = ifelse(runif(1) < 1/3, "hov3", "hov3_teleportation")
+      } else if(plans$legMode[i] %in% c("DRIVE_COM","DRIVE_EXP","DRIVE_LOC",
+                                          "DRIVE_LRF","DRIVE_HVY")){
+        plans$legMode[i] = "drive_transit"
+      } else if(plans$legMode[i] %in% c("WALK_COM","WALK_EXP","WALK_LOC",
+                                          "WALK_LRF","WALK_HVY")){
+        plans$legMode[i] = "walk_transit"
+      } else if(plans$legMode[i] %in% c("TNC_SINGLE","TAXI")){
+        plans$legMode[i] = "ride_hail"
+      } else if(plans$legMode[i] == "TNC_SHARED"){
+        plans$legMode[i] = "ride_hail_pooled"
+      } else if(plans$legMode[i] %in% avail_modes){
+        plans$legMode[i] = plans$legMode[i]
+      } else{
+        plans$legMode[i] =
+          "we messed up mode conversion (check activitysim to BEAM R script)"
+      }
     }
   }
 }
@@ -78,19 +101,22 @@ write_csv(plans, paste0(wd,"/final_plans.csv"), na = "")
 ###############################################################
 
 #remove x,y if they exist
-if("x" %in% colnames(hh)) hh %<>% select(-x)
-if("y" %in% colnames(hh)) hh %<>% select(-y)
+if("locationX" %in% colnames(hh)) hh %<>% select(-locationX)
+if("locationY" %in% colnames(hh)) hh %<>% select(-locationY)
 
 hh_coords <- create_hh_coords(hh, parcel, address, taz, crs = 26912)
 
 #add x,y to hh file and write
-hh %>%
-  left_join(hh_coords, by = "household_id") %>% 
+hh %<>%
+  left_join(hh_coords, by = "householdId") %>% 
+  rename(locationX = x,
+         locationY = y)
+hh %>% 
   write_csv(paste0(wd,"/final_households.csv"))
 
 #write hhattr file
 hhattr <- hh %>% 
-  select(household_id, x, y) %>% 
+  select(householdId, locationX, locationY) %>% 
   mutate(housingType = hType)
 write_csv(hhattr, paste0(wd,"/household_attributes.csv"))
 
@@ -98,7 +124,7 @@ write_csv(hhattr, paste0(wd,"/household_attributes.csv"))
 
 #create vehicles file
 nveh <- sum(hh$auto_ownership)
-veh_hh <- map2(hh$household_id,
+veh_hh <- map2(hh$householdId,
                hh$auto_ownership,
                function(.x,.y) rep.int(.x, .y)
                ) %>%
@@ -115,6 +141,12 @@ tibble(
 ##############################################################
 
 #sanity check
-plans$trip_mode[plans$trip_mode %in% c("hov2","hov2_teleportation")] %>% table()
-plans$trip_mode[plans$trip_mode %in% c("hov3","hov3_teleportation")] %>% table()
-plans$trip_mode %>% unique()
+plans$legMode[plans$legMode %in% c("hov2","hov2_teleportation")] %>%
+  table() %>% 
+  as_tibble_row() %>% 
+  mutate(pct = hov2/(hov2+hov2_teleportation))
+plans$legMode[plans$legMode %in% c("hov3","hov3_teleportation")] %>%
+  table() %>% 
+  as_tibble_row() %>% 
+  mutate(pct = hov3/(hov3+hov3_teleportation))
+plans$legMode %>% unique()
