@@ -51,6 +51,8 @@ plans %<>%
          activityEndTime = departure_time,
          legMode = trip_mode)
 
+persons %>% 
+  write_csv(paste0(wd,"/final_persons.csv"))
 
 ####rewrite plans
 #fix person ids
