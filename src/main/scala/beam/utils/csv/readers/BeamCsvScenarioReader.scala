@@ -46,7 +46,7 @@ object BeamCsvScenarioReader extends BeamScenarioReader with ExponentialLazyLogg
   private[readers] def toHouseholdInfo(
     householdIdToVehiclesSize: Map[String, Int]
   )(rec: JavaMap[String, String]): HouseholdInfo = {
-    val householdId = getIfNotNull(rec, "household_id")
+    val householdId = getIfNotNull(rec, "householdId")
     val cars = householdIdToVehiclesSize.get(householdId) match {
       case Some(total) => total
       case None        =>
@@ -60,18 +60,18 @@ object BeamCsvScenarioReader extends BeamScenarioReader with ExponentialLazyLogg
     HouseholdInfo(
       householdId = HouseholdId(householdId),
       cars = cars,
-      income = getIfNotNull(rec, "income").toDouble,
-      locationX = getIfNotNull(rec, "x").toDouble,
-      locationY = getIfNotNull(rec, "y").toDouble
+      income = getIfNotNull(rec, "incomeValue").toDouble,
+      locationX = getIfNotNull(rec, "locationX").toDouble,
+      locationY = getIfNotNull(rec, "locationY").toDouble
     )
   }
 
   private[readers] def toPlanInfo(rec: java.util.Map[String, String]): PlanElement = {
-    val personId = getIfNotNull(rec, "person_id")
-    val planIndex = getIfNotNull(rec, "planIndex", default = "0").toInt
-    val planElementType = getIfNotNull(rec, "ActivityElement")
-    val planElementIndex = getIfNotNull(rec, "PlanElementIndex").toInt
-    val activityType = Option(rec.get("ActivityType"))
+    val personId = getIfNotNull(rec, "personId")
+    val planIndex = getIfNotNull(rec, "planIndex").toInt
+    val planElementType = getIfNotNull(rec, "planElementType")
+    val planElementIndex = getIfNotNull(rec, "planElementIndex").toInt
+    val activityType = Option(rec.get("activityType"))
     val linkIds =
       Option(rec.get("legRouteLinks")).map(_.split(ArrayItemSeparator).map(_.trim)).getOrElse(Array.empty[String])
     PlanElement(
@@ -82,10 +82,10 @@ object BeamCsvScenarioReader extends BeamScenarioReader with ExponentialLazyLogg
       planElementType = PlanElement.PlanElementType(planElementType),
       planElementIndex = planElementIndex,
       activityType = activityType,
-      activityLocationX = Option(rec.get("x")).map(_.toDouble),
-      activityLocationY = Option(rec.get("y")).map(_.toDouble),
-      activityEndTime = Option(rec.get("departure_time")).map(_.toDouble),
-      legMode = Option(rec.get("trip_mode")),
+      activityLocationX = Option(rec.get("activityLocationX")).map(_.toDouble),
+      activityLocationY = Option(rec.get("activityLocationY")).map(_.toDouble),
+      activityEndTime = Option(rec.get("activityEndTime")).map(_.toDouble),
+      legMode = Option(rec.get("legMode")),
       legDepartureTime = Option(rec.get("legDepartureTime")),
       legTravelTime = Option(rec.get("legTravelTime")),
       legRouteType = Option(rec.get("legRouteType")),
@@ -99,13 +99,13 @@ object BeamCsvScenarioReader extends BeamScenarioReader with ExponentialLazyLogg
   }
 
   private def toPersonInfo(rec: JavaMap[String, String]): PersonInfo = {
-    val personId = getIfNotNull(rec, "person_id")
-    val householdId = getIfNotNull(rec, "household_id")
+    val personId = getIfNotNull(rec, "personId")
+    val householdId = getIfNotNull(rec, "householdId")
     val age = getIfNotNull(rec, "age").toInt
-    val isFemale = getIfNotNull(rec, "female", "false").toBoolean
-    val rank = getIfNotNull(rec, "householdRank", "1").toInt
+    val isFemale = getIfNotNull(rec, "isFemale", "false").toBoolean
+    val rank = getIfNotNull(rec, "householdRank", "0").toInt
     val excludedModes = Try(getIfNotNull(rec, "excludedModes")).getOrElse("").split(",")
-    val valueOfTime = NumberUtils.toDouble(Try(getIfNotNull(rec, "value_of_time", "0")).getOrElse("0"), 0d)
+    val valueOfTime = NumberUtils.toDouble(Try(getIfNotNull(rec, "valueOfTime", "0")).getOrElse("0"), 0d)
     PersonInfo(
       personId = PersonId(personId),
       householdId = HouseholdId(householdId),
