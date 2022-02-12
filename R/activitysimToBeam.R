@@ -51,6 +51,23 @@ plans %<>%
          activityEndTime = departure_time,
          legMode = trip_mode)
 
+persons %<>% 
+  select(personId, householdId, age, sex, isFemale, valueOfTime)
+hh %<>%
+  select(householdId, TAZ, incomeValue, hhsize, auto_ownership, num_workers, locationX, locationY) %>% 
+  mutate(num_workers = ifelse(num_workers == -8, 0, num_workers),
+         autoWorkRatio =
+           case_when(auto_ownership == 0 ~ "no_auto",
+                     auto_ownership / num_workers < 1 ~ "auto_deficient",
+                     auto_ownership / num_workers >= 1 ~ "auto_sufficient",
+                     T ~ "we messed up, check asim to beam script"))
+plans %<>%
+  select(personId, legMode, planIndex, planElementIndex, planElementType, activityType, activityLocationX, activityLocationY, activityEndTime) %>% 
+  left_join(select(persons, personId, householdId), by = "personId")
+
+persons %<>%
+  left_join(hh, by = "householdId")
+
 persons %>% 
   write_csv(paste0(wd,"/final_persons.csv"))
 
@@ -152,3 +169,4 @@ plans$legMode[plans$legMode %in% c("hov3","hov3_teleportation")] %>%
   as_tibble_row() %>% 
   mutate(pct = hov3/(hov3+hov3_teleportation))
 plans$legMode %>% unique()
+hh$autoWorkRatio %>% unique()
