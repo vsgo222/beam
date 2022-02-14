@@ -1452,7 +1452,7 @@ trait ChoosesMode {
         } else if (routingResponse.itineraries.map(_.tripClassifier).contains(WALK)) {
           if (autoWork == "no_auto") {
             // Teleport HOV options for those agents that don't have a car or HOV option already
-            // might be causing dublicated hov teleport options if teleport is already an option that exists
+            // might be causing duplicated hov teleport options if teleport is already an option that exists
             val walkItin = routingResponse.itineraries.filter(_.tripClassifier.value == "walk").head
             val (teleportItin2, teleportItin3) = (convertFromWalkToTeleportHov(walkItin, HOV2), convertFromWalkToTeleportHov(walkItin, HOV3))
             val newRoutingResponse = routingResponse.copy(
@@ -1755,6 +1755,7 @@ trait ChoosesMode {
 
             goto(Teleporting) using data.personData.copy(
               currentTrip = Some(chosenTrip),
+              restOfCurrentTrip = List(),
               currentTourMode = data.personData.currentTourMode
                 .orElse(Some(chosenTrip.tripClassifier))
             )
