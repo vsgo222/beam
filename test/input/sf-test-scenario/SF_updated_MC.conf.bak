@@ -7,7 +7,7 @@ include "../common/matsim.conf"
 ##################################################################
 # Agentsim
 ##################################################################
-beam.agentsim.simulationName = "inflated-personal-vehicle-mode-choice-details-added-tracing-auto-deficient-asc-set"
+beam.agentsim.simulationName = "updated-mc-coefficient-new-tpcm-utility-calculation-trial-2"
 beam.agentsim.agentSampleSizeAsFractionOfPopulation = 1.0
 beam.agentsim.firstIteration = 0
 beam.agentsim.lastIteration = 10
@@ -38,7 +38,7 @@ beam.agentsim.agents.parking.mulitnomialLogit.params.parking_costs_price_multipl
 
 beam.agentsim.agents.vehicles.fractionOfInitialVehicleFleet = 10
 	
-beam.agentsim.agents.modalBehaviors.lccm.filePath = ${beam.inputDirectory}"/Inputs/ActivitySimMC-TSCORE-trial-6-asc-auto-deficient.csv"
+beam.agentsim.agents.modalBehaviors.lccm.filePath = ${beam.inputDirectory}"/Inputs/ActivitySimMC-TSCORE-trial-7.csv"
 beam.agentsim.agents.modeIncentive.filePath = ${beam.inputDirectory}"/Inputs/incentives.csv"
 beam.agentsim.agents.ptFare.filePath = ${beam.inputDirectory}"/Inputs/ptFares.csv"
 
@@ -191,17 +191,17 @@ beam.outputs.writeLinkTraversalInterval = 0
 beam.debug.writeModeChoiceAlternatives=true 
 
 beam.physsim.events.eventsToWrite="ModeChoiceEvent,ActivityEndEvent,ActivityStartEvent,LinkEnterEvent,LinkLeaveEvent,PersonArrivalEvent,PersonDepartureEvent,VehicleEntersTrafficEvent,VehicleLeavesTrafficEvent,TripArrivalEvent"
-beam.physsim.events.fileOutputFormats="csv.gz"
+beam.physsim.events.fileOutputFormats="csv.gz, xml.gz
 beam.physsim.eventsForFullVersionOfVia=true
 beam.physsim.eventSampling=1.0
 
 # The remaining params customize how events are written to output files
-beam.outputs.events.fileOutputFormats = "csv.gz" # valid options: xml(.gz) , csv(.gz), none - DEFAULT: csv.gz
+beam.outputs.events.fileOutputFormats = "csv.gz,xml.gz" # valid options: xml(.gz) , csv(.gz), none - DEFAULT: csv.gz
 
 # Events Writing Logging Levels:
 # Any event types not explicitly listed in overrideWritingLevels take on defaultWritingLevel
-beam.outputs.events.eventsToWrite = "ActivityEndEvent,ActivityStartEvent,PersonEntersVehicleEvent,PersonLeavesVehicleEvent,ModeChoiceEvent,PathTraversalEvent,ReserveRideHailEvent,ReplanningEvent,RefuelSessionEvent,ChargingPlugInEvent,ChargingPlugOutEvent,ParkingEvent,LeavingParkingEvent,TripArrivalEvent"
-beam.outputs.events.fileOutputFormats="csv.gz"
+beam.outputs.events.eventsToWrite = "ModeChoiceEvent,ActivityEndEvent,ActivityStartEvent,PersonEntersVehicleEvent,PersonLeavesVehicleEvent,ModeChoiceEvent,PathTraversalEvent,ReserveRideHailEvent,ReplanningEvent,RefuelSessionEvent,ChargingPlugInEvent,ChargingPlugOutEvent,ParkingEvent,LeavingParkingEvent,TripArrivalEvent"
+beam.outputs.events.fileOutputFormats="csv.gz,xml.gz"
 beam.outputs.stats.binSize = 3600
 
 ##################################################################
@@ -210,7 +210,7 @@ beam.outputs.stats.binSize = 3600
 beam.debug {
     debugEnabled = false
     vmInformation.createGCClassHistogram = false
-    writeModeChoiceAlternatives = false
+    writeModeChoiceAlternatives = true
 }
 
 beam.debug.actor.logDepth = 0
