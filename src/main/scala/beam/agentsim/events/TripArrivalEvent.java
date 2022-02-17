@@ -23,7 +23,7 @@ public class TripArrivalEvent extends Event implements HasPersonId{
     public final static String ATTRIBUTE_TOUR_PURPOSE = "tourPurpose";
     public final static String ATTRIBUTE_ACT_TYPE = "actType";
     public final static String ATTRIBUTE_LOCATION_X = "locationX";
-    public final static String ATTRIBUTE_LOCATION_Y = "loctionY";
+    public final static String ATTRIBUTE_LOCATION_Y = "locationY";
     public final EmbodiedBeamTrip chosenTrip;
     public final Id<Person> personId;
     public final String mode;
