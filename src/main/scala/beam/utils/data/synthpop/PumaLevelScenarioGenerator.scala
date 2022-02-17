@@ -78,7 +78,8 @@ class PumaLevelScenarioGenerator(
     legRouteTravelTime = None,
     legRouteDistance = None,
     legRouteLinks = Seq.empty,
-    geoId = None
+    geoId = None,
+    primaryPurpose = None
   )
 
   private val rndWorkDestinationGenerator: RandomWorkDestinationGenerator =

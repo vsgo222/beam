@@ -233,7 +233,7 @@ class BeamScenarioLoader(
     planElement.activityEndTime.foreach { endTime =>
       act.setEndTime(endTime)
     }
-    act.getAttributes.putAttribute("geoId", planElement.geoId.get)
+    act.getAttributes.putAttribute("primary_purpose", planElement.primaryPurpose.get)
     act
   }
 

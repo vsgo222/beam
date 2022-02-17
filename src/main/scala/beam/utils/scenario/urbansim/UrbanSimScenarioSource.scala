@@ -76,7 +76,8 @@ class UrbanSimScenarioSource(
         legRouteTravelTime = None,
         legRouteDistance = None,
         legRouteLinks = Seq.empty,
-        geoId = None
+        geoId = None,
+        primaryPurpose = None
       )
     }
   }
