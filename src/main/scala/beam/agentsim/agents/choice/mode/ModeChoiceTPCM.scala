@@ -100,7 +100,7 @@ class ModeChoiceTPCM(
           if (alt.walkDistance > 1.5)  {alt.walkDistance} else {0.0},
           if (alt.bikeDistance <= 1.5) {alt.bikeDistance} else {0.0},
           if (alt.bikeDistance > 1.5)  {alt.bikeDistance} else {0.0},
-          alt.cost * 60 / vot, // the cost utility values in the csv are actually vehicleTime values, and this conversion creates the cost coefficient
+          if (alt.cost == 0.0 || vot == 0.0) {0.0} else {alt.cost * 60 / vot}, // the cost utility values in the csv are actually vehicleTime values, and this conversion creates the cost coefficient
           alt.destZDI,
           alt.originZDI,
           if (age >= 16.0 & age <= 19.0)  {age} else {0.0}, // TODO: is it age, or 1.0? (is this value a coeff or const?)
@@ -317,7 +317,7 @@ class ModeChoiceTPCM(
       if (mcd.walkDistance > 1.5) {mcd.walkDistance} else {0.0},
       if (mcd.bikeDistance <= 1.5) {mcd.bikeDistance} else {0.0},
       if (mcd.bikeDistance > 1.5) {mcd.bikeDistance} else {0.0},
-      mcd.cost * 60 / vot,
+      if (mcd.cost == 0.0 || vot == 0.0) {0.0} else {mcd.cost * 60 / vot},
       mcd.destZDI,
       mcd.originZDI,
       if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
