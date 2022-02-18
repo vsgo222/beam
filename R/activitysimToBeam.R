@@ -14,6 +14,7 @@ dd <- "X:/RA_Microtransit/BEAM/data"
 persons <- read_csv(paste0(wd,"/final_persons.csv"))
 hh <- read_csv(paste0(wd,"/final_households.csv"))
 plans <- read_csv(paste0(wd,"/final_plans.csv"))
+trips <- read_csv(paste0(wd,"/final_trips.csv"))
 
 parcel <- read_csv(paste0(dd,"/parcels.csv"))
 address <- read_csv(paste0(dd,"/address_coordinates.csv"))
@@ -36,11 +37,11 @@ persons %<>%
          householdId = household_id,
          isFemale = female,
          valueOfTime = value_of_time)
+
 hh %<>% 
   rename(householdId = household_id,
-         incomeValue = income,
-         locationX = x,
-         locationY = y)
+         incomeValue = income)
+
 plans %<>% 
   rename(personId = person_id,
          planElementType = ActivityElement,
@@ -54,35 +55,42 @@ plans %<>%
 persons %<>% 
   select(personId, householdId, age, sex, isFemale, valueOfTime)
 hh %<>%
-  select(householdId, TAZ, incomeValue, hhsize, auto_ownership, num_workers, locationX, locationY) %>% 
+  select(householdId, TAZ, incomeValue, hhsize, auto_ownership, num_workers) %>% 
   mutate(num_workers = ifelse(num_workers == -8, 0, num_workers),
          autoWorkRatio =
            case_when(auto_ownership == 0 ~ "no_auto",
                      auto_ownership / num_workers < 1 ~ "auto_deficient",
                      auto_ownership / num_workers >= 1 ~ "auto_sufficient",
                      T ~ "we messed up, check asim to beam script"))
+
+trips %<>% select(trip_id, primary_purpose)
 plans %<>%
-  select(personId, legMode, planIndex, planElementIndex, planElementType, activityType, activityLocationX, activityLocationY, activityEndTime) %>% 
-  left_join(select(persons, personId, householdId), by = "personId")
+  left_join(trips, by = "trip_id") %>% 
+  select(personId, legMode, planIndex, planElementIndex, planElementType, activityType, activityLocationX, activityLocationY, activityEndTime, primary_purpose) %>% 
+  left_join(select(persons, personId, householdId), by = "personId") %>% 
+  mutate(primary_purpose = ifelse(is.na(primary_purpose), lead(primary_purpose), primary_purpose)) %>% 
+  mutate(primary_purpose = ifelse(is.na(primary_purpose), lag(primary_purpose), primary_purpose))
 
 persons %<>%
   left_join(hh, by = "householdId")
 
 persons %>% 
-  write_csv(paste0(wd,"/final_persons.csv"))
+  write_csv(paste0(wd,"/persons.csv"))
 
 ####rewrite plans
 #fix person ids
 plans$personId %<>% as.integer()
 
-plans %<>% mutate(planIndex = 0)
+plans %<>% mutate(planIndex = planIndex)
 
 #fix modes
 avail_modes <- c("bike", "walk", "car", "hov2", "hov2_teleportation",
                  "hov3", "hov3_teleportation", "drive_transit",
                  "walk_transit", "ride_hail", "ride_hail_pooled")
 
-if(!all(plans$legMode[!is.na(plans$legMode)] %in% avail_modes)){
+if(file.exists(paste0(wd,"/planmodes.csv"))){
+  plans$legMode <- read_csv(paste0(wd,"/planmodes.csv")) %>% {.$legMode}
+}else{
   for(i in 1:length(plans$legMode)){
     if(!is.na(plans$legMode[i])){
       if(plans$legMode[i] == "BIKE"){
@@ -113,15 +121,14 @@ if(!all(plans$legMode[!is.na(plans$legMode)] %in% avail_modes)){
       }
     }
   }
+  plans %>%
+    select(legMode) %>% 
+    write_csv(paste0(wd,"/planmodes.csv"))
 }
 
-write_csv(plans, paste0(wd,"/final_plans.csv"), na = "")
+write_csv(plans, paste0(wd,"/plans.csv"), na = "")
 
 ###############################################################
-
-#remove x,y if they exist
-if("locationX" %in% colnames(hh)) hh %<>% select(-locationX)
-if("locationY" %in% colnames(hh)) hh %<>% select(-locationY)
 
 hh_coords <- create_hh_coords(hh, parcel, address, taz, crs = 26912)
 
@@ -131,7 +138,7 @@ hh %<>%
   rename(locationX = x,
          locationY = y)
 hh %>% 
-  write_csv(paste0(wd,"/final_households.csv"))
+  write_csv(paste0(wd,"/households.csv"))
 
 #write hhattr file
 hhattr <- hh %>% 
