@@ -93,7 +93,8 @@ object PlansCsvWriter extends ScenarioCsvWriter {
           legRouteTravelTime = route.map(_.getTravelTime),
           legRouteDistance = route.map(_.getDistance),
           legRouteLinks = routeLinks,
-          geoId = None
+          geoId = None,
+          primaryPurpose = None
         )
       case act: Activity =>
         PlanElement(
@@ -116,7 +117,8 @@ object PlansCsvWriter extends ScenarioCsvWriter {
           legRouteTravelTime = None,
           legRouteDistance = None,
           legRouteLinks = Seq.empty,
-          geoId = None
+          geoId = None,
+          primaryPurpose = None
         )
     }
   }

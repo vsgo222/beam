@@ -169,7 +169,8 @@ object RouteRequester extends BeamHelper {
     ),
     valueOfTime = 10.99834490709942,
     age = Some(28),
-    income = Some(70000.0)
+    income = Some(70000.0),
+    autoWorkRatio = "auto_sufficient"
   )
 
   private def getUniversalODRouter(r5Parameters: R5Parameters): ODRouterR5GHForActivitySimSkims = {

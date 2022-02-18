@@ -152,6 +152,7 @@ class BeamScenarioLoader(
       personAttributes.putAttribute(personId, "excluded-modes", personInfo.excludedModes.mkString(","))
       person.getAttributes.putAttribute("sex", sexChar)
       person.getAttributes.putAttribute("age", personInfo.age)
+      person.getAttributes.putAttribute("autoWorkRatio", personInfo.autoWorkRatio)
 
       result.addPerson(person)
     }
@@ -233,6 +234,7 @@ class BeamScenarioLoader(
     planElement.activityEndTime.foreach { endTime =>
       act.setEndTime(endTime)
     }
+    act.getAttributes.putAttribute("primary_purpose", planElement.primaryPurpose.get)
     act
   }
 

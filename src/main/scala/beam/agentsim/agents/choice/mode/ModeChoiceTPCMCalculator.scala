@@ -48,7 +48,8 @@ class ModeChoiceTPCMCalculator(
       case RIDE_HAIL | RIDE_HAIL_TRANSIT | RIDE_HAIL_POOLED =>
         altAndIdx._1.costEstimate * beamServices.beamConfig.beam.agentsim.tuning.rideHailPrice
       case HOV2_TELEPORTATION | HOV3_TELEPORTATION =>
-        1.50 // TODO fix so doesn't use default
+        // assign all Teleportation Trips to 0.0 and all HOV trips to full price (usually driver pays full cost anyway)
+        0.0
       case _ =>
         altAndIdx._1.costEstimate
     }

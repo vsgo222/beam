@@ -99,7 +99,8 @@ class SimpleScenarioGenerator(
     legRouteTravelTime = None,
     legRouteDistance = None,
     legRouteLinks = Seq.empty,
-    geoId = None
+    geoId = None,
+    primaryPurpose = None
   )
 
   private val rndWorkDestinationGenerator: RandomWorkDestinationGenerator =
@@ -281,8 +282,12 @@ class SimpleScenarioGenerator(
                   nextWorkLocation.update(workTazGeoId, offset + 1)
                   workLocations.lift(offset) match {
                     case Some(wgsWorkingLocation) =>
-                      val valueOfTime =
+                      val valueOfTime = {
                         PopulationAdjustment.incomeToValueOfTime(household.income).getOrElse(defaultValueOfTime)
+                      }
+                      val autoWorkRatio = {
+                        PopulationAdjustment.getAutoWorkRatio(person.id.toString)
+                      }
                       val createdPerson = beam.utils.scenario.PersonInfo(
                         personId = PersonId(nextPersonId.toString),
                         householdId = createdHousehold.householdId,
@@ -290,7 +295,8 @@ class SimpleScenarioGenerator(
                         age = person.age,
                         excludedModes = Seq.empty,
                         isFemale = person.gender == Gender.Female,
-                        valueOfTime = valueOfTime
+                        valueOfTime = valueOfTime,
+                        autoWorkRatio
                       )
                       val timeLeavingHomeSeconds = drawTimeLeavingHome(timeLeavingHomeRange)
 

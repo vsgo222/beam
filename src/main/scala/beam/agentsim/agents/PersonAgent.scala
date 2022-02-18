@@ -1140,6 +1140,9 @@ class PersonAgent(
               _experiencedBeamPlan.tourIndexOfElement(nextActivity(data).get),
               data.currentActivityIndex,
               activity.getAttributes.getAttribute("primary_purpose").toString.toLowerCase,
+              activity.getType,
+              activity.getCoord.getX,
+              activity.getCoord.getY,
               currentTrip)
           )
 
@@ -1236,6 +1239,9 @@ class PersonAgent(
               _experiencedBeamPlan.tourIndexOfElement(nextActivity(data).get),
               data.currentActivityIndex,
               activity.getAttributes.getAttribute("primary_purpose").toString.toLowerCase,
+              activity.getType,
+              activity.getCoord.getX,
+              activity.getCoord.getY,
               currentTrip)
           )
           val incentive = beamScenario.modeIncentives.computeIncentive(attributes, currentTrip.tripClassifier)

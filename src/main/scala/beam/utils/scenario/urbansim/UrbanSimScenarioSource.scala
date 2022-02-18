@@ -39,7 +39,8 @@ class UrbanSimScenarioSource(
         age = person.age,
         excludedModes = person.excludedModes.split(","),
         isFemale = person.isFemale,
-        valueOfTime = person.valueOfTime
+        valueOfTime = person.valueOfTime,
+        autoWorkRatio = "auto_sufficient"
       )
     }
   }
@@ -76,7 +77,8 @@ class UrbanSimScenarioSource(
         legRouteTravelTime = None,
         legRouteDistance = None,
         legRouteLinks = Seq.empty,
-        geoId = None
+        geoId = None,
+        primaryPurpose = None
       )
     }
   }

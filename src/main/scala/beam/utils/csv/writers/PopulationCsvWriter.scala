@@ -74,6 +74,8 @@ object PopulationCsvWriter extends ScenarioCsvWriter {
 
       val houseHoldId: String = personIdToHouseHoldId.get(personId).map(_.toString).getOrElse("")
 
+      val autoWorkRatio = person.getAttributes.getAttribute("autoWorkRatio").toString
+
       val info = PersonInfo(
         personId = PersonId(personId.toString),
         householdId = HouseholdId(houseHoldId),
@@ -81,7 +83,8 @@ object PopulationCsvWriter extends ScenarioCsvWriter {
         age = Try(personAge.toInt).getOrElse(0),
         isFemale = isFemale,
         valueOfTime = Try(valueOfTime.toString.toDouble).getOrElse(0),
-        excludedModes = excludedModes
+        excludedModes = excludedModes,
+        autoWorkRatio = autoWorkRatio
       )
       toLine(info)
     }

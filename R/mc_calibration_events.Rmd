@@ -15,7 +15,7 @@ It is time to calibrate the mode choice constants. To do this, we will calibrate
 
 To do this calibration, we will compare the 0.events.csv file of a run done with mode innovation turned off, with the ith.events.csv file of a run done with mode innovation turned on (where ith is the last iteration.) We will use the formula below to the calibration:
 
-$NewASC = OldASC + ln(Trips_{BEAM}/Trips_{ASIM})$
+$NewASC = OldASC + ln(Trips_{ASIM}/Trips_{BEAM})$
 
 where each formula is dependent on purpose, mode, and auto deficiency.
 
@@ -198,13 +198,54 @@ Ideas on how to understand it
 # Arrival Events
 What if I instead calibrate based on arrival events? I think every arrival represents a trip that was completed. This will make sure not to count the extra walk modes as trips that actually don't occur because the person didn't make it home. It will also account for replanning modes and unavailable ride hail vehicles, because the mode that is registered is the arrival mode. I would just have to add some attributes to the arrival events, which shouldn't be too hard!
 
+I created a new arrival event that includes all the person and trip level attributes needed for the calibration. It is called the TripArrivalEvent. I think we should calibrate based on the information in these events.
+
 ```{r}
-beamarrival <- beam %>% filter(type == "arrival") %>% 
+beamarrival <- beam %>% filter(type == "TripArrivalEvent") %>% 
   group_by(legMode) %>%
   summarize(modeNum = n())
 ```
 
   
+  
+# Tracing Utility Score
+Dr. Erhardt wants to double check that the mode choice is being calculated the way we think it is. As a way to trace how the utility score for each mode selection is calculated, I added two new attributes to the output events file, under ModeChoice event types. The two new attributes are calculatedUtility and attributeValues. Using the attributeValues and the values in the asim-long.csv file, I should be able to verify that the calculatedUtility value is correct.
+
+
+```{r, warning=FALSE, message=FALSE}
+tracerun <- read_csv("events/slc-light-2.5k-tpcm-hov-test-all__2022-01-28_06-17-02_mhw/ITERS/it.1/1.events.csv", col_types = cols(.default = "c")) %>%
+  filter(type == "ModeChoice") %>%
+  group_by(mode) %>%
+  select(person, tourPurpose, mode, attributeValues, calculatedUtility, currentTourMode, income, vehicleOwnership, availableAlternatives, personalVehicleAvailable, length, time, tourIndex, type) %>%
+  arrange(person) %>%
+  group_by(person) %>% mutate(uniqueTrip = row_number()) %>% ungroup()
+
+tracerun2 <- tracerun %>%
+  mutate(attVal = attributeValues) %>%
+  mutate(attributeValues = strsplit(attributeValues, ":")) %>% unnest() %>%
+  mutate(attributeValues = gsub("\\(","",attributeValues)) %>%
+  mutate(attributeValues = gsub("\\)","",attributeValues)) %>%
+  extract(attributeValues, c("attribute","value"), "([^,]+),([^)]+)") %>%
+  mutate(value = as.numeric(value))
+
+asimlong <- read_csv("asim-long-R-blank.csv") %>%
+  mutate(value2 = ifelse(is.na(value),0, value)) %>% 
+  select(!value)
+
+tracerun3 <- left_join(tracerun2,asimlong, by = c("attribute" = "variable", "mode" = "alternative","tourPurpose" = "latentClass")) %>%
+  rename(utilityParameter = value2, attributeValue = value) %>%
+  select(person,vehicleOwnership, tourPurpose, mode, attribute, attributeValue, utilityParameter, calculatedUtility, uniqueTrip) %>%
+  mutate(valueTimesParameter = attributeValue * utilityParameter)
+
+utilityPart1 <- tracerun3 %>%
+  group_by(person,uniqueTrip,tourPurpose, mode) %>%
+  summarize(utility1 = sum(valueTimesParameter)) %>%
+  left_join(tracerun) 
+
+badOnes <- utilityPart1 %>% 
+  mutate(netdif = abs(utility1) - abs(as.numeric(calculatedUtility))) %>%
+  filter(netdif > .0001)
+```
   
 
 # Extra Stuff

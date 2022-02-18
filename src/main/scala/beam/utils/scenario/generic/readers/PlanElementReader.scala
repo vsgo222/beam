@@ -56,7 +56,8 @@ object CsvPlanElementReader extends PlanElementReader {
       legRouteTravelTime = Option(rec.get("legRouteTravelTime")).map(_.toDouble),
       legRouteDistance = Option(rec.get("legRouteDistance")).map(_.toDouble),
       legRouteLinks = linkIds,
-      geoId = Option(rec.get("geoId"))
+      geoId = Option(rec.get("geoId")),
+      primaryPurpose = Option(rec.get("primaryPurpose"))
     )
   }
 }
@@ -109,7 +110,8 @@ object XmlPlanElementReader extends PlanElementReader {
       legRouteTravelTime = None,
       legRouteDistance = None,
       legRouteLinks = Seq.empty,
-      geoId = None
+      geoId = None,
+      primaryPurpose = None
     )
 
   private def toPlanElement(leg: Leg, plan: Plan, planIdx: Int, person: Person, planElementIdx: Int): PlanElement =
@@ -136,6 +138,7 @@ object XmlPlanElementReader extends PlanElementReader {
         case route: NetworkRoute => route.getLinkIds.asScala.map(_.toString).toSeq
         case _                   => Seq.empty
       },
-      geoId = None
+      geoId = None,
+      primaryPurpose = None
     )
 }
