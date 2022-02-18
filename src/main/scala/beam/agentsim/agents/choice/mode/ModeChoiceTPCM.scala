@@ -64,10 +64,10 @@ class ModeChoiceTPCM(
     person: Option[Person] = None,
     tourPurpose : String
   ): Option[EmbodiedBeamTrip] = {
-    // get person attributes from the person object to determine utility coefficients later on
+    // get person attributes from the attributesOfIndividual and person object to determine utility coefficients later on
       val age = attributesOfIndividual.age.get.asInstanceOf[Double]
-      val hhSize = person.get.getAttributes.getAttribute("hhSize").asInstanceOf[Double]
-      val vot = person.get.getAttributes.getAttribute("vot").asInstanceOf[Double]
+      val hhSize = attributesOfIndividual.householdAttributes.householdSize.asInstanceOf[Double]
+      val vot = attributesOfIndividual.valueOfTime
       val autoWork = person.get.getAttributes.getAttribute("autoWorkRatio").toString
     // pass tour alternatives, tour purpose, and person attributes to choice model
     choose(alternatives, tourPurpose, autoWork, age, hhSize, vot)
@@ -100,7 +100,7 @@ class ModeChoiceTPCM(
           if (alt.walkDistance > 1.5)  {alt.walkDistance} else {0.0},
           if (alt.bikeDistance <= 1.5) {alt.bikeDistance} else {0.0},
           if (alt.bikeDistance > 1.5)  {alt.bikeDistance} else {0.0},
-          alt.cost * 60 / vot, // the cost utility values in the csv are actually vehicleTime values, and this conversion creates the cost coefficient
+          if (alt.cost == 0.0 || vot == 0.0) {0.0} else {alt.cost * 60 / vot}, // the cost utility values in the csv are actually vehicleTime values, and this conversion creates the cost coefficient
           alt.destZDI,
           alt.originZDI,
           if (age >= 16.0 & age <= 19.0)  {age} else {0.0}, // TODO: is it age, or 1.0? (is this value a coeff or const?)
@@ -118,6 +118,17 @@ class ModeChoiceTPCM(
         (alt.mode, theParams)
       }// TODO: instead of .toMap, we keep it in a Vector to prevent HOV2 and HOV3 options from grouping together into CAR
 
+
+      // create a vector of extra data that can be outputted for tracing and calibration
+      val extraData = bestInGroup.map{alt =>
+        val theParams = List(
+          "(walkTransitDistances," + alt.walkToTransitDistance + ")", // in meters
+          "(cost," + alt.cost.toString + ")", // in dollars
+          "(numberOfTransfers," + alt.numTransfers + ")"
+        )
+        (alt.mode, theParams.mkString(":"))
+      }
+
       // Evaluate and sample from mode choice model
       val (model, modeModel) = lccm.modeChoiceTourModels(varType)(purpose)
       val chosenModeOpt = modeModel.sampleAlternative(modeChoiceInputData, new Random())
@@ -131,6 +142,7 @@ class ModeChoiceTPCM(
           } else {
             alternatives(chosenAlt.head.index).calculatedUtiilty = chosenModeOpt.get.utility
             alternatives(chosenAlt.head.index).attributeValues = TPCMCalculator.getListOfAttrValues(modeChoiceInputData,chosenModeOpt)
+            alternatives(chosenAlt.head.index).extraData = extraData.filter(alt => alt._1.value == chosenAlt.head.mode.value).head._2
             Some(alternatives(chosenAlt.head.index))
           }
         case None =>
@@ -256,7 +268,8 @@ class ModeChoiceTPCM(
           originZDI,
           destCBD,
           totalCost,
-          altAndIdx._2
+          altAndIdx._2,
+          walkToTransitDistance
         )
       }
     modeChoiceAlternatives.toVector
@@ -276,21 +289,21 @@ class ModeChoiceTPCM(
     tourPurpose: String,
     person: Person
   ): Double = {
-    val vot = person.getAttributes.getAttribute("vot").asInstanceOf[Double]
     val mcd = altsToBestInGroup(Vector(alternative), Mandatory).head
-    utilityOf(mcd, tourPurpose, person)
+    utilityOf(mcd, tourPurpose, person, attributesOfIndividual)
   }
 
   private def utilityOf(
     mcd: ModeChoiceData,
     tourPurpose: String,
-    person: Person
+    person: Person,
+    attributesOfIndividual: AttributesOfIndividual
   ): Double = {
     val beamTrip = mcd.embodiedBeamTrip
     val autoWork = person.getAttributes.getAttribute("autoWorkRatio").toString
-    val vot = person.getAttributes.getAttribute("vot").asInstanceOf[Double]
-    val age = person.getAttributes.getAttribute("age").asInstanceOf[Int].asInstanceOf[Double]
-    val hhSize = person.getAttributes.getAttribute("hhSize").asInstanceOf[Double]
+    val vot = attributesOfIndividual.valueOfTime
+    val age = attributesOfIndividual.age.get.asInstanceOf[Double]
+    val hhSize = attributesOfIndividual.householdAttributes.householdSize.asInstanceOf[Double]
     val theParams = attributes(
       mcd.vehicleTime,
       mcd.waitTime,
@@ -304,7 +317,7 @@ class ModeChoiceTPCM(
       if (mcd.walkDistance > 1.5) {mcd.walkDistance} else {0.0},
       if (mcd.bikeDistance <= 1.5) {mcd.bikeDistance} else {0.0},
       if (mcd.bikeDistance > 1.5) {mcd.bikeDistance} else {0.0},
-      mcd.cost * 60 / vot,
+      if (mcd.cost == 0.0 || vot == 0.0) {0.0} else {mcd.cost * 60 / vot},
       mcd.destZDI,
       mcd.originZDI,
       if (age >= 16.0 & age <= 19.0)  {age} else {0.0},
@@ -393,6 +406,7 @@ class ModeChoiceTPCM(
     originZDI: Double,
     destCBD: Double,
     cost: Double,
-    index: Int = -1
+    index: Int = -1,
+    walkToTransitDistance: String
   )
 }

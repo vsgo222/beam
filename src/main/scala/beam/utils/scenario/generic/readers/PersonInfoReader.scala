@@ -30,6 +30,7 @@ object CsvPersonInfoReader extends PersonInfoReader {
     val rank = getIfNotNull(rec, "householdRank").toInt
     val excludedModes = Try(getIfNotNull(rec, "excludedModes")).getOrElse("").split(",")
     val valueOfTime = NumberUtils.toDouble(Try(getIfNotNull(rec, "valueOfTime")).getOrElse("0"), 0d)
+    val autoWorkRatio = rec.get("autoWorkRatio")
     PersonInfo(
       personId = PersonId(personId),
       householdId = HouseholdId(householdId),
@@ -37,7 +38,8 @@ object CsvPersonInfoReader extends PersonInfoReader {
       age = age,
       excludedModes = excludedModes,
       isFemale = isFemale,
-      valueOfTime = valueOfTime
+      valueOfTime = valueOfTime,
+      autoWorkRatio = autoWorkRatio
     )
   }
 }

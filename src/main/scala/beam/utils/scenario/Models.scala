@@ -11,7 +11,8 @@ case class PersonInfo(
   age: Int,
   excludedModes: Seq[String] = Seq.empty,
   isFemale: Boolean,
-  valueOfTime: Double
+  valueOfTime: Double,
+  autoWorkRatio: String
 )
 
 object PlanElement {
@@ -49,7 +50,8 @@ case class PlanElement(
   legRouteTravelTime: Option[Double],
   legRouteDistance: Option[Double],
   legRouteLinks: Seq[String],
-  geoId: Option[String]
+  geoId: Option[String],
+  primaryPurpose: Option[String]
 )
 
 case class HouseholdInfo(householdId: HouseholdId, cars: Int, income: Double, locationX: Double, locationY: Double)

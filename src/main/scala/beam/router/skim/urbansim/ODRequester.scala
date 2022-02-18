@@ -221,6 +221,7 @@ class ODRequester(
     val personVOTT = PopulationAdjustment
       .incomeToValueOfTime(dummyHouseholdAttributes.householdIncome)
       .getOrElse(beamConfig.beam.agentsim.agents.modalBehaviors.defaultValueOfTime)
+    val autoWorkRatio = "auto_sufficient"
     AttributesOfIndividual(
       householdAttributes = dummyHouseholdAttributes,
       modalityStyle = None,
@@ -228,7 +229,8 @@ class ODRequester(
       availableModes = Seq(CAR, WALK_TRANSIT, BIKE, DRIVE_TRANSIT),
       valueOfTime = personVOTT,
       age = None,
-      income = Some(dummyHouseholdAttributes.householdIncome)
+      income = Some(dummyHouseholdAttributes.householdIncome),
+      autoWorkRatio = autoWorkRatio
     )
   }
 }
