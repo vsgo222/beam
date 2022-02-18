@@ -184,6 +184,7 @@ object RouteDumper {
     record.put("valueOfTime", attributesOfIndividual.valueOfTime)
     attributesOfIndividual.age.foreach(record.put("age", _))
     attributesOfIndividual.income.foreach(record.put("income", _))
+    record.put("autoWorkRatio", attributesOfIndividual.autoWorkRatio)
     record
   }
 
@@ -396,7 +397,8 @@ object RouteDumper {
       new Schema.Field("availableModes", nullable[String], "availableModes", null.asInstanceOf[Any]),
       new Schema.Field("valueOfTime", nullable[Double], "valueOfTime", null.asInstanceOf[Any]),
       new Schema.Field("age", nullable[Int], "age", null.asInstanceOf[Any]),
-      new Schema.Field("income", nullable[Double], "income", null.asInstanceOf[Any])
+      new Schema.Field("income", nullable[Double], "income", null.asInstanceOf[Any]),
+      new Schema.Field("autoWorkRatio", nullable[String], "autoWorkRatio", null.asInstanceOf[Any])
     )
     Schema.createRecord("AttributesOfIndividual", "", "", false, fields.asJava)
   }

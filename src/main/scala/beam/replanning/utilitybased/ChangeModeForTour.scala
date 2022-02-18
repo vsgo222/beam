@@ -251,6 +251,8 @@ class ChangeModeForTour(
         .asInstanceOf[Int]
     )
 
+    val autoWorkRatio = person.getAttributes.getAttribute("autoWorkRatio").toString
+
     val attributesOfIndividual =
       AttributesOfIndividual(
         HouseholdAttributes(household, householdVehicles),
@@ -261,7 +263,8 @@ class ChangeModeForTour(
         Option(PersonUtils.getAge(person)),
         income.map { x =>
           x
-        }
+        },
+        autoWorkRatio
       )
 
     person.getCustomAttributes.put("beam-attributes", attributesOfIndividual)

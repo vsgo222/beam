@@ -152,6 +152,7 @@ class BeamScenarioLoader(
       personAttributes.putAttribute(personId, "excluded-modes", personInfo.excludedModes.mkString(","))
       person.getAttributes.putAttribute("sex", sexChar)
       person.getAttributes.putAttribute("age", personInfo.age)
+      person.getAttributes.putAttribute("autoWorkRatio", personInfo.autoWorkRatio)
 
       result.addPerson(person)
     }

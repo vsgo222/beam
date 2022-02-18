@@ -221,8 +221,10 @@ class PumaLevelScenarioGenerator(
                   workLocations.lift(offset) match {
                     case Some(wgsWorkingLocation) =>
                       if (mapBoundingBox.contains(wgsWorkingLocation.getX, wgsWorkingLocation.getY)) {
-                        val valueOfTime =
+                        val valueOfTime = {
                           PopulationAdjustment.incomeToValueOfTime(household.income).getOrElse(defaultValueOfTime)
+                        }
+                        val autoWorkRatio = PopulationAdjustment.getAutoWorkRatio(person.id.toString)
                         val createdPerson = beam.utils.scenario.PersonInfo(
                           personId = PersonId(nextPersonId.toString),
                           householdId = createdHousehold.householdId,
@@ -230,7 +232,8 @@ class PumaLevelScenarioGenerator(
                           age = person.age,
                           excludedModes = Seq.empty,
                           isFemale = person.gender == Gender.Female,
-                          valueOfTime = valueOfTime
+                          valueOfTime = valueOfTime,
+                          autoWorkRatio
                         )
                         val timeLeavingHomeSeconds = drawTimeLeavingHome(timeLeavingHomeRange)
 

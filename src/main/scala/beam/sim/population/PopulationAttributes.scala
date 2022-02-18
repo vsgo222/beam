@@ -25,7 +25,8 @@ case class AttributesOfIndividual(
   availableModes: Seq[BeamMode],
   valueOfTime: Double,
   age: Option[Int],
-  income: Option[Double]
+  income: Option[Double],
+  autoWorkRatio: String
 ) extends PopulationAttributes {
   lazy val hasModalityStyle: Boolean = modalityStyle.nonEmpty
 
@@ -195,7 +196,7 @@ case class AttributesOfIndividual(
 object AttributesOfIndividual {
 
   val EMPTY: AttributesOfIndividual =
-    AttributesOfIndividual(HouseholdAttributes.EMPTY, None, true, Seq(), 0.0, None, None)
+    AttributesOfIndividual(HouseholdAttributes.EMPTY, None, true, Seq(), 0.0, None, None, "")
 }
 
 case class HouseholdAttributes(

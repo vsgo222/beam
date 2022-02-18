@@ -231,6 +231,7 @@ object PopulationAdjustment extends LazyLogging {
   // create a map to store each person's id and modality style
   var peeps = Map[String,Option[String]]()
   var purps = Map[String,Array[String]]()
+  var autoWorkRatios = Map[String,String]()
 
   def createAttributesOfIndividual(
     beamScenario: BeamScenario,
@@ -274,6 +275,9 @@ object PopulationAdjustment extends LazyLogging {
         .toSet.toArray
       purps += (person.getId.toString -> purposes)
     }
+    //autoWorkRatio stuff
+    val autoWorkRatio = person.getAttributes.getAttribute("autoWorkRatio").toString
+    autoWorkRatios += (person.getId.toString -> autoWorkRatio)
     //modality style stuff
     val modalityStyle =
       Option(person.getSelectedPlan)
@@ -303,7 +307,8 @@ object PopulationAdjustment extends LazyLogging {
       availableModes = availableModes,
       valueOfTime = valueOfTime,
       age = Option(PersonUtils.getAge(person)),
-      income = Some(income)
+      income = Some(income),
+      autoWorkRatio = autoWorkRatio
     )
   }
 
@@ -324,4 +329,9 @@ object PopulationAdjustment extends LazyLogging {
   def getTourPurposes(personId: String): Array[String] = {
     purps(personId)
   }
+
+  def getAutoWorkRatio(personId: String): String = {
+    autoWorkRatios(personId)
+  }
+
 }
