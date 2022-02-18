@@ -64,10 +64,10 @@ class ModeChoiceTPCM(
     person: Option[Person] = None,
     tourPurpose : String
   ): Option[EmbodiedBeamTrip] = {
-    // get person attributes from the person object to determine utility coefficients later on
+    // get person attributes from the attributesOfIndividual and person object to determine utility coefficients later on
       val age = attributesOfIndividual.age.get.asInstanceOf[Double]
-      val hhSize = person.get.getAttributes.getAttribute("hhSize").asInstanceOf[Double]
-      val vot = person.get.getAttributes.getAttribute("vot").asInstanceOf[Double]
+      val hhSize = attributesOfIndividual.householdAttributes.householdSize.asInstanceOf[Double]
+      val vot = attributesOfIndividual.valueOfTime
       val autoWork = person.get.getAttributes.getAttribute("autoWorkRatio").toString
     // pass tour alternatives, tour purpose, and person attributes to choice model
     choose(alternatives, tourPurpose, autoWork, age, hhSize, vot)
@@ -289,21 +289,21 @@ class ModeChoiceTPCM(
     tourPurpose: String,
     person: Person
   ): Double = {
-    val vot = person.getAttributes.getAttribute("vot").asInstanceOf[Double]
     val mcd = altsToBestInGroup(Vector(alternative), Mandatory).head
-    utilityOf(mcd, tourPurpose, person)
+    utilityOf(mcd, tourPurpose, person, attributesOfIndividual)
   }
 
   private def utilityOf(
     mcd: ModeChoiceData,
     tourPurpose: String,
-    person: Person
+    person: Person,
+    attributesOfIndividual: AttributesOfIndividual
   ): Double = {
     val beamTrip = mcd.embodiedBeamTrip
     val autoWork = person.getAttributes.getAttribute("autoWorkRatio").toString
-    val vot = person.getAttributes.getAttribute("vot").asInstanceOf[Double]
-    val age = person.getAttributes.getAttribute("age").asInstanceOf[Int].asInstanceOf[Double]
-    val hhSize = person.getAttributes.getAttribute("hhSize").asInstanceOf[Double]
+    val vot = attributesOfIndividual.valueOfTime
+    val age = attributesOfIndividual.age.get.asInstanceOf[Double]
+    val hhSize = attributesOfIndividual.householdAttributes.householdSize.asInstanceOf[Double]
     val theParams = attributes(
       mcd.vehicleTime,
       mcd.waitTime,
