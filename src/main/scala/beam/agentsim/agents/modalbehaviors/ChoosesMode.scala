@@ -1434,6 +1434,8 @@ trait ChoosesMode {
         case _ =>
           Vector()
       }
+          val currentTrip = choosesModeData.personData.currentTrip.getOrElse(EmbodiedBeamTrip.empty)
+          val hasRHVehicle = currentTrip.vehiclesInTrip.mkString(":").contains("rideHailVehicle")
         val autoWork = matsimPlan.getPerson.getAttributes.getAttribute("autoWorkRatio").toString
         val tripIndexOfElement = currentTour(choosesModeData.personData).tripIndexOfElement(nextAct)
           .getOrElse(throw new IllegalArgumentException(s"Element [$nextAct] not found"))
@@ -1449,8 +1451,8 @@ trait ChoosesMode {
         else if (routingResponse.itineraries.map(_.tripClassifier.value).contains("hov3")) {
           val hov3Itin = routingResponse.itineraries.filter(_.tripClassifier.value == "hov3").head
           convertBetweenCarAndHOV(hov3Itin, CAR, HOV2, autoWork)
-        } else if (routingResponse.itineraries.map(_.tripClassifier).contains(WALK)) {
-          if (autoWork == "no_auto") {
+        } else if (routingResponse.itineraries.map(_.tripClassifier).contains(WALK)) { // doesn't work :(
+          if (autoWork == "no_auto" && (hasRHVehicle == false || choosesModeData.personData.hasDeparted == false)) { // don't allow agents in the middle of a ride hail request to have teleportation options
             // Teleport HOV options for those agents that don't have a car or HOV option already
             // might be causing duplicated hov teleport options if teleport is already an option that exists
             val walkItin = routingResponse.itineraries.filter(_.tripClassifier.value == "walk").head
@@ -1459,7 +1461,10 @@ trait ChoosesMode {
               itineraries = routingResponse.itineraries ++ teleportItin2 ++ teleportItin3
             )
             correctRoutingResponse(newRoutingResponse).itineraries.filter(_.tripClassifier.value != "walk")
-          } else Seq()
+          } else {
+            logger.warn("not giving agent " + matsimPlan.getPerson.getId.toString + " any hov options | hasDeparted = " + choosesModeData.personData.hasDeparted.toString + ", hasRHVeh = " + hasRHVehicle + ", autowork = " + autoWork)
+            Seq()
+          }
         } else Seq()
       } else Seq()
       var combinedItinerariesForChoice = rideHailItinerary ++ addParkingCostToItins(
@@ -1477,7 +1482,7 @@ trait ChoosesMode {
       val availableModesForTrips: Seq[BeamMode] = availableModesForPerson(matsimPlan.getPerson)
         .filterNot(mode => choosesModeData.excludeModes.contains(mode))
 
-      val filteredItinerariesForChoice = (choosesModeData.personData.currentTourMode match {
+      var filteredItinerariesForChoice = (choosesModeData.personData.currentTourMode match {
         case Some(mode) if mode == DRIVE_TRANSIT || mode == BIKE_TRANSIT =>
           val LastTripIndex = currentTour(choosesModeData.personData).trips.size - 1
           (tripIndexOfElement, personData.hasDeparted) match {
@@ -1543,16 +1548,22 @@ trait ChoosesMode {
             val hasRHVehicle = currentTrip.vehiclesInTrip.mkString(":").contains("rideHailVehicle")
             (
               choosesModeData.personData.currentTourMode,
-              hasRHVehicle
+              hasRHVehicle,
+              choosesModeData.personData.hasDeparted
             ) match {
               // only allow conversion to teleportation to occur during mode choice (when currentTourMode is None)
               // TODO Converting to a Teleportation trip here will cause a Trigger Error with some Ride Hail type Trips, so this is a weird work around
-              case (None, false) =>
+              case (None, false, _) =>
                 dataForNextStep = createHovDataForNextStep(
                   chosenTrip, choosesModeData, availableAlts, routerAlternatives,
                   hov2TeleportCount, hov3TeleportCount, hov2CarCount, hov3CarCount
                 )
-              case (None, true) =>
+              case (None, true, false) =>
+                dataForNextStep = createHovDataForNextStep(
+                  chosenTrip, choosesModeData, availableAlts, routerAlternatives,
+                  hov2TeleportCount, hov3TeleportCount, hov2CarCount, hov3CarCount
+                )
+              case (None, true, true) =>
                 logger.warn("To prevent trigger error, not allowing RideHail Trip to convert to Teleportation during mode choice")
                 logger.warn("The chosen trip will remain: " + chosenTrip.toString())
                 dataForNextStep = dataForNextStep
@@ -1743,19 +1754,19 @@ trait ChoosesMode {
 
       case _ =>
         if (Vector("hov2_teleportation","hov3_teleportation").contains(chosenTrip.tripClassifier.value)){
-          scheduler ! CompletionNotice(
-            triggerId,
-            Vector(
-              ScheduleTrigger(
-                PersonDepartureTrigger(math.max(chosenTrip.legs.head.beamLeg.startTime, tick)),
-                self
+            scheduler ! CompletionNotice(
+              triggerId,
+              Vector(
+                ScheduleTrigger(
+                  PersonDepartureTrigger(math.max(chosenTrip.legs.head.beamLeg.startTime, tick)),
+                  self
+                )
               )
             )
-          )
-
             goto(Teleporting) using data.personData.copy(
               currentTrip = Some(chosenTrip),
               restOfCurrentTrip = List(),
+              //hasDeparted = false,
               currentTourMode = data.personData.currentTourMode
                 .orElse(Some(chosenTrip.tripClassifier))
             )
