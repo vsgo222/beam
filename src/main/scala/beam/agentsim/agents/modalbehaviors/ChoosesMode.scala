@@ -1462,7 +1462,8 @@ trait ChoosesMode {
             )
             correctRoutingResponse(newRoutingResponse).itineraries.filter(_.tripClassifier.value != "walk")
           } else {
-            logger.warn("not giving agent " + matsimPlan.getPerson.getId.toString + " any hov options | hasDeparted = " + choosesModeData.personData.hasDeparted.toString + ", hasRHVeh = " + hasRHVehicle + ", autowork = " + autoWork)
+            if (autoWork == "no_auto") logger.warn("Not giving agent " + matsimPlan.getPerson.getId.toString + " any hov options because hasDepart = " + choosesModeData.personData.hasDeparted)
+            else logger.warn("Not giving agent " + matsimPlan.getPerson.getId.toString + " any hov options because router didn't provide any vehicle routes")
             Seq()
           }
         } else Seq()
@@ -1763,6 +1764,7 @@ trait ChoosesMode {
                 )
               )
             )
+
             goto(Teleporting) using data.personData.copy(
               currentTrip = Some(chosenTrip),
               restOfCurrentTrip = List(),
