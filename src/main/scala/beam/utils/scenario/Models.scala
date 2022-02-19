@@ -12,7 +12,8 @@ case class PersonInfo(
   excludedModes: Seq[String] = Seq.empty,
   isFemale: Boolean,
   valueOfTime: Double,
-  autoWorkRatio: String
+  autoWorkRatio: String,
+  income: Double
 )
 
 object PlanElement {

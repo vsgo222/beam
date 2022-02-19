@@ -254,11 +254,7 @@ object PopulationAdjustment extends LazyLogging {
       excludedModes.exists(em => em.equalsIgnoreCase(mode.value))
     }
     // Read person attribute "income" and default it to 0 if not set
-    val income = Option(personAttributes.getAttribute(person.getId.toString, "income"))
-      .map(_.asInstanceOf[Double])
-      .getOrElse(
-        Option(person.getAttributes.getAttribute("income")).map(_.asInstanceOf[Double]).getOrElse(0D)
-      )
+    val income = Option(person.getAttributes.getAttribute("income").asInstanceOf[Double]).getOrElse(0D)
     //tour purpose stuff
       //all activity attributes are used; if only one activity exists in the plan, it means no trips
       //are taken, so a default value is given so the code doesn't break

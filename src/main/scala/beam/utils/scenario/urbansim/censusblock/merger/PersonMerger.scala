@@ -19,7 +19,8 @@ class PersonMerger(inputHousehold: Map[String, InputHousehold]) extends Merger[I
       excludedModes = Seq.empty,
       isFemale = inputPersonInfo.sex.isFemale,
       valueOfTime = income,
-      autoWorkRatio = "auto_sufficient"
+      autoWorkRatio = "auto_sufficient",
+      income = 0.0
     )
   }
 }
