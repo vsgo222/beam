@@ -25,7 +25,8 @@ object R5Requester extends BeamHelper {
       availableModes = Seq(BeamMode.CAR, BeamMode.WALK_TRANSIT, BeamMode.BIKE),
       valueOfTime = 17.15686274509804,
       age = None,
-      income = Some(70000.0)
+      income = Some(70000.0),
+      autoWorkRatio = "auto_sufficient"
     )
     val personId = Id.createPersonId(1)
     RoutingRequest(

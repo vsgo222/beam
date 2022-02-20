@@ -153,7 +153,7 @@ object ModeChoiceCalculator {
         val lccm = new LatentClassChoiceModel(beamServices)
         (attributesOfIndividual: AttributesOfIndividual) =>
           attributesOfIndividual match {
-            case AttributesOfIndividual(_, Some(modalityStyle), _, _, _, _, _) =>
+            case AttributesOfIndividual(_, Some(modalityStyle), _, _, _, _, _, _) =>
               new ModeChoiceLCCM(
                 beamServices,
                 lccm,

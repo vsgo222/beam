@@ -231,6 +231,7 @@ object PopulationAdjustment extends LazyLogging {
   // create a map to store each person's id and modality style
   var peeps = Map[String,Option[String]]()
   var purps = Map[String,Array[String]]()
+  var autoWorkRatios = Map[String,String]()
 
   def createAttributesOfIndividual(
     beamScenario: BeamScenario,
@@ -253,22 +254,26 @@ object PopulationAdjustment extends LazyLogging {
       excludedModes.exists(em => em.equalsIgnoreCase(mode.value))
     }
     // Read person attribute "income" and default it to 0 if not set
-    val income = Option(personAttributes.getAttribute(person.getId.toString, "income"))
-      .map(_.asInstanceOf[Double])
-      .getOrElse(
-        Option(person.getAttributes.getAttribute("income")).map(_.asInstanceOf[Double]).getOrElse(0D)
-      )
+    val income = Option(person.getAttributes.getAttribute("income").asInstanceOf[Double]).getOrElse(0D)
     //tour purpose stuff
       //all activity attributes are used; if only one activity exists in the plan, it means no trips
       //are taken, so a default value is given so the code doesn't break
-    val activities: List[Activity] = person.getSelectedPlan.getPlanElements.asScala
-      .collect{ case activity: Activity => activity }
-      .toList
-    if (activities.length < 2){ activities.map(_.getAttributes.putAttribute("primary_purpose","none")) }
-    val purposes : Array[String] = activities
-      .flatMap(act => Option(act.getAttributes.getAttribute("primary_purpose")).map(_.toString.toLowerCase))
-      .toSet.toArray
-    purps += (person.getId.toString -> purposes)
+    val plansize = person.getPlans.size
+    if (plansize > 0 ) {
+      val activities: List[Activity] = person.getSelectedPlan.getPlanElements.asScala
+        .collect { case activity: Activity => activity }
+        .toList
+      if (activities.length < 2) {
+        activities.map(_.getAttributes.putAttribute("primary_purpose", "none"))
+      }
+      val purposes: Array[String] = activities
+        .flatMap(act => Option(act.getAttributes.getAttribute("primary_purpose")).map(_.toString.toLowerCase))
+        .toSet.toArray
+      purps += (person.getId.toString -> purposes)
+    }
+    //autoWorkRatio stuff
+    val autoWorkRatio = person.getAttributes.getAttribute("autoWorkRatio").toString
+    autoWorkRatios += (person.getId.toString -> autoWorkRatio)
     //modality style stuff
     val modalityStyle =
       Option(person.getSelectedPlan)
@@ -298,7 +303,8 @@ object PopulationAdjustment extends LazyLogging {
       availableModes = availableModes,
       valueOfTime = valueOfTime,
       age = Option(PersonUtils.getAge(person)),
-      income = Some(income)
+      income = Some(income),
+      autoWorkRatio = autoWorkRatio
     )
   }
 
@@ -319,4 +325,9 @@ object PopulationAdjustment extends LazyLogging {
   def getTourPurposes(personId: String): Array[String] = {
     purps(personId)
   }
+
+  def getAutoWorkRatio(personId: String): String = {
+    autoWorkRatios(personId)
+  }
+
 }
