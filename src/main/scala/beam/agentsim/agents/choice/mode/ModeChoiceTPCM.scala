@@ -382,9 +382,17 @@ class ModeChoiceTPCM(
         .lift(tripIndex).get
         .getAttributes.getAttribute("primary_purpose")
         .toString.toLowerCase
+
       scoreList += utilityOf(trip, attributesOfIndividual, tripPurpose, tourPurpose, person)
+
     }
     scoreList.sum
+  }
+
+  def activityIntercept(
+      mcd:ModeChoiceData
+  ): Double = {
+    mcd.vehicleTime
   }
 
   case class ModeChoiceData(
