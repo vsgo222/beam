@@ -241,21 +241,14 @@ class DestinationChoiceModel(
   def getActivityUtility(
     activity: Activity,
     attributesOfIndividual: AttributesOfIndividual
-
   ): Double = {
     val (actStart, actEnd) = getRealStartEndTime(activity)
     val actDuration = actEnd - actStart
     val activityValueOfTime =
       attributesOfIndividual.getVOT(actDuration / 3600) * activityVOTs.getOrElse(activity.getType, 1.0d)
-    //getVOT function takes a value and multiplies it to a persons VOT
-    //activityDuration is in seconds, so we convert it to hours
-    //VOT should be in dollars per hour
-    val activityIntercept = 0d
-//    val activityIntercept = activityRates
-//      .getOrElse(activity.getType, Map[Int, Double]())
-//      .getOrElse(secondsToIndex(actStart), 0d)
-    //make the activity intercept equal to 30 minutes of in-vehicle travel time.
-
+    val activityIntercept = activityRates
+      .getOrElse(activity.getType, Map[Int, Double]())
+      .getOrElse(secondsToIndex(actStart), 0d)
     val tripIntercept = activity.getType.toLowerCase match {
       case "home" | "work" => 0d
       case _               => beamConfig.beam.agentsim.agents.tripBehaviors.mulitnomialLogit.additional_trip_utility

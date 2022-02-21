@@ -1,17 +1,22 @@
 package beam.scoring
 
 import beam.agentsim.agents.PersonAgent
-import beam.agentsim.agents.choice.mode.{ModeChoiceMultinomialLogit, ModeChoiceTPCMCalculator}
+import beam.agentsim.agents.choice.mode.ModeChoiceMultinomialLogit
 import beam.agentsim.events.{LeavingParkingEvent, ModeChoiceEvent, ReplanningEvent}
 import beam.replanning.ReplanningUtil
 import beam.router.model.EmbodiedBeamTrip
 import beam.sim.config.BeamConfig
 import beam.sim.population.AttributesOfIndividual
 import beam.sim.population.PopulationAdjustment._
-import beam.sim.{BeamConfigChangesObservable, BeamConfigChangesObserver, BeamServices, MapStringDouble, OutputDataDescription}
+import beam.sim.{
+  BeamConfigChangesObservable,
+  BeamConfigChangesObserver,
+  BeamServices,
+  MapStringDouble,
+  OutputDataDescription
+}
 import beam.utils.{FileUtils, OutputDataDescriptor}
 import com.typesafe.scalalogging.LazyLogging
-
 import javax.inject.{Inject, Singleton}
 import org.matsim.api.core.v01.events.{Event, PersonArrivalEvent}
 import org.matsim.api.core.v01.population.{Activity, Leg, Person}
@@ -79,7 +84,6 @@ class BeamScoringFunctionFactory @Inject() (
       private var finalScore = 0.0
       private val trips = mutable.ListBuffer[EmbodiedBeamTrip]()
       private var leavingParkingEventScore = 0.0
-      private var activityIntercept = 0.0
 
       override def handleEvent(event: Event): Unit = {
         event match {
@@ -139,8 +143,9 @@ class BeamScoringFunctionFactory @Inject() (
             activity
           }
           .filter(activity => !activity.getType.equalsIgnoreCase("Home") & !activity.getType.equalsIgnoreCase("Work"))
-        val activityScore = personActivities.foldLeft(0.0)(_ + getActivityBenefit(_, attributes))//remove the activity_intercept and adding it to allDayScore
-        finalScore = allDayScore + leavingParkingEventScore + activityScore - activityIntercept //activityIntercept is in in-vehicle travel time, so a disutility
+        val activityScore = personActivities.foldLeft(0.0)(_ + getActivityBenefit(_, attributes))
+
+        finalScore = allDayScore + leavingParkingEventScore + activityScore
         finalScore = Math.max(
           finalScore,
           -100000
@@ -203,17 +208,6 @@ class BeamScoringFunctionFactory @Inject() (
 
         // save the generated output data to an in-memory map , to be written at the end of the iteration
         setPersonScore(person.getId.toString, tripScoreData)
-      }
-
-      //method to get the activityIntercept as 30 minutes of vehicle time
-      private def getActivityIntercept(): Unit = {
-        //For each trip , get the total travel time
-        val tripScoreData = trips.zipWithIndex map { tripWithIndex =>
-          val (trip, tripIndex) = tripWithIndex
-          val totalTravelTimeInSecs = trip.totalTravelTimeInSecs/1800
-          activityIntercept += totalTravelTimeInSecs
-        }
-
       }
 
       /**
