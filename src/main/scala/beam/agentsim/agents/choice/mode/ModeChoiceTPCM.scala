@@ -371,7 +371,10 @@ class ModeChoiceTPCM(
   ): Double = {
     val scoreList = new ListBuffer[Double]
     trips.zipWithIndex map { tripWithIndex =>
+
+
       val (trip, tripIndex) = tripWithIndex
+      val totalTravelTimeIn30mins = trip.totalTravelTimeInSecs/1800
       val tripPurpose = person.getSelectedPlan.getPlanElements.asScala
         .filter(_.isInstanceOf[Activity])
         .map(_.asInstanceOf[Activity])
@@ -383,17 +386,12 @@ class ModeChoiceTPCM(
         .getAttributes.getAttribute("primary_purpose")
         .toString.toLowerCase
 
-      scoreList += utilityOf(trip, attributesOfIndividual, tripPurpose, tourPurpose, person)
+      scoreList += utilityOf(trip, attributesOfIndividual, tripPurpose, tourPurpose, person) - totalTravelTimeIn30mins
 
     }
     scoreList.sum
   }
 
-  def activityIntercept(
-      mcd:ModeChoiceData
-  ): Double = {
-    mcd.vehicleTime
-  }
 
   case class ModeChoiceData(
     embodiedBeamTrip: EmbodiedBeamTrip,
