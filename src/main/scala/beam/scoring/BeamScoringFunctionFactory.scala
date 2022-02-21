@@ -140,8 +140,7 @@ class BeamScoringFunctionFactory @Inject() (
           }
           .filter(activity => !activity.getType.equalsIgnoreCase("Home") & !activity.getType.equalsIgnoreCase("Work"))
         val activityScore = personActivities.foldLeft(0.0)(_ + getActivityBenefit(_, attributes))//remove the activity_intercept and adding it to allDayScore
-
-        finalScore = allDayScore + leavingParkingEventScore + activityScore //activityIntercept is in in-vehicle travel time, so a disutility, calculated in allDayScore
+        finalScore = allDayScore + leavingParkingEventScore + activityScore - activityIntercept //activityIntercept is in in-vehicle travel time, so a disutility
         finalScore = Math.max(
           finalScore,
           -100000
@@ -206,6 +205,16 @@ class BeamScoringFunctionFactory @Inject() (
         setPersonScore(person.getId.toString, tripScoreData)
       }
 
+      //method to get the activityIntercept as 30 minutes of vehicle time
+      private def getActivityIntercept(): Unit = {
+        //For each trip , get the total travel time
+        val tripScoreData = trips.zipWithIndex map { tripWithIndex =>
+          val (trip, tripIndex) = tripWithIndex
+          val totalTravelTimeInSecs = trip.totalTravelTimeInSecs/1800
+          activityIntercept += totalTravelTimeInSecs
+        }
+
+      }
 
       /**
         * Writes generalized link stats to csv file.

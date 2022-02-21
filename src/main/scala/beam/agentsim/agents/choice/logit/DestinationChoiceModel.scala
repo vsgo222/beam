@@ -250,7 +250,7 @@ class DestinationChoiceModel(
     //getVOT function takes a value and multiplies it to a persons VOT
     //activityDuration is in seconds, so we convert it to hours
     //VOT should be in dollars per hour
-    //val activityIntercept = 0d
+    val activityIntercept = 0d
 //    val activityIntercept = activityRates
 //      .getOrElse(activity.getType, Map[Int, Double]())
 //      .getOrElse(secondsToIndex(actStart), 0d)
@@ -260,7 +260,7 @@ class DestinationChoiceModel(
       case "home" | "work" => 0d
       case _               => beamConfig.beam.agentsim.agents.tripBehaviors.mulitnomialLogit.additional_trip_utility
     }
-    activityValueOfTime +  tripIntercept
+    activityValueOfTime + activityIntercept + tripIntercept
   }
 
   private def getRealStartEndTime(
