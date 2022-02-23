@@ -1,0 +1,164 @@
+---
+title: "Subtour Analysis"
+author: "Chris Day"
+date: "2/21/2022"
+output: html_document
+---
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+source("subtour_functions.R")
+```
+
+
+## Introduction
+Part of my thesis will be comparing the mode choice of ASIM vs BEAM. A way of comparing these things is to see how both determine modes on subtours. We are going to compare the two in this memo. 
+
+In order to complete this comparison, we must first understand that BEAM runs for multiple iterations. Iteration 0 is almost identical to the outputs of ASIM (on a run where mode choice innovation is turned off), whereas the last iteration, Iteration X, is the final output of BEAM. This summary is shown below:
+
+  - ASIM --> Iteration 0 with MC Innovation Turned Off
+  - BEAM --> Iteration X (last iteration) with MC Innovation Turned On 
+  
+In addition, a new event was created in the BEAM framework called the TripArrivalEvent. This shows all the trip statistics as an agent is arriving at their activity. This event, from the output events file will be used to compare mode choices on subtours.
+
+## Read Data
+
+Let's read in the data. Please note that we are only using one events file here. So, in the futre, the iteration 0 used for ASIM needs to be changed to an iteration 0 run where MC innovation was turned off. We are ignoring that here as we just want to figure out the code first. 
+
+```{r}
+csvevents2.5k <- read_csv("events/slc-light-csv-test__2022-02-21_09-45-10_mqc/ITERS/it.1/1.events.csv", col_types = cols(.default = "c")) %>%
+  filter(type == "TripArrivalEvent") %>%
+  select(person,time,type,mode,currentTourMode,income,vehicleOwnership,length,tourIndex,tourPurpose,activityIndex,actType,locationX,locationY)
+```
+
+## Subtour Determination
+Now lets manipulate the data to determine subtours.
+
+```{r}
+tripArrivals <- csvevents2.5k %>%
+  arrange(person,tourIndex,activityIndex) %>%
+  select(person,tourIndex,activityIndex,actType,locationX,locationY,mode)
+```
+
+```{r}
+subtest1 <- tripArrivals %>% group_by(person,tourIndex) %>%
+  mutate(dupAct1 = duplicated(actType),
+         dupX1 = duplicated(locationX),
+         dupY1 = duplicated(locationY)) %>%
+  ungroup() 
+```
+
+```{r}
+subtest2 <- subtest1 %>% arrange(person,desc(activityIndex)) %>% 
+  group_by(person,tourIndex) %>%
+  mutate(dupAct2 = duplicated(actType),
+         dupX2 = duplicated(locationX),
+         dupY2 = duplicated(locationY)) %>%
+  ungroup() 
+```
+
+```{r}
+subtest <- subtest2 %>%
+  mutate(dupAct = ifelse(dupAct1 == TRUE, "endSub", ifelse(dupAct2 == TRUE, "startSub", FALSE)),
+         dupX = ifelse(dupX1 == TRUE | dupX2 == TRUE, TRUE, FALSE),
+         dupY = ifelse(dupY1 == TRUE | dupY2 == TRUE, TRUE, FALSE)) %>%
+  select(person,tourIndex,activityIndex,actType,locationX,locationY,mode,dupAct,dupX,dupY) %>%
+  arrange(person,tourIndex,activityIndex) %>%
+  mutate(dupAct = ifelse(actType != "Home", dupAct, FALSE))
+```
+
+We now have a table where duplicated activities that occur on the same tour are identified. Home duplicated activities are filtered out, because subtours happen before returning Home. In addition, the duplicated locationX and locationY are used to further identify if these locations are actually correct. We do not however, use them right now because practically no locations are identical, even for Home activites. So for now, we ignore these columns but in the future it will be important to use them to determine if an agent is returning back to the same activity before returning Home.
+
+Now, we are going to identify the trips that are subtours by determining the activities that exist inbetween the duplicated activites in the same tour. This is done below.
+
+```{r}
+middlesubs <- subtest %>%
+  select(-dupX, -dupY) %>% #ignore this stuff for now
+  group_by(person,tourIndex) %>%
+  mutate(
+    middlesub = ifelse(lag(dupAct) == TRUE, TRUE, dupAct))
+```
+
+
+## Try using Final_Trips ASIM output
+
+Instead, we need to use the asim outputs because they have consistent coordinates. Turns out we just have TAZs matching up so no need to use this crap. Lets just join taz info to 
+
+```{r, message=FALSE, warning=FALSE}
+asim_final_trips <- read_csv("events/final_trips.csv") %>%
+  filter(person_id< 100000) %>%
+  select(trip_id, person_id, tour_id, trip_num, trip_count, purpose, origin, destination, trip_mode)
+```
+
+```{r}
+subtestA1 <- asim_final_trips %>% 
+  group_by(person_id, tour_id) %>%
+  mutate(act = paste0(purpose,destination)) %>%
+  mutate(sub1 = duplicated(act)) %>%
+  ungroup()
+```
+
+```{r}
+subtestA2 <- subtestA1 %>% 
+  arrange(person_id,desc(trip_id)) %>% 
+  group_by(person_id,tour_id) %>%
+  mutate(sub2 = duplicated(act)) %>%
+  # we only want the longest subtour (no imbedded subtours)
+  mutate(sub1 = ifelse(duplicated(sub1),FALSE,sub1)) %>% 
+  ungroup()
+```
+
+```{r}
+subtestA <- subtestA2 %>% 
+  arrange(person_id,trip_id) %>% 
+  group_by(person_id,tour_id) %>%
+  # we only want the longest subtour (no imbedded subtours)
+  mutate(sub2 = ifelse(duplicated(sub2),FALSE,sub2)) %>% 
+  ungroup() %>%
+  # define the start and end of a subtour
+  mutate(sub = ifelse(sub1 == TRUE, "endsub", ifelse(sub2 == TRUE, "startsub", "none"))) %>%
+  arrange(person_id,tour_id,trip_id)
+```
+
+
+```{r}
+subtestB <- subtestA %>%
+  mutate(sub = ifelse(sub == "startsub" & lead(sub) == "endsub", "none", ifelse(sub== "endsub" & lag(sub) == "startsub", "none", sub))) %>%
+  #mutate(sub = ifelse(lag(sub) %in% c("startsub","midsub") & sub != "endsub", "midsub",sub)) %>%
+  filter(person_id %in% c(61,133,1284, 6738, 28819))
+```
+
+```{r}
+shopping_subtours <- get_purpose_subtours(asim_final_trips,"shopping")
+
+subtestB3  %>% mutate(purp = ifelse(sub %in% c("startsub", "endsub", "midsub"),
+                        "shopping", "none"))
+```
+
+
+
+```{r}
+for(i in 1:length(subtestB$sub)){
+  subtestB$sub[i] <- 
+    ifelse(i == 0, subtestB$sub[i], 
+      ifelse(subtestB$sub[i-1] %in% c("startsub","midsub") & subtestB$sub[i] %!in% c("startsub","endsub"), "midsub", 
+        subtestB$sub[i]
+      )
+    )  
+}
+```
+
+
+
+
+```{r}
+subPeeps<- subtestB %>% filter(sub == "endsub")
+
+subtestAA <- subtestB %>% 
+  group_by(person_id,tour_id) %>%
+ ungroup() %>% filter(person_id %in% subPeeps$person_id) %>%
+  arrange(person_id, trip_id)
+```
+
+
+
