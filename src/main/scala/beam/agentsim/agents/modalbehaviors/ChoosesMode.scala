@@ -1462,7 +1462,7 @@ trait ChoosesMode {
             )
             correctRoutingResponse(newRoutingResponse).itineraries.filter(_.tripClassifier.value != "walk")
           } else {
-            if (autoWork == "no_auto") logger.warn("Not giving agent " + matsimPlan.getPerson.getId.toString + " any hov options because hasDepart = " + choosesModeData.personData.hasDeparted)
+            if (autoWork == "no_auto") logger.warn("Not giving agent " + matsimPlan.getPerson.getId.toString + " any hov options because hasDeparted = " + choosesModeData.personData.hasDeparted)
             else logger.warn("Not giving agent " + matsimPlan.getPerson.getId.toString + " any hov options because router didn't provide any vehicle routes")
             Seq()
           }
