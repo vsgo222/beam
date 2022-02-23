@@ -15,13 +15,14 @@ get_purpose_subtours <- function(asim_final_trips, purp){
     mutate(purpose = tolower(purpose)) %>%
     
     # find duplicated purposes in the same taz
+    arrange(person_id,activity_index) %>%
     group_by(person_id, tour_id) %>%
     mutate(act = paste0(purpose,destination)) %>%
     mutate(sub1 = ifelse(purpose == purp, duplicated(act), FALSE)) %>%
     ungroup() %>% 
   
     # flip table and find the original purposes where dublicates come from
-    arrange(person_id,desc(trip_id)) %>% 
+    arrange(person_id,desc(activity_index)) %>% 
     group_by(person_id,tour_id) %>%
     mutate(sub2 = ifelse(purpose == purp, duplicated(act), FALSE)) %>%
     # filter out embedded subtours
@@ -29,14 +30,14 @@ get_purpose_subtours <- function(asim_final_trips, purp){
     ungroup() %>%
   
     # classify beginning and end of subtours
-    arrange(person_id,trip_id) %>% 
+    arrange(person_id,activity_index) %>% 
     group_by(person_id,tour_id) %>%
     # filter out embedded subtours
     mutate(sub2 = ifelse(duplicated(sub2),FALSE,sub2)) %>% 
     ungroup() %>%
     # define the start and end of a subtour
     mutate(sub = ifelse(sub1 == TRUE, "endsub", ifelse(sub2 == TRUE, "startsub", "none"))) %>%
-    arrange(person_id,tour_id,trip_id) %>%
+    arrange(person_id,activity_index) %>%
   
     # delete "subtours" that are simply just two of the same purposes in a row
     mutate(sub = ifelse(sub == "startsub" & lead(sub) == "endsub", "none", 

@@ -352,39 +352,106 @@ pre code {
 </div>
 
 
-<pre class="r"><code>library(tidyverse)</code></pre>
+<pre class="r"><code>library(tidyverse)
+source(&quot;subtour_functions.R&quot;)</code></pre>
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
 <p>Part of my thesis will be comparing the mode choice of ASIM vs BEAM. A way of comparing these things is to see how both determine modes on subtours. We are going to compare the two in this memo.</p>
-<p>In order to complete this comparison, we must first understand that BEAM runs for multiple iterations. Iteration 0 is almost identical to the outputs of ASIM (on a run where mode choice innovation is turned off), whereas the last iteration, Iteration X, is the final output of BEAM. This summary is shown below:</p>
+<p>In order to complete this comparison, we must first determine which trips in our plans are subtours. Since the activity orders / plans are identical between all iterations of BEAM, we can simply use the ASIM final_trips as a base for determining subtours. Then, once subtours are determined on the trip output of ASIM, we can merge the mode choices of the final BEAM output onto it. This way we can compare the modes between ASIM and BEAM on the subtour level.</p>
+<p>As summary of what was just explained can be seen below:</p>
 <ul>
-<li>ASIM –&gt; Iteration 0 with MC Innovation Turned Off</li>
-<li>BEAM –&gt; Iteration X (last iteration) with MC Innovation Turned On</li>
+<li>ASIM –&gt; final_trips.csv (trip output of ActivitySim)</li>
+<li>BEAM –&gt; final_events.csv (TripArrivalEvents from BEAM events)</li>
 </ul>
-<p>In addition, a new event was created in the BEAM framework called the TripArrivalEvent. This shows all the trip statistics as an agent is arriving at their activity. This event, from the output events file will be used to compare mode choices on subtours.</p>
+<p>In addition, as is briefly mentioned above, a new event was created in the BEAM framework called the TripArrivalEvent. This shows all the trip statistics as an agent is arriving at their activity. This event, from the output events file will be used to help merge the BEAM results onto the ASIM subtour data table.</p>
 </div>
-<div id="read-data" class="section level2">
-<h2>Read Data</h2>
-<p>Let’s read in the data. Please note that we are only using one events file here. So, in the futre, the iteration 0 used for ASIM needs to be changed to an iteration 0 run where MC innovation was turned off. We are ignoring that here as we just want to figure out the code first.</p>
-<pre class="r"><code>csvevents2.5k &lt;- read_csv(&quot;events/slc-light-csv-test__2022-02-21_09-45-10_mqc/ITERS/it.1/1.events.csv&quot;, col_types = cols(.default = &quot;c&quot;)) %&gt;%
+<div id="beam-events" class="section level2">
+<h2>BEAM Events</h2>
+<p>We read in the BEAM events first. This is because if we don’t run a full scenario in BEAM, we only do need to read in the ASIM trips that correspond to the BEAM events.</p>
+<p>So, below we read in the BEAm events file. We select the columns that are important and use the TripArrivalEvent because it has all relavent trip information.</p>
+<pre class="r"><code>csvevents2.5k &lt;- read_csv(&quot;events/slc-light-csv-test__2022-02-23_09-46-24_ytw/ITERS/it.1/1.events.csv&quot;, col_types = cols(.default = &quot;c&quot;)) %&gt;%
   filter(type == &quot;TripArrivalEvent&quot;) %&gt;%
   select(person,time,type,mode,currentTourMode,income,vehicleOwnership,length,tourIndex,tourPurpose,activityIndex,actType,locationX,locationY)</code></pre>
+<p>The BEAM events that have all modal decisions are shown in the object below. Later, this will be joined onto the ASIM trip results and their subtour modes can be determined.</p>
 <pre class="r"><code>tripArrivals &lt;- csvevents2.5k %&gt;%
   arrange(person,tourIndex,activityIndex) %&gt;%
+  mutate(person = as.numeric(person),
+         activityIndex = as.numeric(activityIndex)) %&gt;%
   select(person,tourIndex,activityIndex,actType,locationX,locationY,mode)</code></pre>
-<pre class="r"><code>subtest1 &lt;- tripArrivals %&gt;% group_by(person,tourIndex) %&gt;%
-  mutate(dupAct1 = duplicated(actType),
-         dupX1 = duplicated(locationX),
-         dupY1 = duplicated(locationY)) %&gt;%
-  ungroup() 
+</div>
+<div id="asim-subtour-determination" class="section level2">
+<h2>ASIM Subtour Determination</h2>
+<p>Using the final trip outputs from ActivitySim, we can determine the subtours of each tour in the data. To do this we first read in the data table.</p>
+<pre class="r"><code>asim_final_trips &lt;- read_csv(&quot;events/final_trips.csv&quot;) %&gt;%
+  filter(person_id %in% tripArrivals$person) %&gt;%
+  # determine start and end time of each tour
+  arrange(person_id, tour_id) %&gt;%
+  group_by(person_id, tour_id) %&gt;%
+  mutate(tour_start_time = min(depart), tour_end_time = max(depart)) %&gt;% ungroup() %&gt;%
+  # restructure tour index order using tour start/end times
+  arrange(person_id,depart,tour_start_time,tour_end_time,trip_id) %&gt;% 
+  group_by(person_id) %&gt;%
+  # create new attribute called activity_index
+  mutate(activity_index = row_number() -1) %&gt;% ungroup() %&gt;%
+  # select the needed columns
+  select(trip_id, person_id, tour_id, activity_index, trip_count, purpose, origin, destination, trip_mode)</code></pre>
+<p>Now, using the functions in the R script, we manipulate the dataset to determine the subtours on a purpose based level. This is done below.</p>
+<pre class="r"><code>work_subtours &lt;- 
+  get_purpose_subtours(asim_final_trips,&quot;work&quot;) %&gt;%
+  mutate(work_subtours = sub) %&gt;% select(-sub)
+univ_subtours &lt;- 
+  get_purpose_subtours(asim_final_trips,&quot;univ&quot;) %&gt;%
+  mutate(univ_subtours = sub) %&gt;% select(-sub)
+school_subtours &lt;- 
+  get_purpose_subtours(asim_final_trips,&quot;school&quot;) %&gt;%
+  mutate(school_subtours = sub) %&gt;% select(-sub)
+escort_subtours &lt;- 
+  get_purpose_subtours(asim_final_trips,&quot;escort&quot;) %&gt;%
+  mutate(escort_subtours = sub) %&gt;% select(-sub)
+shopping_subtours &lt;-   
+  get_purpose_subtours(asim_final_trips,&quot;shopping&quot;) %&gt;%
+  mutate(shopping_subtours = sub) %&gt;% select(-sub)
+eatout_subtours &lt;- 
+  get_purpose_subtours(asim_final_trips,&quot;eatout&quot;) %&gt;%
+  mutate(eatout_subtours = sub) %&gt;% select(-sub)
+othmaint_subtours &lt;- 
+  get_purpose_subtours(asim_final_trips,&quot;othmaint&quot;) %&gt;%
+  mutate(othmaint_subtours = sub) %&gt;% select(-sub)
+social_subtours &lt;- 
+  get_purpose_subtours(asim_final_trips,&quot;social&quot;) %&gt;%
+  mutate(social_subtours = sub) %&gt;% select(-sub)
+othdiscr_subtours &lt;- 
+  get_purpose_subtours(asim_final_trips,&quot;othdiscr&quot;) %&gt;%
+  mutate(othdiscr_subtours = sub) %&gt;% select(-sub)
+atwork_subtours &lt;- 
+  get_purpose_subtours(asim_final_trips,&quot;atwork&quot;) %&gt;%
+  mutate(atwork_subtours = sub) %&gt;% select(-sub)</code></pre>
+<p>Next, we merge together all the above tables to create one subtour column, each describing which type of subtour it is.</p>
+<pre class="r"><code>#merge tables here
+subtour_purps &lt;- merge_subtours(
+  work_subtours,
+  univ_subtours,
+  school_subtours,
+  escort_subtours,
+  shopping_subtours,
+  eatout_subtours,
+  othmaint_subtours,
+  social_subtours,
+  othdiscr_subtours,
+  atwork_subtours
+)</code></pre>
+</div>
+<div id="merging-asim-and-beam" class="section level2">
+<h2>Merging ASIM and BEAM</h2>
+<p>Now that we have the BEAM events and the subtour analysis from the ActivitySim output trips completed, we can join the two files together. We join them together using the activityIndex column. The activityIndex was determined using start/end tour time, departure time, and person ID. The tables are joined below. In addition, we double check that the activityIndecies match up.</p>
+<pre class="r"><code>final_subtours &lt;- left_join(subtour_purps, tripArrivals, by = c(&quot;person_id&quot; = &quot;person&quot;,&quot;activity_index&quot; = &quot;activityIndex&quot;))
 
-subtest2 &lt;- subtest1 %&gt;% arrange(person,desc(activityIndex)) %&gt;% 
-  group_by(person,tourIndex) %&gt;%
-  mutate(dupAct2 = duplicated(actType),
-         dupX2 = duplicated(locationX),
-         dupY2 = duplicated(locationY)) %&gt;%
-  ungroup() %&gt;%
-  mutate(dupAct = ifelse(dupAct1 == TRUE | dupAct2 == TRUE, TRUE, FALSE))</code></pre>
+activityIndexMatchup &lt;- final_subtours %&gt;%
+  filter(tolower(actType) != purpose) %&gt;%
+  select(person_id, purpose, actType)
+activityIndexMatchup</code></pre>
+<pre><code>## # A tibble: 0 x 3
+## # ... with 3 variables: person_id &lt;dbl&gt;, purpose &lt;chr&gt;, actType &lt;chr&gt;</code></pre>
 </div>
 
 

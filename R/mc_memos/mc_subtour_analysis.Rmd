@@ -20,15 +20,47 @@ As summary of what was just explained can be seen below:
   - ASIM --> final_trips.csv (trip output of ActivitySim)
   - BEAM --> final_events.csv (TripArrivalEvents from BEAM events)
   
-In addition, as is briefly mentioned above, a new event was created in the BEAM framework called the TripArrivalEvent. This shows all the trip statistics as an agent is arriving at their activity. This event, from the output events file will be used to help merge the BEAm results onto the ASIM subtour data table. 
+In addition, as is briefly mentioned above, a new event was created in the BEAM framework called the TripArrivalEvent. This shows all the trip statistics as an agent is arriving at their activity. This event, from the output events file will be used to help merge the BEAM results onto the ASIM subtour data table. 
+
+
+## BEAM Events
+We read in the BEAM events first. This is because if we don't run a full scenario in BEAM, we only do need to read in the ASIM trips that correspond to the BEAM events.
+
+So, below we read in the BEAm events file. We select the columns that are important and use the TripArrivalEvent because it has all relavent trip information.
+
+```{r}
+csvevents2.5k <- read_csv("events/slc-light-csv-test__2022-02-23_09-46-24_ytw/ITERS/it.1/1.events.csv", col_types = cols(.default = "c")) %>%
+  filter(type == "TripArrivalEvent") %>%
+  select(person,time,type,mode,currentTourMode,income,vehicleOwnership,length,tourIndex,tourPurpose,activityIndex,actType,locationX,locationY)
+```
+
+The BEAM events that have all modal decisions are shown in the object below. Later, this will be joined onto the ASIM trip results and their subtour modes can be determined. 
+
+```{r}
+tripArrivals <- csvevents2.5k %>%
+  arrange(person,tourIndex,activityIndex) %>%
+  mutate(person = as.numeric(person),
+         activityIndex = as.numeric(activityIndex)) %>%
+  select(person,tourIndex,activityIndex,actType,locationX,locationY,mode)
+```
 
 ## ASIM Subtour Determination
-Using the final trip outputs from ActivitySim, we can determine the subtours of each tour in the data.To do this we first read in the data table.
+Using the final trip outputs from ActivitySim, we can determine the subtours of each tour in the data. To do this we first read in the data table.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message = FALSE, warning=FALSE}
 asim_final_trips <- read_csv("events/final_trips.csv") %>%
-  filter(person_id< 5000) %>%
-  select(trip_id, person_id, tour_id, trip_num, trip_count, purpose, origin, destination, trip_mode)
+  filter(person_id %in% tripArrivals$person) %>%
+  # determine start and end time of each tour
+  arrange(person_id, tour_id) %>%
+  group_by(person_id, tour_id) %>%
+  mutate(tour_start_time = min(depart), tour_end_time = max(depart)) %>% ungroup() %>%
+  # restructure tour index order using tour start/end times
+  arrange(person_id,depart,tour_start_time,tour_end_time,trip_id) %>% 
+  group_by(person_id) %>%
+  # create new attribute called activity_index
+  mutate(activity_index = row_number() -1) %>% ungroup() %>%
+  # select the needed columns
+  select(trip_id, person_id, tour_id, activity_index, trip_count, purpose, origin, destination, trip_mode)
 ```
 
 Now, using the functions in the R script, we manipulate the dataset to determine the subtours on a purpose based level. This is done below.
@@ -68,7 +100,7 @@ atwork_subtours <-
 
 Next, we merge together all the above tables to create one subtour column, each describing which type of subtour it is. 
 
-```{r}
+```{r, warning=FALSE, message = FALSE}
 #merge tables here
 subtour_purps <- merge_subtours(
   work_subtours,
@@ -84,21 +116,15 @@ subtour_purps <- merge_subtours(
 )
 ```
 
-
-
-
-## BEAM Events
+## Merging ASIM and BEAM
+Now that we have the BEAM events and the subtour analysis from the ActivitySim output trips completed, we can join the two files together. We join them together using the activityIndex column. The activityIndex was determined using start/end tour time, departure time, and person ID. The tables are joined below. In addition, we double check that the activityIndecies match up. 
 
 ```{r}
-csvevents2.5k <- read_csv("events/slc-light-csv-test__2022-02-21_09-45-10_mqc/ITERS/it.1/1.events.csv", col_types = cols(.default = "c")) %>%
-  filter(type == "TripArrivalEvent") %>%
-  select(person,time,type,mode,currentTourMode,income,vehicleOwnership,length,tourIndex,tourPurpose,activityIndex,actType,locationX,locationY)
-```
+final_subtours <- left_join(subtour_purps, tripArrivals, by = c("person_id" = "person","activity_index" = "activityIndex"))
 
-```{r}
-tripArrivals <- csvevents2.5k %>%
-  arrange(person,tourIndex,activityIndex) %>%
-  select(person,tourIndex,activityIndex,actType,locationX,locationY,mode)
+activityIndexMatchup <- final_subtours %>%
+  filter(tolower(actType) != purpose) %>%
+  select(person_id, purpose, actType)
+activityIndexMatchup
 ```
-
 
