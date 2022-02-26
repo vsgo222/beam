@@ -1,0 +1,143 @@
+---
+title: "BEAM Mode Choice Algorithms"
+header-includes:
+  - \usepackage{algorithm}
+  - \usepackage{algpseudocode}
+  - \usepackage{dsfont}
+output: pdf_document
+---
+
+\begin{algorithm}
+\caption{Algorithm for Determining Mode Choice Alternatives in BEAM}
+\begin{algorithmic}[1]
+\Require
+\State $i : origin$
+\State $j : destination$
+\State $n: agent$
+\State $N: population$
+\State $t : trip $
+\State $P : plan$
+\State $\vec{R}(i,j) : Router\: alternatives$
+\State $\vec{RH}(i,j) : Ridehail\:alternatives$
+\State $\vec{H}(i,j) : HOV\:alternatives$
+\State $\vec{M}(i,j) : Final\:modal\:alternatives$
+\State $C : Current\:Mode$
+\State $I : Trip\:Index$
+\vspace{4pt}\hrule\vspace{5pt}
+
+\State $\vec{R} \equiv \vec{R}(i,j)$
+\State $\vec{RH} \equiv \vec{RH}(i,j)$
+\State $\vec{H} \equiv \vec{H}(i,j)$
+\State $\vec{M} \equiv \vec{M}(i,j)$
+\For {$n \in N$}
+\For {$t \in P$}
+
+\Procedure {DetermineHOVAlternatives}{$\vec{R}$, $C$}
+\If {$C=None$}
+  \If {$\vec{R} \ni CAR$}
+    \State $\vec{H} \gets (HOV2,HOV3)$
+  \ElsIf {$\vec{R} \ni HOV2$}
+    \State $\vec{H} \gets (HOV3)$
+  \ElsIf {$\vec{R} \ni HOV3$}
+    \State $\vec{H} \gets (HOV2)$
+  \ElsIf {$\vec{R} \ni WALK$}
+    \State $\vec{H} \gets (HOV2\_TELEPORT, HOV3\_TELEPORT)$
+  \EndIf
+\Else
+  \State $\vec{H} \gets None$
+\EndIf
+\EndProcedure
+\Statex
+\algstore{myalg}
+\end{algorithmic}
+\end{algorithm}
+
+\addtocounter{algorithm}{-1}
+\begin{algorithm}[h]   
+\caption{continued}
+\begin{algorithmic} [1]
+\algrestore{myalg}
+\Procedure {DetermineFinalModalAlternatives}{$\vec{R}$, $\vec{RH}$, $\vec{H}$, $C$, $I$}
+\If {$C = DRIVE\_TRANSIT \lor BIKE\_TRANSIT$}
+  \If {$I = 0$}
+    \If {$C = DRIVE\_TRANSIT$}
+      \State $\vec{M} \gets (DRIVE\_TRANSIT)$
+    \Else
+      \State $\vec{M} \gets (BIKE\_TRANSIT)$
+    \EndIf  
+  \Else
+    \State $\vec{M} \gets (WALK\_TRANSIT, RIDEHAIL\_TRANSIT)$
+  \EndIf
+\ElsIf {$C = WALK\_TRANSIT \lor RIDEHAIL\_TRANSIT$}  
+  \If {$C = WALK\_TRANSIT$}
+    \State $\vec{M} \gets (WALK\_TRANSIT)$
+  \Else
+    \State $\vec{M} \gets (RIDEHAIL\_TRANSIT)$
+  \EndIf
+\ElsIf {$C = HOV2\_TELEPORT \lor HOV3\_TELEPORT$}  
+  \If {$C = HOV2\_TELEPORT$}
+    \State $\vec{M} \gets (HOV2\_TELEPORT)$
+  \Else
+    \State $\vec{M} \gets (HOV3\_TELEPORT)$
+  \EndIf
+\ElsIf {$C = CAR$}
+  \State $\vec{M} \gets (CAR)$
+\Else
+  \State $\vec{M} \gets \vec{R} + \vec{RH} + \vec{H}$  
+\EndIf  
+\EndProcedure
+\EndFor
+\EndFor
+\Statex
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{Algorithm for Selecting Final Modal Alternative in BEAM}
+\begin{algorithmic}[1]
+\Require
+\State $i : origin$
+\State $j : destination$
+\State $n: agent$
+\State $N: population$
+\State $t : trip $
+\State $P : plan$
+\State $\vec{A}: attributes\:of\:agent$
+\State $a: attribute\:value$
+\State $\vec{M}(i,j) : Modal\:alternatives$
+\State $m : alternative \in M(i,j)$
+\State $\vec{U}(\vec{M}(i,j),\vec{A}):Utilities\:for\:alternatives$
+\State $u: utility \in \vec{U}(\vec{M}(i,j),\vec{A})$
+\State $\vec{c}: attribute\:coefficients$
+\State $\mathds{P}: probability$
+\State $Mode: chosen\:mode\:for\:agent\:(n)\:on\:trip\:(t)$
+\State $f(\vec{X}):$
+This function takes a vector of modes and  their probabilities of being chosen. With those probabilities it builds them into a cumulative distribution function, generates a random number and then drops the mode with the closest probability. This process continues until only one mode is left.
+\vspace{4pt}\hrule\vspace{5pt}
+
+\State $\vec{M} \equiv \vec{M}(i,j)$
+\State $\vec{U} \equiv \vec{U}(\vec{M},\vec{A})$
+\For {$n \in N$}
+\For {$t \in P$}
+\Procedure {DetermineFinalModalAlternative}{$\vec{M}$, $\vec{A}$, $\vec{c}$}
+\For {$m \in \vec{M}$}
+  \State $u \gets \sum_{a\in \vec{A}} a \times c_a$
+  \State $\vec{U} += [m,u]$
+\EndFor
+\State $S \gets \sum_{u\in \vec{U}}e^u$
+\For {$u \in \vec{U}$}
+    \State $\mathds{P}(u)\gets e^u / S$
+    \State $\vec{B} +=[m, \mathds{P}(u)]$
+\EndFor 
+
+\State $Mode \gets f(\vec{B})$
+
+\EndProcedure
+
+\EndFor
+\EndFor
+\Statex
+\end{algorithmic}
+\end{algorithm}
+
+
