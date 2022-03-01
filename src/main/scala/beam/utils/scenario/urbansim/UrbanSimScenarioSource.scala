@@ -40,7 +40,8 @@ class UrbanSimScenarioSource(
         excludedModes = person.excludedModes.split(","),
         isFemale = person.isFemale,
         valueOfTime = person.valueOfTime,
-        autoWorkRatio = "auto_sufficient"
+        autoWorkRatio = "auto_sufficient",
+        income = 0.0
       )
     }
   }
