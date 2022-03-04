@@ -1,5 +1,5 @@
 ---
-title: "ModeChoice Calibration Using Events Files"
+title: "Verification of Mode Choice in BEAM"
 author: "Chris Day"
 date: "1/19/2021"
 output: html_document
@@ -11,13 +11,7 @@ library(tidyverse)
 
 # Introduction
 
-It is time to calibrate the mode choice constants. To do this, we will calibrate modal shares based on trips of each tour purpose for differing auto deficiency classes. The target shares will be those that were calculated from ActivitySim. These targets are similarly shown in BEAM's 0th iteration of a run that was completed with mode selection turned off.
-
-To do this calibration, we will compare the 0.events.csv file of a run done with mode innovation turned off, with the ith.events.csv file of a run done with mode innovation turned on (where ith is the last iteration.) We will use the formula below to the calibration:
-
-$NewASC = OldASC + ln(Trips_{ASIM}/Trips_{BEAM})$
-
-where each formula is dependent on purpose, mode, and auto deficiency.
+In this short memo, we verify that the current tour purpose mode choice model that I coded in BEAM is working. In addition we explore from what event we will be calibrating the mode choice itself. 
 
 # Data Manipulation
 From what I understand, Vedant is using the ith.plans.xml.gz file or the ith.experienced_plans.xml.gz. I think the plans.xml file includes all possible plans (even those that are not selected by the MNL model). The experienced_plans, however, only shows the selected plans. Therefore, the analysis should be done with the experienced_plans.
@@ -58,7 +52,7 @@ beamSumm <- beam %>% summarize(sum = n())
 
 The total number of trips for the 15th iteration is 7988 according to the experienced_plans file, and according to the mode choice events, we get 8002. I wonder why they are not the same... The events has 1 extra car, 12 extra walk, and 1 extra walk_transit. That is where the extra 14 comes from.
 
-## figureing out why there are extra mc events
+## Where do the extra Mode Choice Events come from?
 First, we figure out what agent has an extra car, walk_transit, and walk modes from iteration 15 events file.Then we compare his experienced plan with the mode choice event. We also analyze the component of the events.csv file to see if we figure out why these extra modes exist
 
 ### Extra car
@@ -100,7 +94,7 @@ The extra walk_transit is this guy: *2480060**
     arrival    hov2
   Reason for Replanning: MissedTransitPickup DRIVE_TRANSIT 
 
-### Replanning doesn't register in experienced_plans, but does in mode choice event
+### Replanning doesn't register in experienced_plans, but does in the Mode Choice Event
 
 Looking closer at the events file itself, it looks like the person departed with the mode drive_transit, but then arrived with the mode walk_transit. This is because there was an error with the drive_transit mode, causing *REPLANNING* to occur. It replanned, and selected walk_transit as the mode. A mode choice event was documented for both drive_transit and walk_transit though! That's where the extra mode comes from. 
 
@@ -132,8 +126,7 @@ Other agents that don't end at home:
 
 I didn't check all of them, but I think it is safe to say more walk trips exist in the mode choice events than in the output_events because some agents don't make their last trip before the day ends! I beleive this is because the walk trips are too long and they don't have sufficient time to make it back!
 
-  
-## Important notes
+## What we have determined.
 
 Above we see that the outpuT_experienced_plans matches the last iteration experienced plans. 
 
@@ -195,25 +188,24 @@ Ideas on how to understand it
   - check plans.csv file
   - dive into events file
   
-# Arrival Events
+# Using the Arrival Events
 What if I instead calibrate based on arrival events? I think every arrival represents a trip that was completed. This will make sure not to count the extra walk modes as trips that actually don't occur because the person didn't make it home. It will also account for replanning modes and unavailable ride hail vehicles, because the mode that is registered is the arrival mode. I would just have to add some attributes to the arrival events, which shouldn't be too hard!
 
 I created a new arrival event that includes all the person and trip level attributes needed for the calibration. It is called the TripArrivalEvent. I think we should calibrate based on the information in these events.
 
 ```{r}
-beamarrival <- beam %>% filter(type == "TripArrivalEvent") %>% 
+beam2 <- read_csv("events/slc-light-2.5k-hovtest-all__2022-01-01_12-26-56_khe/ITERS/it.15/15.events.csv", col_types = cols(.default = "c"))
+
+beamarrival <- beam2 %>% filter(type == "TripArrivalEvent") %>% 
   group_by(legMode) %>%
   summarize(modeNum = n())
 ```
 
-  
-  
 # Tracing Utility Score
 Dr. Erhardt wants to double check that the mode choice is being calculated the way we think it is. As a way to trace how the utility score for each mode selection is calculated, I added two new attributes to the output events file, under ModeChoice event types. The two new attributes are calculatedUtility and attributeValues. Using the attributeValues and the values in the asim-long.csv file, I should be able to verify that the calculatedUtility value is correct.
 
-
 ```{r, warning=FALSE, message=FALSE}
-tracerun <- read_csv("events/slc-light-2.5k-tpcm-hov-test-all__2022-01-28_06-17-02_mhw/ITERS/it.1/1.events.csv", col_types = cols(.default = "c")) %>%
+tracerun <- read_csv("events/slc-light-csv-test__2022-02-23_09-46-24_ytwe/ITERS/it.1/1.events.csv", col_types = cols(.default = "c")) %>%
   filter(type == "ModeChoice") %>%
   group_by(mode) %>%
   select(person, tourPurpose, mode, attributeValues, calculatedUtility, currentTourMode, income, vehicleOwnership, availableAlternatives, personalVehicleAvailable, length, time, tourIndex, type) %>%

@@ -48,7 +48,7 @@ tripArrivals <- csvevents2.5k %>%
 Using the final trip outputs from ActivitySim, we can determine the subtours of each tour in the data. To do this we first read in the data table.
 
 ```{r, message = FALSE, warning=FALSE}
-asim_final_trips <- read_csv("events/final_trips.csv") %>%
+asim_final_trips <- read_csv("events/final_trips_100k.csv") %>%
   filter(person_id %in% tripArrivals$person) %>%
   # determine start and end time of each tour
   arrange(person_id, tour_id) %>%
@@ -126,5 +126,9 @@ activityIndexMatchup <- final_subtours %>%
   filter(tolower(actType) != purpose) %>%
   select(person_id, purpose, actType)
 activityIndexMatchup
+```
+
+```{r}
+unnestedFS <- final_subtours %>% unnest(cols = c(subtours))
 ```
 
