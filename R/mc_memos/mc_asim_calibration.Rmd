@@ -8,8 +8,20 @@ output: html_document
 ```{r, message = FALSE, warning=FALSE}
 library(tidyverse)
 library(scales)
+source("functions/calibration_functions.R")
 ```
 
+# Set Input Files
+```{r}
+# constant after each run
+asim_final_trips <- "events/final_trips_100k.csv"
+asim_final_households <- "events/final_households_100k.csv"
+
+# change after each run
+beam_final_events <- "events/slc-light-csv-test__2022-02-23_09-46-24_ytw/ITERS/it.1/1.events.csv"
+asim_long <- "asim-long-R-blank.csv"
+runnum <- 1
+```
 
 # Introduction
 
@@ -24,145 +36,67 @@ where each formula is dependent on purpose, mode, and auto deficiency.
 # Target Values
 First, lets create a table of the target trip values that we want dependent on tour purpose and auto deficiency. This is done below.
 
-To do that, lets first read in the ActivitySim final trips file. Lets also create a new variable called the activity_index variable.
+To do that, we call the get_final_asim function that is used to manipulate the data tables. Here we create a new variable called the activity_index using the final_trips file. Then, using the final_households file we create a new variable for auto work ratio using auto ownership and number of workers per household. Then we merge the two tables into one table with all relevant variables.
 
 ```{r, message = FALSE, warning=FALSE}
-asim_final_trips <- read_csv("events/final_trips_100k.csv") %>%
-  # determine start and end time of each tour
-  arrange(person_id, tour_id) %>%
-  group_by(person_id, tour_id) %>%
-  mutate(tour_start_time = min(depart), tour_end_time = max(depart)) %>% ungroup() %>%
-  # restructure tour index order using tour start/end times
-  arrange(person_id,depart,tour_start_time,tour_end_time,trip_id) %>% 
-  group_by(person_id) %>%
-  # create new attribute called activity_index
-  mutate(activity_index = row_number() -1) %>% ungroup() %>%
-  # select the needed columns
-  select(trip_id, person_id, tour_id, household_id, activity_index, trip_count, purpose, origin, destination, primary_purpose, trip_mode)
+asim_table <- get_final_asim(asim_final_trips, asim_final_households)
 ```
 
-Now, lets read in the ActivitySim final households file. This file contains data on auto ownership and number of workers per household.
-
-```{r, message = FALSE, warning = FALSE}
-asim_final_households <- read_csv("events/final_households_100k.csv") %>%
-  mutate(autoWorkRatio = ifelse(auto_ownership == 0, "no_auto", ifelse(auto_ownership >= num_workers, "auto_sufficient", "auto_deficient")))
-```
-
-Now lets merge the two datasets together.
-
-```{r, waring = FALSE, message = FALSE}
-asim_table <- left_join(asim_final_trips, asim_final_households, by = "household_id") %>%
-  select(trip_id, person_id, tour_id, household_id, activity_index, trip_count, purpose, origin, destination, autoWorkRatio, primary_purpose, trip_mode)
-```
-
-Now we create a data table that shows the values of each ActivitySim trip mode in terms of the modes that BEAM uses.
+The last step that needs to be done to the table is to convert the current trip modes to modes that are recognized by BEAM. The conversion table is also shown.
 
 ```{r}
-modes <- data.frame(trip_mode = c("BIKE","WALK","DRIVEALONEFREE","DRIVEALONEPAY","SHARED2FREE","SHARED2PAY","SHARED3FREE","SHARED3PAY","DRIVE_COM","DRIVE_EXP","DRIVE_LOC","DRIVE_LRF","DRIVE_HVY","WALK_COM","WALK_EXP","WALK_LOC","WALK_LRF","WALK_HVY","TNC_SINGLE","TAXI","TNC_SHARED"),mode = c("bike","walk","car","car","hov2","hov2","hov3","hov3","drive_transit","drive_transit","drive_transit","drive_transit","drive_transit","walk_transit","walk_transit","walk_transit","walk_transit","walk_transit","ride_hail","ride_hail","ride_hail_pooled"))
+modes <- get_modes_table()
 modes
 ```
 
-Next, we join the beam mode values and summarize the entire dataset in order to get the percentages of modes based on primary purpose and auto work ratio. 
+Now that the conversion between modes is established, we updated the asim_table by updating the mode values to be consistent with beam modes. After that joining, a summary table is created in order to get the percentages of modes based on primary purpose and auto work ratio. This summary table is shown below.
 
-```{r}
-asim_table2 <- inner_join(asim_table,modes, by = "trip_mode") %>%
-  group_by(mode, autoWorkRatio, primary_purpose) %>%
-  summarize(tripTotals = sum(n())) %>% ungroup() %>%
-  mutate(total = sum(tripTotals)) %>%
-  mutate(tripPercents = tripTotals/total*100) %>%
-  select(-total)
-asim_table2
+```{r,warning=FALSE,message=FALSE}
+asim_summary <- get_summary(asim_table,modes,TRUE)
+asim_summary
 ```
 
 To visualize the table, below is a graph that shows similar information.
 
 ```{r}
-p <- ggplot(asim_table2) +
-  aes(autoWorkRatio,tripPercents,fill=primary_purpose) +
-  geom_bar(position = "fill", stat = "identity") +
-  scale_y_continuous(labels = percent) +
-  scale_fill_brewer(palette = "Set3") + 
-  facet_wrap(~mode) + 
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 90,vjust = 0.5))
-p
+get_sumgraph(asim_summary)
 ```
 
 # BEAM Final Values
 Similar to what we did with the ActivitySim trip values, we need to calculate the percentage of trips for each modal, primary purpose, and auto work ratio category. Then, with that we can adjust the asim values. So let's read in the beam output below.
 
 ```{r}
-tripArrivals <- read_csv("events/slc-light-csv-test__2022-02-23_09-46-24_ytw/ITERS/it.1/1.events.csv", col_types = cols(.default = "c")) %>%
-  filter(type == "TripArrivalEvent") %>%
-  select(person,time,type,mode,currentTourMode,income,vehicleOwnership,length,tourIndex,tourPurpose,activityIndex,actType,locationX,locationY) %>%
-  arrange(person,tourIndex,activityIndex) %>%
-  mutate(person = as.numeric(person),
-         activityIndex = as.numeric(activityIndex),
-         primary_purpose = tourPurpose,
-         autoWorkRatio = vehicleOwnership) %>%
-  # change all teleport modes to hov2 or hov3 for overall statistical analysis
-  mutate(mode = ifelse(mode == "hov2_teleportation", "hov2", ifelse(mode == "hov3_teleportation", "hov3", mode)))
+beam_table <- get_final_beam(beam_final_events)
 ```
 
 Now we manipulate the table to show us the summary statistics
 
-```{r}
-beam_summary <- tripArrivals %>%
-    group_by(mode, autoWorkRatio, primary_purpose) %>%
-  summarize(tripTotals = sum(n())) %>% ungroup() %>%
-  mutate(total = sum(tripTotals)) %>%
-  mutate(tripPercents = tripTotals/total*100) %>%
-  select(-total)
+```{r, message=FALSE,warning=FALSE}
+beam_summary <- get_summary(beam_table,modes,FALSE)
 beam_summary
 ```
 
 Also, a similar graph as the one shown previously.
 
 ```{r}
-p2 <- ggplot(beam_summary) +
-  aes(autoWorkRatio,tripPercents,fill=primary_purpose) +
-  geom_bar(position = "fill", stat = "identity") +
-  scale_y_continuous(labels = percent) +
-  scale_fill_brewer(palette = "Set3") + 
-  facet_wrap(~mode) + 
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 90,vjust = 0.5))
-p2
+get_sumgraph(beam_summary)
 ```
 
 
 # Utility ASC Parameter Calibration
 Now that we have both the ASIM and BEAM shares, we can now calibrate. To do this, we read in the asim-long-R-blank.csv, merge both shares onto the file and then calibrate!
 
-Here we merge organize the three datasets a little more
+Here we merge organize the three datasets a little more. Then we calibrate the new merged table.
 ```{r, message=FALSE,warning=FALSE}
-asim_long <- read_csv("asim-long-R-blank.csv") %>%
-  filter(grepl("asc", variable))
-beam_sum <- beam_summary %>%
-  mutate(variable = ifelse(autoWorkRatio == "auto_sufficient", "ascAutoSufficient", ifelse(autoWorkRatio == "no_auto", "ascNoAuto", "ascAutoDeficient")),
-         alternative = mode,
-         latentClass = primary_purpose,
-         beamP = tripPercents) %>%
-  select(alternative,variable,latentClass,beamP)
-asim_sum <- asim_table2 %>%
-  mutate(variable = ifelse(autoWorkRatio == "auto_sufficient", "ascAutoSufficient", ifelse(autoWorkRatio == "no_auto", "ascNoAuto", "ascAutoDeficient")),
-         alternative = mode,
-         latentClass = primary_purpose,
-         asimP = tripPercents) %>%
-  select(alternative,variable,latentClass,asimP)
+new_ascs <- build_new_ascs(asim_long, beam_summary, asim_summary)
+calibrated_ascs <- calibrate_new_ascs(new_ascs)
 ```
 
-
-Here we merge the percentages onto the asim-long file! Now calibration can be easy.
+Now we add the calibrated ascs into the asim_long.csv file to create a new asim-long file with calibrated values!
 
 ```{r}
-asim_longer <- asim_long %>% left_join(asim_sum, by = c("alternative", "variable","latentClass")) %>% left_join(beam_sum, by = c("alternative", "variable", "latentClass"))
+new_asim_long <- update_asim_long(asim_long,calibrated_ascs)
+write_csv(new_asim_long,"asim-long-R-blank2.csv")
 ```
 
-Stuff still to do:
-  
-  - Duplicate percentages for hov2 and hov3 to hov2_teleportation and hov3_teleportation
-  - Figure out what to do with NAs. 0? Number close to 0?
-  - Actually calculate the new alternative value
-  - Have easy pointer variable at top of sheet that defines the new beam file and the new asim file and the activitysim file.
-  - CLEAN UP THIS ENTIRE SHEET. (use functions for graph, table building etc.)
+Note: when BEAM percentages are NA but ActivitySim percentages are not NA/0, the code pretends that the BEAM percentages is simply half that of the ActivitySim percentage. This allows for slight changes in numbers to help increase the percentage of BEAM above 0%.
