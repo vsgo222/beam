@@ -7,7 +7,7 @@ output: html_document
 
 ```{r, warning = FALSE, message = FALSE}
 library(tidyverse)
-source("subtour_functions.R")
+source("functions/subtour_functions.R")
 ```
 
 ## Introduction
