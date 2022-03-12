@@ -1483,6 +1483,9 @@ trait ChoosesMode {
       val availableModesForTrips: Seq[BeamMode] = availableModesForPerson(matsimPlan.getPerson)
         .filterNot(mode => choosesModeData.excludeModes.contains(mode))
 
+      val tourMode = CAR // add some sort of logic that determines the tourMode
+      val availableModesForTripsByTourMode: Seq[BeamMode] = availableModesFromTourMode(tourMode, beamServices)
+
       var filteredItinerariesForChoice = (choosesModeData.personData.currentTourMode match {
         case Some(mode) if mode == DRIVE_TRANSIT || mode == BIKE_TRANSIT =>
           val LastTripIndex = currentTour(choosesModeData.personData).trips.size - 1

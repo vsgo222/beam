@@ -1,17 +1,25 @@
 package beam.utils.plan.sampling
 
 import java.util
-
-import scala.collection.JavaConverters
-
+import scala.collection.{JavaConverters, mutable}
 import beam.router.Modes.BeamMode
-import beam.sim.BeamScenario
+import beam.router.Modes.BeamMode.{BIKE, CAR, DRIVE_TRANSIT, HOV2, HOV3, WALK, WALK_TRANSIT}
+import beam.sim.{BeamScenario, BeamServices}
 import beam.sim.population.{AttributesOfIndividual, PopulationAdjustment}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.lang3.StringUtils.isBlank
 import org.matsim.api.core.v01.population.{Person, Plan, Population}
 import org.matsim.core.population.algorithms.PermissibleModesCalculator
+import org.matsim.core.utils.io.IOUtils
 import org.matsim.households.Household
+import org.supercsv.cellprocessor.constraint.NotNull
+import org.supercsv.cellprocessor.{Optional, ParseDouble}
+import org.supercsv.cellprocessor.ift.CellProcessor
+import org.supercsv.io.CsvBeanReader
+import org.supercsv.prefs.CsvPreference
+
+import scala.beans.BeanProperty
+
 
 /**
   * Several utility/convenience methods for mode availability. Note that the MATSim convention
@@ -58,6 +66,11 @@ object AvailableModeUtils extends LazyLogging {
     */
   def availableModesForPerson(person: Person): Seq[BeamMode] = {
     getPersonCustomAttributes(person).map(_.availableModes).getOrElse(Seq.empty)
+  }
+
+  def availableModesFromTourMode(setTourMode: BeamMode, beamServices: BeamServices): Seq[BeamMode] = {
+    val tourModeList: Seq[tourModeData] = parseTourModeData(beamServices.beamConfig.beam.agentsim.agents.modalBehaviors.tourMode.filePath)
+    getAvailableTripModesByTourMode(setTourMode, tourModeList)
   }
 
   /**
@@ -158,6 +171,52 @@ object AvailableModeUtils extends LazyLogging {
         logger.error(s"Error while converting available mode string [$mode] to respective Beam Mode Enums")
         None
     }
+  }
+
+  def getAvailableTripModesByTourMode(
+    setTourMode: BeamMode,
+    tourModeList:Seq[tourModeData]
+  ): Seq[BeamMode] = {
+    val tripModeList = tourModeList.toArray.filter(_.tourMode.equalsIgnoreCase(setTourMode.toString))
+    val tripModes = tripModeList.head.tripModes
+    availableModeParser(tripModes)
+  }
+
+  // this is used to parse through the taz location csv input file
+  private def parseTourModeData(tourModeDataFileName: String): Seq[tourModeData] = {
+    val beanReader = new CsvBeanReader(
+      IOUtils.getBufferedReader(tourModeDataFileName),
+      CsvPreference.STANDARD_PREFERENCE
+    )
+    val firstLineCheck = true
+    val header = beanReader.getHeader(firstLineCheck)
+    val processors: Array[CellProcessor] = AvailableModeUtils.getProcessors
+
+    val result = mutable.ArrayBuffer[tourModeData]()
+    var row: tourModeData = newEmptyRow()
+    while (beanReader.read[tourModeData](row, header, processors: _*) != null) {
+      if (Option(row.tourMode).isDefined)
+        result += row.clone().asInstanceOf[tourModeData]
+      row = newEmptyRow()
+    }
+    result
+  }
+
+  private def newEmptyRow(): tourModeData = new tourModeData()
+
+  private def getProcessors: Array[CellProcessor] = {
+    Array[CellProcessor](
+      new NotNull, // TourMode
+      new NotNull // TripModes
+    )
+  }
+
+  class tourModeData(
+    @BeanProperty var tourMode: String = "",
+    @BeanProperty var tripModes: String = ""
+  ) extends Cloneable {
+    override def clone(): AnyRef =
+      new tourModeData(tourMode, tripModes)
   }
 
 }

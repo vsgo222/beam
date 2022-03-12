@@ -164,7 +164,8 @@ object BeamConfig {
           overrideAutomationLevel: scala.Int,
           poolingMultiplier: BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.PoolingMultiplier,
           modalityStyle: java.lang.String,
-          varType: java.lang.String
+          varType: java.lang.String,
+          tourMode: BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.TourMode
         )
 
         object ModalBehaviors {
@@ -349,7 +350,21 @@ object BeamConfig {
             def apply(c: com.typesafe.config.Config): BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.TpcmLoc = {
               BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.TpcmLoc(
                 filePath =
-                  if (c.hasPathOrNull("filePath")) c.getString("filePath") else "/test/input/slc-light/tpcm-loc.csv"
+                  if (c.hasPathOrNull("filePath")) c.getString("filePath") else "/test/input/slc-light/data/tpcm-loc.csv"
+              )
+            }
+          }
+
+          case class TourMode(
+            filePath: java.lang.String
+          )
+
+          object TourMode {
+
+            def apply(c: com.typesafe.config.Config): BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.TourMode = {
+              BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.TourMode(
+                filePath =
+                  if (c.hasPathOrNull("filePath")) c.getString("filePath") else  "yomomma"//"/test/input/slc-light/data/trip-tour-modes.csv"
               )
             }
           }
@@ -680,7 +695,11 @@ object BeamConfig {
               modalityStyle = if (c.hasPathOrNull("modalityStyle")) c.getString("modalityStyle")
               else "",
               varType = if (c.hasPathOrNull("varType")) c.getString("varType")
-              else "All"
+              else "All",
+              tourMode = BeamConfig.Beam.Agentsim.Agents.ModalBehaviors.TourMode(
+                if (c.hasPathOrNull("tourMode")) c.getConfig("tourMode")
+                else com.typesafe.config.ConfigFactory.parseString("tourMode{}")
+              )
             )
           }
         }
