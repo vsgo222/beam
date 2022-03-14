@@ -1511,6 +1511,9 @@ trait ChoosesMode {
           )
         case Some(CAR) =>
           combinedItinerariesForChoice.filter(_.tripClassifier == CAR) // doesn't filter out hovs, so that's good.
+        // add case for walk and bike
+        case Some(BIKE) =>
+          combinedItinerariesForChoice.filter(_.tripClassifier == BIKE) // might work now?
         case _ =>
           combinedItinerariesForChoice
       }).filter(itin => availableModesForTrips.contains(itin.tripClassifier))
