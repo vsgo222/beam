@@ -1,5 +1,3 @@
-;FILE: nesting_constants.block
-
-;all purposes
-nest_motor     = 0.85
-nest_nonmotor  = 0.85
+version https://git-lfs.github.com/spec/v1
+oid sha256:d10f0aacfde6f008ee39559de8ef1d63b521d505277b19a0d01fed9aff0a0dfc
+size 90
