@@ -25,7 +25,7 @@ plugins {
     id "me.champeau.gradle.jmh" version "0.5.3"
     id 'com.bmuschko.docker-java-application' version '6.6.1'
     id 'org.ajoberstar.grgit' version '4.0.2'
-    id "com.github.johnrengelman.shadow" version "7.0.0" // Shadow helps create fatJars
+    id "com.github.johnrengelman.shadow" version "7.1.0" // Shadow helps create fatJars
     id "cz.alenkacz.gradle.scalafmt" version "1.16.2"
 }
 
@@ -123,13 +123,6 @@ allprojects {
 
 configurations {
     scalaCompilerPlugin
-}
-
-configurations.all {
-    resolutionStrategy {
-//       we need this in order to get Elki library working fine.
-        force 'it.unimi.dsi:fastutil:8.5.4'
-    }
 }
 
 configurations.all {
@@ -364,7 +357,6 @@ tasks.withType(cz.alenkacz.gradle.scalafmt.ScalafmtFormatBase){
 }
 
 tasks.withType(ScalaCompile) {
-    // LooksLikeInterpolatedString must stay
     def additionalParameters = ["-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
                                 "-P:scapegoat:dataDir:" + buildDir + "/reports/scapegoat",
                                 "-P:scapegoat:reports:html:xml",
@@ -387,7 +379,7 @@ mainClassName = 'beam.sim.RunBeam'
 //mainClassName = 'beam.analysis.tscore.WavHandlersRunner'
 
 shadowJar{
-    archiveBaseName.set('beam-2021-11-06')
+    archiveBaseName.set(mainClassName)
     archiveClassifier.set('')
     archiveVersion.set('')
 

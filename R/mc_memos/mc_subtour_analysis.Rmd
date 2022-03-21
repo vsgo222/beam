@@ -1,0 +1,134 @@
+---
+title: "Subtour Analysis"
+author: "Chris Day"
+date: "2/21/2022"
+output: html_document
+---
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+source("functions/subtour_functions.R")
+```
+
+## Introduction
+Part of my thesis will be comparing the mode choice of ASIM vs BEAM. A way of comparing these things is to see how both determine modes on subtours. We are going to compare the two in this memo. 
+
+In order to complete this comparison, we must first determine which trips in our plans are subtours. Since the activity orders / plans are identical between all iterations of BEAM, we can simply use the ASIM final_trips as a base for determining subtours. Then, once subtours are determined on the trip output of ASIM, we can merge the mode choices of the final BEAM output onto it. This way we can compare the modes between ASIM and BEAM on the subtour level.
+
+As summary of what was just explained can be seen below:
+
+  - ASIM --> final_trips.csv (trip output of ActivitySim)
+  - BEAM --> final_events.csv (TripArrivalEvents from BEAM events)
+  
+In addition, as is briefly mentioned above, a new event was created in the BEAM framework called the TripArrivalEvent. This shows all the trip statistics as an agent is arriving at their activity. This event, from the output events file will be used to help merge the BEAM results onto the ASIM subtour data table. 
+
+
+## BEAM Events
+We read in the BEAM events first. This is because if we don't run a full scenario in BEAM, we only do need to read in the ASIM trips that correspond to the BEAM events.
+
+So, below we read in the BEAm events file. We select the columns that are important and use the TripArrivalEvent because it has all relavent trip information.
+
+```{r}
+csvevents2.5k <- read_csv("events/slc-light-csv-test__2022-02-23_09-46-24_ytw/ITERS/it.1/1.events.csv", col_types = cols(.default = "c")) %>%
+  filter(type == "TripArrivalEvent") %>%
+  select(person,time,type,mode,currentTourMode,income,vehicleOwnership,length,tourIndex,tourPurpose,activityIndex,actType,locationX,locationY)
+```
+
+The BEAM events that have all modal decisions are shown in the object below. Later, this will be joined onto the ASIM trip results and their subtour modes can be determined. 
+
+```{r}
+tripArrivals <- csvevents2.5k %>%
+  arrange(person,tourIndex,activityIndex) %>%
+  mutate(person = as.numeric(person),
+         activityIndex = as.numeric(activityIndex)) %>%
+  select(person,tourIndex,activityIndex,actType,locationX,locationY,mode)
+```
+
+## ASIM Subtour Determination
+Using the final trip outputs from ActivitySim, we can determine the subtours of each tour in the data. To do this we first read in the data table.
+
+```{r, message = FALSE, warning=FALSE}
+asim_final_trips <- read_csv("events/final_trips_100k.csv") %>%
+  filter(person_id %in% tripArrivals$person) %>%
+  # determine start and end time of each tour
+  arrange(person_id, tour_id) %>%
+  group_by(person_id, tour_id) %>%
+  mutate(tour_start_time = min(depart), tour_end_time = max(depart)) %>% ungroup() %>%
+  # restructure tour index order using tour start/end times
+  arrange(person_id,depart,tour_start_time,tour_end_time,trip_id) %>% 
+  group_by(person_id) %>%
+  # create new attribute called activity_index
+  mutate(activity_index = row_number() -1) %>% ungroup() %>%
+  # select the needed columns
+  select(trip_id, person_id, tour_id, activity_index, trip_count, purpose, origin, destination, trip_mode)
+```
+
+Now, using the functions in the R script, we manipulate the dataset to determine the subtours on a purpose based level. This is done below.
+
+```{r}
+work_subtours <- 
+  get_purpose_subtours(asim_final_trips,"work") %>%
+  mutate(work_subtours = sub) %>% select(-sub)
+univ_subtours <- 
+  get_purpose_subtours(asim_final_trips,"univ") %>%
+  mutate(univ_subtours = sub) %>% select(-sub)
+school_subtours <- 
+  get_purpose_subtours(asim_final_trips,"school") %>%
+  mutate(school_subtours = sub) %>% select(-sub)
+escort_subtours <- 
+  get_purpose_subtours(asim_final_trips,"escort") %>%
+  mutate(escort_subtours = sub) %>% select(-sub)
+shopping_subtours <-   
+  get_purpose_subtours(asim_final_trips,"shopping") %>%
+  mutate(shopping_subtours = sub) %>% select(-sub)
+eatout_subtours <- 
+  get_purpose_subtours(asim_final_trips,"eatout") %>%
+  mutate(eatout_subtours = sub) %>% select(-sub)
+othmaint_subtours <- 
+  get_purpose_subtours(asim_final_trips,"othmaint") %>%
+  mutate(othmaint_subtours = sub) %>% select(-sub)
+social_subtours <- 
+  get_purpose_subtours(asim_final_trips,"social") %>%
+  mutate(social_subtours = sub) %>% select(-sub)
+othdiscr_subtours <- 
+  get_purpose_subtours(asim_final_trips,"othdiscr") %>%
+  mutate(othdiscr_subtours = sub) %>% select(-sub)
+atwork_subtours <- 
+  get_purpose_subtours(asim_final_trips,"atwork") %>%
+  mutate(atwork_subtours = sub) %>% select(-sub)
+```
+
+Next, we merge together all the above tables to create one subtour column, each describing which type of subtour it is. 
+
+```{r, warning=FALSE, message = FALSE}
+#merge tables here
+subtour_purps <- merge_subtours(
+  work_subtours,
+  univ_subtours,
+  school_subtours,
+  escort_subtours,
+  shopping_subtours,
+  eatout_subtours,
+  othmaint_subtours,
+  social_subtours,
+  othdiscr_subtours,
+  atwork_subtours
+)
+```
+
+## Merging ASIM and BEAM
+Now that we have the BEAM events and the subtour analysis from the ActivitySim output trips completed, we can join the two files together. We join them together using the activityIndex column. The activityIndex was determined using start/end tour time, departure time, and person ID. The tables are joined below. In addition, we double check that the activityIndecies match up. 
+
+```{r}
+final_subtours <- left_join(subtour_purps, tripArrivals, by = c("person_id" = "person","activity_index" = "activityIndex"))
+
+activityIndexMatchup <- final_subtours %>%
+  filter(tolower(actType) != purpose) %>%
+  select(person_id, purpose, actType)
+activityIndexMatchup
+```
+
+```{r}
+unnestedFS <- final_subtours %>% unnest(cols = c(subtours))
+```
+

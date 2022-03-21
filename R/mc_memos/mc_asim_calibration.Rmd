@@ -1,0 +1,102 @@
+---
+title: "Mode Choice Calibration"
+author: "Chris Day"
+date: "3/2/2022"
+output: html_document
+---
+
+```{r, message = FALSE, warning=FALSE}
+library(tidyverse)
+library(scales)
+source("functions/calibration_functions.R")
+```
+
+# Set Input Files
+```{r}
+# constant after each run
+asim_final_trips <- "events/final_trips_100k.csv"
+asim_final_households <- "events/final_households_100k.csv"
+
+# change after each run
+beam_final_events <- "events/slc-light-csv-test__2022-02-23_09-46-24_ytw/ITERS/it.1/1.events.csv"
+asim_long <- "asim-long-R-blank.csv"
+runnum <- 1
+```
+
+# Introduction
+
+It is time to calibrate the mode choice constants. To do this, we will calibrate modal shares based on trips of each tour purpose for differing auto deficiency classes. The target shares will be those that were calculated from ActivitySim. These targets are shown in the output of ActivitySim or the input to BEAM. 
+
+To do this calibration, we will compare the targets file with the ith.events.csv file of a run done with mode innovation turned on (where ith is the last iteration.) We will use the formula below to the calibration:
+
+$NewASC = OldASC + ln(Trips_{ASIM}/Trips_{BEAM})$
+
+where each formula is dependent on purpose, mode, and auto deficiency.
+
+# Target Values
+First, lets create a table of the target trip values that we want dependent on tour purpose and auto deficiency. This is done below.
+
+To do that, we call the get_final_asim function that is used to manipulate the data tables. Here we create a new variable called the activity_index using the final_trips file. Then, using the final_households file we create a new variable for auto work ratio using auto ownership and number of workers per household. Then we merge the two tables into one table with all relevant variables.
+
+```{r, message = FALSE, warning=FALSE}
+asim_table <- get_final_asim(asim_final_trips, asim_final_households)
+```
+
+The last step that needs to be done to the table is to convert the current trip modes to modes that are recognized by BEAM. The conversion table is also shown.
+
+```{r}
+modes <- get_modes_table()
+modes
+```
+
+Now that the conversion between modes is established, we updated the asim_table by updating the mode values to be consistent with beam modes. After that joining, a summary table is created in order to get the percentages of modes based on primary purpose and auto work ratio. This summary table is shown below.
+
+```{r,warning=FALSE,message=FALSE}
+asim_summary <- get_summary(asim_table,modes,TRUE)
+asim_summary
+```
+
+To visualize the table, below is a graph that shows similar information.
+
+```{r}
+get_sumgraph(asim_summary)
+```
+
+# BEAM Final Values
+Similar to what we did with the ActivitySim trip values, we need to calculate the percentage of trips for each modal, primary purpose, and auto work ratio category. Then, with that we can adjust the asim values. So let's read in the beam output below.
+
+```{r}
+beam_table <- get_final_beam(beam_final_events)
+```
+
+Now we manipulate the table to show us the summary statistics
+
+```{r, message=FALSE,warning=FALSE}
+beam_summary <- get_summary(beam_table,modes,FALSE)
+beam_summary
+```
+
+Also, a similar graph as the one shown previously.
+
+```{r}
+get_sumgraph(beam_summary)
+```
+
+
+# Utility ASC Parameter Calibration
+Now that we have both the ASIM and BEAM shares, we can now calibrate. To do this, we read in the asim-long-R-blank.csv, merge both shares onto the file and then calibrate!
+
+Here we merge organize the three datasets a little more. Then we calibrate the new merged table.
+```{r, message=FALSE,warning=FALSE}
+new_ascs <- build_new_ascs(asim_long, beam_summary, asim_summary)
+calibrated_ascs <- calibrate_new_ascs(new_ascs)
+```
+
+Now we add the calibrated ascs into the asim_long.csv file to create a new asim-long file with calibrated values!
+
+```{r}
+new_asim_long <- update_asim_long(asim_long,calibrated_ascs)
+write_csv(new_asim_long,"asim-long-R-blank2.csv")
+```
+
+Note: when BEAM percentages are NA but ActivitySim percentages are not NA/0, the code pretends that the BEAM percentages is simply half that of the ActivitySim percentage. This allows for slight changes in numbers to help increase the percentage of BEAM above 0%.

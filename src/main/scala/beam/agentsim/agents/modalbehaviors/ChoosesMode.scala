@@ -1462,7 +1462,7 @@ trait ChoosesMode {
             )
             correctRoutingResponse(newRoutingResponse).itineraries.filter(_.tripClassifier.value != "walk")
           } else {
-            if (autoWork == "no_auto") logger.warn("Not giving agent " + matsimPlan.getPerson.getId.toString + " any hov options because hasDepart = " + choosesModeData.personData.hasDeparted)
+            if (autoWork == "no_auto") logger.warn("Not giving agent " + matsimPlan.getPerson.getId.toString + " any hov options because hasDeparted = " + choosesModeData.personData.hasDeparted)
             else logger.warn("Not giving agent " + matsimPlan.getPerson.getId.toString + " any hov options because router didn't provide any vehicle routes")
             Seq()
           }
@@ -1482,6 +1482,9 @@ trait ChoosesMode {
 
       val availableModesForTrips: Seq[BeamMode] = availableModesForPerson(matsimPlan.getPerson)
         .filterNot(mode => choosesModeData.excludeModes.contains(mode))
+
+      val tourMode = CAR // add some sort of logic that determines the tourMode
+      val availableModesForTripsByTourMode: Seq[BeamMode] = availableModesFromTourMode(tourMode, beamServices)
 
       var filteredItinerariesForChoice = (choosesModeData.personData.currentTourMode match {
         case Some(mode) if mode == DRIVE_TRANSIT || mode == BIKE_TRANSIT =>
@@ -1508,6 +1511,9 @@ trait ChoosesMode {
           )
         case Some(CAR) =>
           combinedItinerariesForChoice.filter(_.tripClassifier == CAR) // doesn't filter out hovs, so that's good.
+        // add case for walk and bike
+        case Some(BIKE) =>
+          combinedItinerariesForChoice.filter(_.tripClassifier == BIKE) // might work now?
         case _ =>
           combinedItinerariesForChoice
       }).filter(itin => availableModesForTrips.contains(itin.tripClassifier))
